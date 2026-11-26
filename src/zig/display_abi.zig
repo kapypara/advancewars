@@ -12,14 +12,17 @@ const GameState = core.touch.GameState;
 
 const default_scale: u32 = 3;
 
+extern var ewram: ?[*]u8;
+extern var iwram: ?[*]u8;
 extern var io_regs: ?[*]u8;
 extern var palette: ?[*]u8;
 extern var vram: ?[*]u8;
 extern var oam: ?[*]u8;
-
-extern fn bus_read8(addr: u32) u8;
-extern fn bus_read16(addr: u32) u16;
-extern fn bus_read32(addr: u32) u32;
+extern var r: [16]u32;
+extern var CPU_N: bool;
+extern var CPU_Z: bool;
+extern var CPU_C: bool;
+extern var CPU_V: bool;
 
 var s_ppu: Ppu = .{};
 var s_runner: Runner = .{};
@@ -43,11 +46,32 @@ inline fn readIo32(io: [*]const u8, off: u32) u32 {
         (@as(u32, io[off + 3]) << 24);
 }
 
+inline fn peek8(addr: u32) u8 {
+    return switch (addr >> 24) {
+        0x02 => if (ewram) |ptr| ptr[addr & 0x3FFFF] else 0,
+        0x03 => if (iwram) |ptr| ptr[addr & 0x7FFF] else 0,
+        else => 0,
+    };
+}
+
+inline fn peek16(addr: u32) u16 {
+    const aligned = addr & ~@as(u32, 1);
+    return @as(u16, peek8(aligned)) | (@as(u16, peek8(aligned + 1)) << 8);
+}
+
+inline fn peek32(addr: u32) u32 {
+    const aligned = addr & ~@as(u32, 3);
+    return @as(u32, peek8(aligned)) |
+        (@as(u32, peek8(aligned + 1)) << 8) |
+        (@as(u32, peek8(aligned + 2)) << 16) |
+        (@as(u32, peek8(aligned + 3)) << 24);
+}
+
 fn readRamSignedBytes(addr: u32, dst: []i8) void {
     var i: usize = 0;
     if ((addr & 3) == 0) {
         while (i + 4 <= dst.len) : (i += 4) {
-            const w = bus_read32(addr + @as(u32, @intCast(i)));
+            const w = peek32(addr + @as(u32, @intCast(i)));
             dst[i + 0] = @bitCast(@as(u8, @truncate(w)));
             dst[i + 1] = @bitCast(@as(u8, @truncate(w >> 8)));
             dst[i + 2] = @bitCast(@as(u8, @truncate(w >> 16)));
@@ -55,7 +79,7 @@ fn readRamSignedBytes(addr: u32, dst: []i8) void {
         }
     }
     while (i < dst.len) : (i += 1) {
-        dst[i] = @bitCast(bus_read8(addr + @as(u32, @intCast(i))));
+        dst[i] = @bitCast(peek8(addr + @as(u32, @intCast(i))));
     }
 }
 
@@ -66,11 +90,11 @@ fn sampleGameState() GameState {
     const bg3_hofs = readIo16(io, gba.io_reg.bg3hofs) & 0x1FF;
     const bg3_vofs = readIo16(io, gba.io_reg.bg3vofs) & 0x1FF;
 
-    const cursor_live = bus_read8(0x030036AC) == 1;
-    const battle_mode = bus_read8(0x030033E0) == 1;
-    const dialog_wait = bus_read8(0x03001D18) == 1;
-    const cursor_x = bus_read16(0x030036A4);
-    const cursor_y = bus_read16(0x030036A6);
+    const cursor_live = peek8(0x030036AC) == 1;
+    const battle_mode = peek8(0x030033E0) == 1;
+    const dialog_wait = peek8(0x03001D18) == 1;
+    const cursor_x = peek16(0x030036A4);
+    const cursor_y = peek16(0x030036A6);
 
     return .{
         .map_active = (mode == 0) and cursor_live and battle_mode and !dialog_wait,
@@ -85,7 +109,7 @@ fn sampleGameState() GameState {
 
 fn pumpLiveAudio() void {
     const io = io_regs orelse return;
-    const sound_info_ptr = bus_read32(audio.sound_info_ptr_addr);
+    const sound_info_ptr = peek32(audio.sound_info_ptr_addr);
     const valid_info = (sound_info_ptr >= 0x0300_0000 and sound_info_ptr + 8 <= 0x0300_8000) or
         (sound_info_ptr >= 0x0200_0000 and sound_info_ptr + 8 <= 0x0204_0000);
     if (!valid_info) return;
@@ -100,8 +124,8 @@ fn pumpLiveAudio() void {
         .dma2_sad = readIo32(io, audio.io_reg.dma2_sad),
         .dma2_dad = readIo32(io, audio.io_reg.dma2_dad),
         .dma2_cnt_h = readIo16(io, audio.io_reg.dma2_cnt_h),
-        .sound_info_ident = bus_read32(sound_info_ptr),
-        .pcm_dma_counter = bus_read8(sound_info_ptr + 4),
+        .sound_info_ident = peek32(sound_info_ptr),
+        .pcm_dma_counter = peek8(sound_info_ptr + 4),
     };
 
     const slot = audio.activeSlotParams(regs) orelse return;
@@ -142,6 +166,58 @@ export fn display_pace() void {
     }
 }
 
+fn dumpContinuousFrame(framebuf: *const [gba.width * gba.height]u32, state: GameState) void {
+    if (s_runner.dump_dir == null) return;
+    s_runner.dumpFrameBmp(framebuf);
+
+    const io = io_regs orelse return;
+    const dispcnt = readIo16(io, gba.io_reg.dispcnt);
+    const bldcnt = readIo16(io, gba.io_reg.bldcnt);
+    const bldalpha = readIo16(io, gba.io_reg.bldalpha);
+    const bldy = readIo16(io, gba.io_reg.bldy);
+    const winin = readIo16(io, gba.io_reg.winin);
+    const winout = readIo16(io, gba.io_reg.winout);
+    const keyin = readIo16(io, 0x130);
+    const f_u64: u64 = @intCast(@max(s_runner.frame_no, 0));
+
+    var line_buf: [512]u8 = undefined;
+    const line = std.fmt.bufPrint(
+        &line_buf,
+        "f={d:0>6} DISPCNT=0x{X:0>4} BLDCNT=0x{X:0>4} BLDALPHA=0x{X:0>4} BLDY=0x{X:0>4} " ++
+            "WIN=0x{X:0>4}/0x{X:0>4} keyin=0x{X:0>4} live=0x{X:0>4} touch=0x{X:0>4} " ++
+            "map={d} dlg={d} cur=({d},{d}) scroll=({d},{d}) sp=0x{X:0>8} lr=0x{X:0>8} " ++
+            "pc=0x{X:0>8} r0=0x{X:0>8} r1=0x{X:0>8} nzcv={d}{d}{d}{d}\n",
+        .{
+            f_u64,
+            dispcnt,
+            bldcnt,
+            bldalpha,
+            bldy,
+            winin,
+            winout,
+            keyin,
+            s_live_keys_pressed,
+            s_touch.activeKeys(),
+            @intFromBool(state.map_active),
+            @intFromBool(state.dialog_waiting),
+            state.cursor_x,
+            state.cursor_y,
+            state.scroll_x,
+            state.scroll_y,
+            r[13],
+            r[14],
+            r[15],
+            r[0],
+            r[1],
+            @intFromBool(CPU_N),
+            @intFromBool(CPU_Z),
+            @intFromBool(CPU_C),
+            @intFromBool(CPU_V),
+        },
+    ) catch return;
+    s_runner.writeDumpLogLine(line);
+}
+
 export fn display_headless() c_int {
     return if (s_runner.headless) 1 else 0;
 }
@@ -158,6 +234,9 @@ export fn display_init() c_int {
     const win_w: u32 = @as(u32, @intCast(gba.width)) * default_scale;
     const win_h: u32 = @as(u32, @intCast(gba.height)) * default_scale;
     if (!s_runner.initRecording(win_w, win_h)) {
+        return -1;
+    }
+    if (!s_runner.initDumpDir()) {
         return -1;
     }
     if (s_runner.headless) return 0;
@@ -191,12 +270,16 @@ export fn display_render_line(y: c_int) void {
 
 export fn display_render_frame() void {
     if (io_regs == null or vram == null or palette == null or oam == null) return;
-    if (s_runner.onFrame(&s_ppu.framebuf)) return;
+    if (s_runner.onFrame(&s_ppu.framebuf)) {
+        dumpContinuousFrame(&s_ppu.framebuf, sampleGameState());
+        return;
+    }
 
     pumpLiveAudio();
     const state = sampleGameState();
     s_touch.stepFrame(state);
     s_touch.renderOverlay(&s_ppu.framebuf, &s_present_buf);
+    dumpContinuousFrame(&s_present_buf, state);
     s_backend.present(&s_present_buf);
 }
 

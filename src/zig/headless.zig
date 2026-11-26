@@ -13,6 +13,7 @@ const c_stdio = if (has_posix_stdio) struct {
     extern "c" fn popen(command: [*:0]const u8, mode: [*:0]const u8) ?*FILE;
     extern "c" fn pclose(stream: *FILE) c_int;
     extern "c" fn fflush(stream: *FILE) c_int;
+    extern "c" fn mkdir(path: [*:0]const u8, mode: u32) c_int;
 } else struct {
     const FILE = opaque {};
 };
@@ -97,10 +98,13 @@ pub const Runner = struct {
     record_path: ?[*:0]const u8 = null,
     shot_path: ?[*:0]const u8 = null,
     input_path: ?[*:0]const u8 = null,
+    dump_dir: ?[*:0]const u8 = null,
 
     dumps: [max_dumps]DumpPoint = @splat(.{}),
     num_dumps: usize = 0,
 
+    dump_path_buf: [512]u8 = @splat(0),
+    dump_log: ?*c_stdio.FILE = null,
     record_pipe: ?*c_stdio.FILE = null,
     input_file: ?*c_stdio.FILE = null,
     next_input_frame: i64 = -1,
@@ -131,6 +135,9 @@ pub const Runner = struct {
                 i += 1;
                 self.dumps[self.num_dumps] = .{ .frame = frame, .path = argv[i] };
                 self.num_dumps += 1;
+            } else if (std.mem.eql(u8, arg, "--dump-dir") and i + 1 < argv.len) {
+                i += 1;
+                self.dump_dir = argv[i];
             } else if (std.mem.eql(u8, arg, "--screenshot") and i + 1 < argv.len) {
                 i += 1;
                 self.shot_path = argv[i];
@@ -152,9 +159,20 @@ pub const Runner = struct {
         return self.rom_path;
     }
 
-    pub fn dumpPath(self: *const Runner, frame: i64) ?[*:0]const u8 {
+    pub fn dumpPath(self: *Runner, frame: i64) ?[*:0]const u8 {
         for (self.dumps[0..self.num_dumps]) |d| {
             if (d.frame == frame) return d.path;
+        }
+        if (self.dump_dir) |dir| {
+            if (frame < 0) return null;
+            const f_u64: u64 = @intCast(frame);
+            const path = std.mem.printSentinel(
+                &self.dump_path_buf,
+                "{s}/f{d:0>6}.bin",
+                .{ std.mem.span(dir), f_u64 },
+                0,
+            ) catch return null;
+            return path.ptr;
         }
         return null;
     }
@@ -163,10 +181,59 @@ pub const Runner = struct {
     pub fn shouldRenderScanline(self: *const Runner) bool {
         if (!self.headless) return true;
         if (self.record_path != null) return true;
+        if (self.dump_dir != null) return true;
         if (self.shot_path != null) {
             return self.max_frames == 0 or (self.frame_no + 1 >= self.max_frames);
         }
         return false;
+    }
+
+    pub fn initDumpDir(self: *Runner) bool {
+        const dir = self.dump_dir orelse return true;
+        if (!has_posix_stdio) return false;
+
+        _ = c_stdio.mkdir(dir, 0o755);
+        var log_path_buf: [512]u8 = undefined;
+        const log_path = std.mem.printSentinel(
+            &log_path_buf,
+            "{s}/frames.log",
+            .{std.mem.span(dir)},
+            0,
+        ) catch return false;
+        self.dump_log = c_stdio.fopen(log_path.ptr, "wb");
+        if (self.dump_log == null) {
+            std.debug.print("[dump-dir] cannot open {s}\n", .{std.mem.span(log_path.ptr)});
+            return false;
+        }
+        std.debug.print("[dump-dir] continuous frame+state dump -> {s}\n", .{std.mem.span(dir)});
+        return true;
+    }
+
+    pub fn dumpFrameBmp(self: *Runner, framebuf: *const [gba.width * gba.height]u32) void {
+        const dir = self.dump_dir orelse return;
+        if (!has_posix_stdio) return;
+
+        var bmp_path_buf: [512]u8 = undefined;
+        const f_u64: u64 = @intCast(@max(self.frame_no, 0));
+        const bmp_path = std.mem.printSentinel(
+            &bmp_path_buf,
+            "{s}/f{d:0>6}.bmp",
+            .{ std.mem.span(dir), f_u64 },
+            0,
+        ) catch return;
+        _ = writeBmp(bmp_path.ptr, framebuf);
+
+        if (self.frame_no == 1 or @mod(self.frame_no, 60) == 0) {
+            std.debug.print("[dump-dir] frame {d}\n", .{self.frame_no});
+        }
+    }
+
+    pub fn writeDumpLogLine(self: *Runner, line: []const u8) void {
+        if (!has_posix_stdio or line.len == 0) return;
+        if (self.dump_log) |f| {
+            _ = c_stdio.fwrite(line.ptr, 1, line.len, f);
+            _ = c_stdio.fflush(f);
+        }
     }
 
     pub fn initRecording(self: *Runner, win_width: u32, win_height: u32) bool {
@@ -256,6 +323,14 @@ pub const Runner = struct {
                 _ = c_stdio.fclose(f);
                 self.input_file = null;
             }
+            if (self.dump_log) |f| {
+                _ = c_stdio.fflush(f);
+                _ = c_stdio.fclose(f);
+                self.dump_log = null;
+                if (self.dump_dir) |dir| {
+                    std.debug.print("[dump-dir] saved {d} frames in {s}\n", .{ self.frame_no, std.mem.span(dir) });
+                }
+            }
         }
     }
 };
@@ -316,4 +391,21 @@ test "Runner.parseArgs parses CLI options and dump points" {
     try std.testing.expect(!runner.shouldRenderScanline());
     runner.frame_no = 759;
     try std.testing.expect(runner.shouldRenderScanline());
+}
+
+test "Runner.parseArgs supports continuous --dump-dir path formatting" {
+    const argv = [_][*:0]const u8{
+        "awre",
+        "game/aw.gba",
+        "--headless",
+        "--dump-dir",
+        "scratch/tmp_test",
+    };
+
+    var runner = Runner{};
+    _ = runner.parseArgs(&argv, false);
+    try std.testing.expect(runner.dump_dir != null);
+    try std.testing.expectEqualStrings("scratch/tmp_test", std.mem.span(runner.dump_dir.?));
+    try std.testing.expect(runner.shouldRenderScanline());
+    try std.testing.expectEqualStrings("scratch/tmp_test/f000042.bin", std.mem.span(runner.dumpPath(42).?));
 }
