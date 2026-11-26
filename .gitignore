@@ -25,6 +25,8 @@ menucover.png
 *.obj
 *.exe
 *.elf
+.zig-cache/
+zig-out/
 
 # IDE / OS
 .vscode/

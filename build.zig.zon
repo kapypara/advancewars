@@ -1,0 +1,18 @@
+.{
+    .name = .advancewars,
+    .version = "0.1.0",
+    .fingerprint = 0xd2eaf6d5f5e6b1b1,
+    .minimum_zig_version = "0.17.1",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "scripts",
+        "entries.txt",
+        "conformance_baseline.txt",
+        "tools",
+        "docs",
+        "README.md",
+    },
+}

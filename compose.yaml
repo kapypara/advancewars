@@ -6,6 +6,10 @@ services:
     image: advancewars-dev:latest
     volumes:
       - ./:/workspace
+      - zig-cache:/root/.cache/zig
     working_dir: /workspace
     stdin_open: true
     tty: true
+
+volumes:
+  zig-cache: {}
