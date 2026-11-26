@@ -1,0 +1,11 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: advancewars-dev:latest
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true

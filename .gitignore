@@ -29,6 +29,7 @@ menucover.png
 # IDE / OS
 .vscode/
 .idea/
+.openidea/
 *.swp
 *.swo
 .DS_Store
