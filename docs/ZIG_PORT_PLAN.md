@@ -38,28 +38,29 @@ Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: 
   - **Tier 1 (Corner HUD):** minimal translucent rounded pills (`L`, `ST`, `R`, `B`, `A`, toggleable with `F2`) mapped to GBA `KEYINPUT`, supporting simultaneous multi-touch/pointer holds.
   - **Tier 2 (Native direct-touch & gestures):** samples Advance Wars cursor (`0x030036A4`/`0x030036A6`), active map/dialog flags (`0x030036AC`, `0x030033E0`, `0x03001D18`), and `BG3HOFS`/`BG3VOFS` to navigate directly to tapped map tiles (with stall guard), tap-to-confirm on the active tile, swipe menus/maps, and tap through title/dialog screens.
   - Wired into `display_abi.zig` and `platform_sdl2.zig` (mouse + touch finger events) in live mode only; headless conformance (`165/165`) and BMP parity (`0 bytes diff`) remain untouched.
-- **Phase 3C — GBA Audio Mixer (`audio.zig`):**
-  - GBA DirectSound FIFO (DMA1/DMA2 + Timer 0/1) & PSG mixer feeding native Linux audio, Android AAudio, and WASM AudioWorklet.
+- **Phase 3C — GBA Audio Mixer (`src/zig/audio.zig`) (Done):**
+  - Pure-Zig GBA DirectSound A/B mixer reading `SOUNDCNT_H`/`SOUNDCNT_X`, `TM0CNT_L`, `DMA1`/`DMA2`, and `m4a` `SoundInfo` (`0x03007FF0` -> `"Smsh"` + `pcmDmaCounter`) to extract each frame's 224-sample stereo ring slice (~13.38 kHz) and continuously resample it to 48 kHz stereo `i16` over SDL2 audio (`F3` or `M` toggles mute).
+  - Upgraded DSP & timing: 2-sample-shifted 4-tap Catmull-Rom cubic Hermite resampler (C1 cross-frame continuity, zero boundary clamping), stereo 2-pole Butterworth low-pass (`fc = 6000 Hz`, `Q = 1/sqrt(2)`), 1-pole DC blocker (`alpha = 0.995`), stale `pcmDmaCounter` silence guard (`>= 2` stuck frames), ±1.5% dynamic rate control targeting `10,560` queued bytes (~55 ms), ~45 ms SDL pre-buffer before unpause, high-resolution GBA-clock frame pacing (`280896 / 16777216 = 16.743 ms`), and removed `SDL_RENDERER_PRESENTVSYNC` so 60.0 Hz VSync no longer fights 59.73 Hz GBA pacing.
+  - Temporary build-time `gen/runtime.c` fix (`patchRuntimeArmShifts` in `build.zig`, removed automatically when `runtime.c` is replaced in Phase 4): fixed ARM7TDMI interpreter register-shift-by-0 (`ROR Rs` / `LSR Rs` / `ASR Rs` with `Rs == 0` wrongly executing `RRX` / `>> 32`), eliminating `±128` byte-rotation spikes when `m4a`'s IWRAM `SoundMainRAM` (`0x03000C0C`/`0x03000C10`) ends a sample (`F1211` `intra_a`/`intra_b` dropped from `129`/`131` to `40`/`47`; `F2511` dropped from `133`/`134` to `15`/`15`).
+  - Verified with `zig build test`, `zig build -Dheadless=true`, `zig build`, `165/165` conformance, `0 bytes diff` BMP parity, and native Arch Linux `ldd` + 10-frame run.
 
 ## Phase 4 — Incremental GBA Runtime Port (`runtime.c` -> Zig)
 - Port `ext/gbarecomp/src/runtime.c` module-by-module behind the same C ABI (`memory.zig`, `flash.zig`, `dma.zig`, `timers.zig`, `irq.zig`, `bios.zig`, `interp.zig`).
-- Avoid host `setjmp`/`longjmp` in the Zig runtime (use clean state flags for SoftReset) so the exact same Zig runtime compiles cleanly for Linux, Android, and WASM.
+- Avoid host `setjmp`/`longjmp` in the Zig runtime (use clean state flags for SoftReset) so the exact same Zig runtime compiles cleanly for Linux and WASM.
 - Keep `conformance.py` (`165/165`) and Mission 1 & 2 headless replays (`tools/field_training_win.txt`, `tools/field_training_m2.txt`) green in Podman after each module swap.
 
-## Phase 5 — Android Port (`aarch64-linux-android` + Pure Touch APK)
-- Add Android NDK + minimal SDK build-tools (`aapt2`, `d8`, `apksigner`) to a Podman Android build target (`Containerfile.android` / compose service).
-- Cross-compile `libawre.so` via `zig build -Dtarget=aarch64-linux-android` (pure Zig `ANativeActivity` + GLES3/Vulkan framebuffer presentation + AAudio + native `AMotionEvent` wired into `touch.zig`).
-- Package signed APK with app-scoped storage loading for `aw.gba` and `aw.sav`.
+## Phase 5 — WebAssembly Browser Port (`wasm32-freestanding`)
+- Compile the pure Zig core + runtime to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten), serving desktop and mobile browsers (with pure touch controls).
+- Minimal browser JS shell (~150 lines) presenting the `240x160` framebuffer via Canvas2D / WebGL2, AudioWorklet audio, browser Pointer/Touch events wired into `touch.zig`, local ROM file drop (never uploaded), and 64 KB Flash persistence in `IndexedDB`.
 
-## Phase 6 — WebAssembly Browser Port (`wasm32-freestanding`)
-- Compile the pure Zig core + runtime to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten).
-- Minimal browser JS shell (~150 lines) presenting the `240x160` framebuffer via WebGPU (with automatic WebGL2/Canvas2D fallback), AudioWorklet audio, browser Pointer/Touch events wired into `touch.zig`, local ROM file drop (never uploaded), and 64 KB Flash persistence in `IndexedDB`.
-
-## Phase 7 — Full Zig Recompiler (`ext/gbarecomp` -> Zig)
+## Phase 6 — Full Zig Recompiler (`ext/gbarecomp` -> Zig)
 - Port `gbarecomp`'s ROM loader, ARM/Thumb decoders, CFG/entry-point analyzer, and code generator (`src/rom.c`, `arm.c`, `thumb.c`, `disasm.c`, `analysis.c`, `translate.c`, `main.c`) into Zig (`src/recomp/`), emitting pure `.zig` instead of C.
-- Eliminate all remaining C code, C flags (`.sanitize_c = .off`, `-std=gnu11`, `-O1`), and CMake/Clang/GCC tooling across Linux, Android, and WASM for 100% pure, fully-optimized Zig (`ReleaseFast`).
+- Eliminate all remaining C code, C flags (`.sanitize_c = .off`, `-std=gnu11`, `-O1`), and CMake/Clang/GCC tooling across Linux and WASM for 100% pure, fully-optimized Zig (`ReleaseFast`).
 
-## Phase 8 — Post-Port Polish & Native UX Enhancements (After Main Plan)
+## Phase 7 — Post-Port Polish & Native UX Enhancements (After Main Plan)
 - **Direct UI/Menu Mouse & Touch Hooking:** Hook Advance Wars' non-map UI screens (name entry character grid + `BACK`/`OK!`, title/main menus, unit action menus, CO select) for direct tap/click selection.
 - **Outside-Frame Touch Controls:** Render touch buttons in window/screen pillarbox and letterbox margins outside the aspect-preserved game viewport whenever extra screen space is available.
 - **Widescreen / Wider Viewport Mode:** Extend the Zig PPU beyond `240x160` for mobile and desktop widescreen screens.
+
+## Deferred / Optional (Skipped for Now)
+- **Android Native Port (`aarch64-linux-android` + Pure Touch APK):** Deferred indefinitely in favor of the Phase 5 WebAssembly port for mobile browser play with touch controls; can be revisited later using `zig build -Dtarget=aarch64-linux-android` + `touch.zig`.

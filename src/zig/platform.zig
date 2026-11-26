@@ -20,6 +20,7 @@ pub const PollResult = struct {
     quit: bool = false,
     keys_pressed: u16 = 0,
     toggle_hud: bool = false,
+    toggle_mute: bool = false,
 };
 
 const NoopBackend = struct {
@@ -28,6 +29,12 @@ const NoopBackend = struct {
     }
 
     pub fn present(_: *NoopBackend, _: *const [gba.width * gba.height]u32) void {}
+
+    pub fn pushAudio(_: *NoopBackend, _: []const i16) void {}
+
+    pub fn queuedAudioBytes(_: *const NoopBackend) u32 {
+        return 0;
+    }
 
     pub fn pace(_: *NoopBackend) void {}
 

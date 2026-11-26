@@ -1,6 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl2");
 const gba = @import("gba.zig");
+const audio = @import("audio.zig");
 const platform = @import("platform.zig");
 
 const max_pointer_queue: usize = 64;
@@ -49,15 +50,20 @@ pub const Sdl2Backend = struct {
     window: ?*sdl.SDL_Window = null,
     renderer: ?*sdl.SDL_Renderer = null,
     texture: ?*sdl.SDL_Texture = null,
+    audio_dev: sdl.SDL_AudioDeviceID = 0,
+    audio_started: bool = false,
     keys_pressed: u16 = 0,
-    last_frame_ms: u64 = 0,
+    next_frame_ticks: u64 = 0,
     pointer_buf: [max_pointer_queue]platform.PointerEvent = undefined,
     pointer_count: usize = 0,
 
     pub fn init(self: *Sdl2Backend, win_width: u32, win_height: u32) bool {
-        if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) != 0) {
-            sdl.SDL_Log("SDL_Init failed: %s", sdl.SDL_GetError());
-            return false;
+        if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO | sdl.SDL_INIT_AUDIO) != 0) {
+            if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) != 0) {
+                sdl.SDL_Log("SDL_Init failed: %s", sdl.SDL_GetError());
+                return false;
+            }
+            sdl.SDL_Log("SDL audio unavailable; continuing muted: %s", sdl.SDL_GetError());
         }
 
         // Crisp nearest-neighbor scaling must be hinted before renderer/texture creation.
@@ -79,8 +85,8 @@ pub const Sdl2Backend = struct {
         const renderer = sdl.SDL_CreateRenderer(
             window,
             -1,
-            sdl.SDL_RENDERER_ACCELERATED | sdl.SDL_RENDERER_PRESENTVSYNC,
-        ) orelse {
+            sdl.SDL_RENDERER_ACCELERATED,
+        ) orelse sdl.SDL_CreateRenderer(window, -1, 0) orelse {
             sdl.SDL_Log("SDL_CreateRenderer failed: %s", sdl.SDL_GetError());
             sdl.SDL_DestroyWindow(window);
             sdl.SDL_Quit();
@@ -104,8 +110,57 @@ pub const Sdl2Backend = struct {
         self.window = window;
         self.renderer = renderer;
         self.texture = texture;
-        self.last_frame_ms = sdl.SDL_GetTicks64();
+        self.audio_started = false;
+
+        const perf_freq = sdl.SDL_GetPerformanceFrequency();
+        const frame_ticks: u64 = if (perf_freq > 0)
+            @intCast((@as(u128, perf_freq) * audio.cycles_per_frame) / audio.gba_cpu_hz)
+        else
+            0;
+        self.next_frame_ticks = sdl.SDL_GetPerformanceCounter() +% frame_ticks;
+
+        if ((sdl.SDL_WasInit(sdl.SDL_INIT_AUDIO) & sdl.SDL_INIT_AUDIO) != 0) {
+            var desired = std.mem.zeroes(sdl.SDL_AudioSpec);
+            desired.freq = @intCast(audio.output_sample_rate);
+            desired.format = @intCast(sdl.AUDIO_S16SYS);
+            desired.channels = 2;
+            desired.samples = 1024;
+            const dev = sdl.SDL_OpenAudioDevice(null, 0, &desired, null, 0);
+            if (dev != 0) {
+                self.audio_dev = dev;
+                // Keep paused until ~45 ms of pre-buffered audio is queued.
+                sdl.SDL_PauseAudioDevice(dev, 1);
+            } else {
+                sdl.SDL_Log("SDL_OpenAudioDevice failed: %s", sdl.SDL_GetError());
+            }
+        }
         return true;
+    }
+
+    pub fn queuedAudioBytes(self: *const Sdl2Backend) u32 {
+        if (self.audio_dev == 0) return 0;
+        return sdl.SDL_GetQueuedAudioSize(self.audio_dev);
+    }
+
+    pub fn pushAudio(self: *Sdl2Backend, samples: []const i16) void {
+        if (self.audio_dev == 0 or samples.len == 0) return;
+        const prebuffer_bytes: u32 = audio.output_sample_rate * 4 * 45 / 1000; // ~45 ms (8,640 B)
+        const max_queued_bytes: u32 = audio.output_sample_rate * 4 * 220 / 1000; // ~220 ms ceiling (42,240 B)
+
+        if (sdl.SDL_GetQueuedAudioSize(self.audio_dev) > max_queued_bytes) {
+            sdl.SDL_ClearQueuedAudio(self.audio_dev);
+            self.audio_started = false;
+            sdl.SDL_PauseAudioDevice(self.audio_dev, 1);
+        }
+        _ = sdl.SDL_QueueAudio(
+            self.audio_dev,
+            @ptrCast(samples.ptr),
+            @intCast(samples.len * @sizeOf(i16)),
+        );
+        if (!self.audio_started and sdl.SDL_GetQueuedAudioSize(self.audio_dev) >= prebuffer_bytes) {
+            self.audio_started = true;
+            sdl.SDL_PauseAudioDevice(self.audio_dev, 0);
+        }
     }
 
     pub fn present(self: *Sdl2Backend, framebuf: *const [gba.width * gba.height]u32) void {
@@ -130,12 +185,33 @@ pub const Sdl2Backend = struct {
     }
 
     pub fn pace(self: *Sdl2Backend) void {
-        const now = sdl.SDL_GetTicks64();
-        const elapsed = now -% self.last_frame_ms;
-        if (elapsed < 16) {
-            sdl.SDL_Delay(@intCast(16 - elapsed));
+        const perf_freq = sdl.SDL_GetPerformanceFrequency();
+        if (perf_freq == 0) {
+            sdl.SDL_Delay(16);
+            return;
         }
-        self.last_frame_ms = sdl.SDL_GetTicks64();
+        const frame_ticks: u64 = @intCast((@as(u128, perf_freq) * audio.cycles_per_frame) / audio.gba_cpu_hz);
+        if (self.next_frame_ticks == 0) {
+            self.next_frame_ticks = sdl.SDL_GetPerformanceCounter() +% frame_ticks;
+        }
+
+        var now = sdl.SDL_GetPerformanceCounter();
+        if (now < self.next_frame_ticks) {
+            const rem_ticks = self.next_frame_ticks - now;
+            const rem_ms = (rem_ticks * 1000) / perf_freq;
+            if (rem_ms > 1) {
+                sdl.SDL_Delay(@intCast(rem_ms - 1));
+            }
+            while (sdl.SDL_GetPerformanceCounter() < self.next_frame_ticks) {}
+            now = sdl.SDL_GetPerformanceCounter();
+        }
+
+        // Prevent frame bursts after pauses or window drags (> 2 frames behind).
+        if (now > self.next_frame_ticks +% frame_ticks * 2) {
+            self.next_frame_ticks = now +% frame_ticks;
+        } else {
+            self.next_frame_ticks +%= frame_ticks;
+        }
     }
 
     fn pushPointer(self: *Sdl2Backend, ev: platform.PointerEvent) void {
@@ -170,16 +246,24 @@ pub const Sdl2Backend = struct {
 
     pub fn poll(self: *Sdl2Backend) platform.PollResult {
         var toggle_hud = false;
+        var toggle_mute = false;
         var ev: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&ev) != 0) {
             switch (ev.type) {
-                sdl.SDL_QUIT => return .{ .quit = true, .keys_pressed = self.keys_pressed, .toggle_hud = toggle_hud },
+                sdl.SDL_QUIT => return .{
+                    .quit = true,
+                    .keys_pressed = self.keys_pressed,
+                    .toggle_hud = toggle_hud,
+                    .toggle_mute = toggle_mute,
+                },
                 sdl.SDL_KEYDOWN, sdl.SDL_KEYUP => {
                     if (ev.type == sdl.SDL_KEYDOWN and ev.key.repeat == 0) {
                         if (ev.key.keysym.sym == sdl.SDLK_F11) {
                             self.toggleFullscreen();
                         } else if (ev.key.keysym.sym == sdl.SDLK_F2) {
                             toggle_hud = true;
+                        } else if (ev.key.keysym.sym == sdl.SDLK_F3 or ev.key.keysym.sym == sdl.SDLK_m) {
+                            toggle_mute = true;
                         }
                     }
                     const bit = mapSdlKey(ev.key.keysym.sym);
@@ -245,7 +329,12 @@ pub const Sdl2Backend = struct {
                 else => {},
             }
         }
-        return .{ .quit = false, .keys_pressed = self.keys_pressed, .toggle_hud = toggle_hud };
+        return .{
+            .quit = false,
+            .keys_pressed = self.keys_pressed,
+            .toggle_hud = toggle_hud,
+            .toggle_mute = toggle_mute,
+        };
     }
 
     pub fn drainPointers(self: *Sdl2Backend, out: []platform.PointerEvent) []const platform.PointerEvent {
@@ -256,6 +345,10 @@ pub const Sdl2Backend = struct {
     }
 
     pub fn shutdown(self: *Sdl2Backend) void {
+        if (self.audio_dev != 0) {
+            sdl.SDL_CloseAudioDevice(self.audio_dev);
+            self.audio_dev = 0;
+        }
         if (self.texture) |t| {
             sdl.SDL_DestroyTexture(t);
             self.texture = null;
