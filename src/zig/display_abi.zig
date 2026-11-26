@@ -5,6 +5,9 @@ const gba = core.gba;
 const Ppu = core.ppu.Ppu;
 const Runner = core.headless.Runner;
 const Backend = core.platform.Backend;
+const PointerEvent = core.platform.PointerEvent;
+const TouchController = core.touch.TouchController;
+const GameState = core.touch.GameState;
 
 const default_scale: u32 = 3;
 
@@ -13,10 +16,39 @@ extern var palette: ?[*]u8;
 extern var vram: ?[*]u8;
 extern var oam: ?[*]u8;
 
+extern fn bus_read8(addr: u32) u8;
+extern fn bus_read16(addr: u32) u16;
+
 var s_ppu: Ppu = .{};
 var s_runner: Runner = .{};
 var s_backend: Backend = .{};
+var s_touch: TouchController = .{};
+var s_present_buf: [gba.width * gba.height]u32 = @splat(0);
 var s_live_keys_pressed: u16 = 0;
+
+fn sampleGameState() GameState {
+    const io = io_regs orelse return .{};
+    const dispcnt: u16 = @as(u16, io[0]) | (@as(u16, io[1]) << 8);
+    const mode = dispcnt & 7;
+    const bg3_hofs: u16 = (@as(u16, io[gba.io_reg.bg3hofs]) | (@as(u16, io[gba.io_reg.bg3hofs + 1]) << 8)) & 0x1FF;
+    const bg3_vofs: u16 = (@as(u16, io[gba.io_reg.bg3vofs]) | (@as(u16, io[gba.io_reg.bg3vofs + 1]) << 8)) & 0x1FF;
+
+    const cursor_live = bus_read8(0x030036AC) == 1;
+    const battle_mode = bus_read8(0x030033E0) == 1;
+    const dialog_wait = bus_read8(0x03001D18) == 1;
+    const cursor_x = bus_read16(0x030036A4);
+    const cursor_y = bus_read16(0x030036A6);
+
+    return .{
+        .map_active = (mode == 0) and cursor_live and battle_mode and !dialog_wait,
+        .dialog_waiting = dialog_wait,
+        .title_mode4 = (mode == 4),
+        .cursor_x = cursor_x,
+        .cursor_y = cursor_y,
+        .scroll_x = bg3_hofs,
+        .scroll_y = bg3_vofs,
+    };
+}
 
 export fn display_parse_args(argc: c_int, argv: [*][*:0]u8) ?[*:0]const u8 {
     if (argc <= 0) return null;
@@ -81,7 +113,11 @@ export fn display_render_line(y: c_int) void {
 export fn display_render_frame() void {
     if (io_regs == null or vram == null or palette == null or oam == null) return;
     if (s_runner.onFrame(&s_ppu.framebuf)) return;
-    s_backend.present(&s_ppu.framebuf);
+
+    const state = sampleGameState();
+    s_touch.stepFrame(state);
+    s_touch.renderOverlay(&s_ppu.framebuf, &s_present_buf);
+    s_backend.present(&s_present_buf);
 }
 
 export fn display_poll_events() c_int {
@@ -90,11 +126,25 @@ export fn display_poll_events() c_int {
 
     const res = s_backend.poll();
     s_live_keys_pressed = res.keys_pressed;
+    if (res.toggle_hud) {
+        s_touch.toggleHud();
+    }
+
+    var ptr_buf: [64]PointerEvent = undefined;
+    const ptrs = s_backend.drainPointers(&ptr_buf);
+    if (ptrs.len > 0) {
+        const state = sampleGameState();
+        for (ptrs) |ev| {
+            s_touch.handlePointer(ev, state);
+        }
+    }
+
     return if (res.quit) 1 else 0;
 }
 
 export fn display_get_keys() u16 {
-    const combined = s_runner.script_keys_pressed | s_live_keys_pressed;
+    const touch_keys: u16 = if (s_runner.headless) 0 else s_touch.activeKeys();
+    const combined = s_runner.script_keys_pressed | s_live_keys_pressed | touch_keys;
     return gba.keyInputFromPressed(combined);
 }
 

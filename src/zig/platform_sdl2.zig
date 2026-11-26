@@ -21,6 +21,29 @@ fn mapSdlKey(sym: sdl.SDL_Keycode) u16 {
     };
 }
 
+fn computeGameRect(area_w: i32, area_h: i32) sdl.SDL_Rect {
+    const safe_w = @max(area_w, 1);
+    const safe_h = @max(area_h, 1);
+    const gba_w: i32 = @intCast(gba.width);
+    const gba_h: i32 = @intCast(gba.height);
+
+    var rw: i32 = undefined;
+    var rh: i32 = undefined;
+    if (@as(i64, safe_w) * gba_h <= @as(i64, safe_h) * gba_w) {
+        rw = safe_w;
+        rh = @max(@divTrunc(safe_w * gba_h, gba_w), 1);
+    } else {
+        rh = safe_h;
+        rw = @max(@divTrunc(safe_h * gba_w, gba_h), 1);
+    }
+    return .{
+        .x = @divTrunc(safe_w - rw, 2),
+        .y = @divTrunc(safe_h - rh, 2),
+        .w = rw,
+        .h = rh,
+    };
+}
+
 /// Native Linux / desktop SDL2 platform backend.
 pub const Sdl2Backend = struct {
     window: ?*sdl.SDL_Window = null,
@@ -64,8 +87,6 @@ pub const Sdl2Backend = struct {
             return false;
         };
 
-        _ = sdl.SDL_RenderSetLogicalSize(renderer, @intCast(gba.width), @intCast(gba.height));
-
         const texture = sdl.SDL_CreateTexture(
             renderer,
             @intCast(sdl.SDL_PIXELFORMAT_ARGB8888),
@@ -91,14 +112,20 @@ pub const Sdl2Backend = struct {
         const renderer = self.renderer orelse return;
         const texture = self.texture orelse return;
 
+        var out_w: c_int = @intCast(gba.width);
+        var out_h: c_int = @intCast(gba.height);
+        _ = sdl.SDL_GetRendererOutputSize(renderer, &out_w, &out_h);
+        var dst_rect = computeGameRect(@intCast(out_w), @intCast(out_h));
+
         _ = sdl.SDL_UpdateTexture(
             texture,
             null,
             @ptrCast(framebuf),
             @intCast(gba.width * @sizeOf(u32)),
         );
+        _ = sdl.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         _ = sdl.SDL_RenderClear(renderer);
-        _ = sdl.SDL_RenderCopy(renderer, texture, null, null);
+        _ = sdl.SDL_RenderCopy(renderer, texture, null, &dst_rect);
         sdl.SDL_RenderPresent(renderer);
     }
 
@@ -119,11 +146,19 @@ pub const Sdl2Backend = struct {
     }
 
     fn windowToLogical(self: *Sdl2Backend, win_x: f32, win_y: f32) struct { x: f32, y: f32 } {
-        const renderer = self.renderer orelse return .{ .x = win_x, .y = win_y };
-        var lx: f32 = 0;
-        var ly: f32 = 0;
-        sdl.SDL_RenderWindowToLogical(renderer, @intFromFloat(win_x), @intFromFloat(win_y), &lx, &ly);
-        return .{ .x = lx, .y = ly };
+        const window = self.window orelse return .{ .x = win_x, .y = win_y };
+        var win_w: c_int = @intCast(gba.width);
+        var win_h: c_int = @intCast(gba.height);
+        sdl.SDL_GetWindowSize(window, &win_w, &win_h);
+        const rect = computeGameRect(@intCast(win_w), @intCast(win_h));
+        const rx: f32 = @floatFromInt(rect.x);
+        const ry: f32 = @floatFromInt(rect.y);
+        const rw: f32 = @floatFromInt(rect.w);
+        const rh: f32 = @floatFromInt(rect.h);
+        return .{
+            .x = (win_x - rx) * (@as(f32, @floatFromInt(gba.width)) / rw),
+            .y = (win_y - ry) * (@as(f32, @floatFromInt(gba.height)) / rh),
+        };
     }
 
     fn toggleFullscreen(self: *Sdl2Backend) void {
@@ -134,13 +169,18 @@ pub const Sdl2Backend = struct {
     }
 
     pub fn poll(self: *Sdl2Backend) platform.PollResult {
+        var toggle_hud = false;
         var ev: sdl.SDL_Event = undefined;
         while (sdl.SDL_PollEvent(&ev) != 0) {
             switch (ev.type) {
-                sdl.SDL_QUIT => return .{ .quit = true, .keys_pressed = self.keys_pressed },
+                sdl.SDL_QUIT => return .{ .quit = true, .keys_pressed = self.keys_pressed, .toggle_hud = toggle_hud },
                 sdl.SDL_KEYDOWN, sdl.SDL_KEYUP => {
-                    if (ev.type == sdl.SDL_KEYDOWN and ev.key.keysym.sym == sdl.SDLK_F11 and ev.key.repeat == 0) {
-                        self.toggleFullscreen();
+                    if (ev.type == sdl.SDL_KEYDOWN and ev.key.repeat == 0) {
+                        if (ev.key.keysym.sym == sdl.SDLK_F11) {
+                            self.toggleFullscreen();
+                        } else if (ev.key.keysym.sym == sdl.SDLK_F2) {
+                            toggle_hud = true;
+                        }
                     }
                     const bit = mapSdlKey(ev.key.keysym.sym);
                     if (bit != 0) {
@@ -205,7 +245,7 @@ pub const Sdl2Backend = struct {
                 else => {},
             }
         }
-        return .{ .quit = false, .keys_pressed = self.keys_pressed };
+        return .{ .quit = false, .keys_pressed = self.keys_pressed, .toggle_hud = toggle_hud };
     }
 
     pub fn drainPointers(self: *Sdl2Backend, out: []platform.PointerEvent) []const platform.PointerEvent {

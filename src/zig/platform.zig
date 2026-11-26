@@ -19,6 +19,7 @@ pub const PointerEvent = struct {
 pub const PollResult = struct {
     quit: bool = false,
     keys_pressed: u16 = 0,
+    toggle_hud: bool = false,
 };
 
 const NoopBackend = struct {

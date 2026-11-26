@@ -34,9 +34,10 @@ Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: 
   - `src/zig/platform.zig` / `src/zig/platform_sdl2.zig` — resizable Wayland/X11 SDL2 window (`F11` fullscreen, nearest-neighbor logical `240x160` scaling), keyboard + mouse/touch pointer capture via `b.addTranslateC`.
   - `src/zig/display_abi.zig` — replaces `gen/display.c` completely behind the `display_*` C ABI (`gen/display.c` is no longer compiled; `forceUndefinedSymbol` and `awre_zig_abi_version` removed).
   - `zig build test`, `zig build -Dheadless=true`, `zig build`, and `zig build conformance` (`165/165 functions agree`) all pass in Podman.
-- **Phase 3B — Pure Touch Controls (`touch.zig`):**
-  - **Tier 1 (Universal fallback):** clean contextual touch gestures & minimal on-screen action buttons (`A`, `B`, `L`, `R`, `Start`, `Select`) mapped to GBA `KEYINPUT` so all screens/menus/dialogs work immediately across Linux touchscreen/mouse, Android, and WASM.
-  - **Tier 2 (Native direct-touch):** read live cursor coordinates, camera scroll (`BGHOFS`/`BGVOFS`), and active menu/UI state directly from GBA RAM so players can tap map tiles/units directly, drag to pan, and tap menu items natively.
+- **Phase 3B — Pure Touch Controls (`src/zig/touch.zig`) (Done):**
+  - **Tier 1 (Corner HUD):** minimal translucent rounded pills (`L`, `ST`, `R`, `B`, `A`, toggleable with `F2`) mapped to GBA `KEYINPUT`, supporting simultaneous multi-touch/pointer holds.
+  - **Tier 2 (Native direct-touch & gestures):** samples Advance Wars cursor (`0x030036A4`/`0x030036A6`), active map/dialog flags (`0x030036AC`, `0x030033E0`, `0x03001D18`), and `BG3HOFS`/`BG3VOFS` to navigate directly to tapped map tiles (with stall guard), tap-to-confirm on the active tile, swipe menus/maps, and tap through title/dialog screens.
+  - Wired into `display_abi.zig` and `platform_sdl2.zig` (mouse + touch finger events) in live mode only; headless conformance (`165/165`) and BMP parity (`0 bytes diff`) remain untouched.
 - **Phase 3C — GBA Audio Mixer (`audio.zig`):**
   - GBA DirectSound FIFO (DMA1/DMA2 + Timer 0/1) & PSG mixer feeding native Linux audio, Android AAudio, and WASM AudioWorklet.
 
@@ -57,3 +58,8 @@ Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: 
 ## Phase 7 — Full Zig Recompiler (`ext/gbarecomp` -> Zig)
 - Port `gbarecomp`'s ROM loader, ARM/Thumb decoders, CFG/entry-point analyzer, and code generator (`src/rom.c`, `arm.c`, `thumb.c`, `disasm.c`, `analysis.c`, `translate.c`, `main.c`) into Zig (`src/recomp/`), emitting pure `.zig` instead of C.
 - Eliminate all remaining C code, C flags (`.sanitize_c = .off`, `-std=gnu11`, `-O1`), and CMake/Clang/GCC tooling across Linux, Android, and WASM for 100% pure, fully-optimized Zig (`ReleaseFast`).
+
+## Phase 8 — Post-Port Polish & Native UX Enhancements (After Main Plan)
+- **Direct UI/Menu Mouse & Touch Hooking:** Hook Advance Wars' non-map UI screens (name entry character grid + `BACK`/`OK!`, title/main menus, unit action menus, CO select) for direct tap/click selection.
+- **Outside-Frame Touch Controls:** Render touch buttons in window/screen pillarbox and letterbox margins outside the aspect-preserved game viewport whenever extra screen space is available.
+- **Widescreen / Wider Viewport Mode:** Extend the Zig PPU beyond `240x160` for mobile and desktop widescreen screens.
