@@ -1,5 +1,6 @@
 const std = @import("std");
 const core = @import("awre_core");
+const rt = @import("runtime_abi.zig");
 
 const gba = core.gba;
 const audio = core.audio;
@@ -11,18 +12,6 @@ const TouchController = core.touch.TouchController;
 const GameState = core.touch.GameState;
 
 const default_scale: u32 = 3;
-
-extern var ewram: ?[*]u8;
-extern var iwram: ?[*]u8;
-extern var io_regs: ?[*]u8;
-extern var palette: ?[*]u8;
-extern var vram: ?[*]u8;
-extern var oam: ?[*]u8;
-extern var r: [16]u32;
-extern var CPU_N: bool;
-extern var CPU_Z: bool;
-extern var CPU_C: bool;
-extern var CPU_V: bool;
 
 var s_ppu: Ppu = .{};
 var s_runner: Runner = .{};
@@ -48,8 +37,8 @@ inline fn readIo32(io: [*]const u8, off: u32) u32 {
 
 inline fn peek8(addr: u32) u8 {
     return switch (addr >> 24) {
-        0x02 => if (ewram) |ptr| ptr[addr & 0x3FFFF] else 0,
-        0x03 => if (iwram) |ptr| ptr[addr & 0x7FFF] else 0,
+        0x02 => if (rt.ewram) |ptr| ptr[addr & 0x3FFFF] else 0,
+        0x03 => if (rt.iwram) |ptr| ptr[addr & 0x7FFF] else 0,
         else => 0,
     };
 }
@@ -84,7 +73,7 @@ fn readRamSignedBytes(addr: u32, dst: []i8) void {
 }
 
 fn sampleGameState() GameState {
-    const io = io_regs orelse return .{};
+    const io = rt.io_regs orelse return .{};
     const dispcnt = readIo16(io, gba.io_reg.dispcnt);
     const mode = dispcnt & 7;
     const bg3_hofs = readIo16(io, gba.io_reg.bg3hofs) & 0x1FF;
@@ -108,7 +97,7 @@ fn sampleGameState() GameState {
 }
 
 fn pumpLiveAudio() void {
-    const io = io_regs orelse return;
+    const io = rt.io_regs orelse return;
     const sound_info_ptr = peek32(audio.sound_info_ptr_addr);
     const valid_info = (sound_info_ptr >= 0x0300_0000 and sound_info_ptr + 8 <= 0x0300_8000) or
         (sound_info_ptr >= 0x0200_0000 and sound_info_ptr + 8 <= 0x0204_0000);
@@ -153,14 +142,14 @@ fn pumpLiveAudio() void {
     }
 }
 
-export fn display_parse_args(argc: c_int, argv: [*][*:0]u8) ?[*:0]const u8 {
+pub export fn display_parse_args(argc: c_int, argv: [*][*:0]u8) ?[*:0]const u8 {
     if (argc <= 0) return null;
     const count: usize = @intCast(argc);
     const args: [*]const [*:0]const u8 = @ptrCast(argv);
     return s_runner.parseArgs(args[0..count], core.is_headless);
 }
 
-export fn display_pace() void {
+pub export fn display_pace() void {
     if (!s_runner.headless) {
         s_backend.pace();
     }
@@ -170,7 +159,7 @@ fn dumpContinuousFrame(framebuf: *const [gba.width * gba.height]u32, state: Game
     if (s_runner.dump_dir == null) return;
     s_runner.dumpFrameBmp(framebuf);
 
-    const io = io_regs orelse return;
+    const io = rt.io_regs orelse return;
     const dispcnt = readIo16(io, gba.io_reg.dispcnt);
     const bldcnt = readIo16(io, gba.io_reg.bldcnt);
     const bldalpha = readIo16(io, gba.io_reg.bldalpha);
@@ -204,33 +193,33 @@ fn dumpContinuousFrame(framebuf: *const [gba.width * gba.height]u32, state: Game
             state.cursor_y,
             state.scroll_x,
             state.scroll_y,
-            r[13],
-            r[14],
-            r[15],
-            r[0],
-            r[1],
-            @intFromBool(CPU_N),
-            @intFromBool(CPU_Z),
-            @intFromBool(CPU_C),
-            @intFromBool(CPU_V),
+            rt.r[13],
+            rt.r[14],
+            rt.r[15],
+            rt.r[0],
+            rt.r[1],
+            @intFromBool(rt.CPU_N),
+            @intFromBool(rt.CPU_Z),
+            @intFromBool(rt.CPU_C),
+            @intFromBool(rt.CPU_V),
         },
     ) catch return;
     s_runner.writeDumpLogLine(line);
 }
 
-export fn display_headless() c_int {
+pub export fn display_headless() c_int {
     return if (s_runner.headless) 1 else 0;
 }
 
-export fn display_log_every() c_long {
+pub export fn display_log_every() c_long {
     return @intCast(s_runner.log_every);
 }
 
-export fn display_dump_path(frame: c_long) ?[*:0]const u8 {
+pub export fn display_dump_path(frame: c_long) ?[*:0]const u8 {
     return s_runner.dumpPath(@intCast(frame));
 }
 
-export fn display_init() c_int {
+pub export fn display_init() c_int {
     const win_w: u32 = @as(u32, @intCast(gba.width)) * default_scale;
     const win_h: u32 = @as(u32, @intCast(gba.height)) * default_scale;
     if (!s_runner.initRecording(win_w, win_h)) {
@@ -252,11 +241,11 @@ export fn display_init() c_int {
     return 0;
 }
 
-export fn display_render_line(y: c_int) void {
-    const io = io_regs orelse return;
-    const vr = vram orelse return;
-    const pal = palette orelse return;
-    const om = oam orelse return;
+pub export fn display_render_line(y: c_int) void {
+    const io = rt.io_regs orelse return;
+    const vr = rt.vram orelse return;
+    const pal = rt.palette orelse return;
+    const om = rt.oam orelse return;
     if (y < 0 or y >= @as(c_int, @intCast(gba.height))) return;
     if (!s_runner.shouldRenderScanline()) return;
 
@@ -268,8 +257,8 @@ export fn display_render_line(y: c_int) void {
     }, @intCast(y));
 }
 
-export fn display_render_frame() void {
-    if (io_regs == null or vram == null or palette == null or oam == null) return;
+pub export fn display_render_frame() void {
+    if (rt.io_regs == null or rt.vram == null or rt.palette == null or rt.oam == null) return;
     if (s_runner.onFrame(&s_ppu.framebuf)) {
         dumpContinuousFrame(&s_ppu.framebuf, sampleGameState());
         return;
@@ -283,7 +272,7 @@ export fn display_render_frame() void {
     s_backend.present(&s_present_buf);
 }
 
-export fn display_poll_events() c_int {
+pub export fn display_poll_events() c_int {
     if (s_runner.reachedFrameLimit()) return 1;
     if (s_runner.headless) return 0;
 
@@ -308,13 +297,13 @@ export fn display_poll_events() c_int {
     return if (res.quit) 1 else 0;
 }
 
-export fn display_get_keys() u16 {
+pub export fn display_get_keys() u16 {
     const touch_keys: u16 = if (s_runner.headless) 0 else s_touch.activeKeys();
     const combined = s_runner.script_keys_pressed | s_live_keys_pressed | touch_keys;
     return gba.keyInputFromPressed(combined);
 }
 
-export fn display_shutdown() void {
+pub export fn display_shutdown() void {
     s_runner.shutdown(&s_ppu.framebuf);
     if (!s_runner.headless) {
         s_backend.shutdown();

@@ -47,10 +47,22 @@ Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: 
   - Added continuous `--dump-dir <dir>` per-frame `.bmp` + `.bin` state + `frames.log` debugging mode (see `docs/DEBUG_DUMPING.md`).
   - Verified with `zig build test`, `zig build -Dheadless=true`, `zig build`, `165/165` conformance, `0 bytes diff` BMP parity, exact replay of frame `931` (`BG1CNT=0x5E02`, `BG2X=0x00000000`, `WIN0H=0x00F0`), and native Arch Linux `ldd` + 10-frame run.
 
-## Phase 4 — Incremental GBA Runtime Port (`runtime.c` -> Zig)
-- Port `ext/gbarecomp/src/runtime.c` module-by-module behind the same C ABI (`memory.zig`, `flash.zig`, `dma.zig`, `timers.zig`, `irq.zig`, `bios.zig`, `interp.zig`).
-- Avoid host `setjmp`/`longjmp` in the Zig runtime (use clean state flags for SoftReset) so the exact same Zig runtime compiles cleanly for Linux and WASM.
-- Keep `conformance.py` (`165/165`) and Mission 1 & 2 headless replays (`tools/field_training_win.txt`, `tools/field_training_m2.txt`) green in Podman after each module swap.
+## Phase 4 — GBA Runtime Port (`runtime.c` -> Zig) (Done)
+- Replaced `gen/runtime.c` and removed all temporary `build.zig` runtime C patching (`patchRuntimeTemp` / `replaceOnce`) with pure-Zig runtime modules behind the exact `gba_runtime.h` C ABI:
+  - `src/zig/runtime/flash.zig` (`FLASH_V`/`FLASH512_V`/`FLASH1M_V` Flash command state machine + data# busy polling, `EEPROM_V` bit-serial protocol).
+  - `src/zig/runtime/timers.zig` (4-channel GBA hardware timers, prescalers, overflow IRQs, cascading).
+  - `src/zig/runtime/dma.zig` (4-channel GBA DMA controller with immediate/VBlank/HBlank triggers, address latching, repeat/reload, DMA IRQs).
+  - `src/zig/runtime/bios.zig` (HLE BIOS SWIs including flag-based `SoftReset` unwind via `g_ret = 0xFFFFFFFF` with zero `setjmp`/`longjmp`, `IntrWait`/`VBlankIntrWait`, `Div`/`DivArm`, `Sqrt`, `ArcTan`/`ArcTan2`, `CpuSet`/`CpuFastSet`, `BgAffineSet`/`ObjAffineSet`, `BitUnPack`, `LZ77UnCompWram`/`Vram`, `RLUnCompWram`/`Vram`).
+  - `src/zig/runtime/interp.zig` (ARM + Thumb interpreter for RAM/uncompiled-ROM calls with native ARM register-shift-by-0 fix and atomic `LDM`/`STM` register transfer/writeback before cycle charge).
+  - `src/zig/runtime/validate.zig` + host-only `src/zig/runtime/validate_jmp.c` (lockstep `GBA_VALIDATE` harness gated off for `freestanding` targets).
+  - `src/zig/runtime_abi.zig` & `src/zig/abi_root.zig` (static `.bss` GBA memory arrays, waitstate/VRAM-stall scheduler, `< 0x400` bounds-checked I/O bus, interrupt delivery, host `.sav`/`.eep` persistence, `display_abi.zig` direct module sharing).
+- Verified all 5 core runtime modules (`flash`, `timers`, `dma`, `bios`, `interp`) compile cleanly to `wasm32-freestanding`.
+- Verified in Podman (`Debug` and `ReleaseFast`, without modifying `game/aw.sav` or `ext/gbarecomp`):
+  - `zig build test`: `33/33` unit tests pass.
+  - `zig build -Dheadless=true` & `zig build`: compile and link with zero `gen/runtime.c` or `gen/display.c`.
+  - `zig build conformance`: `165/165 functions agree`.
+  - Pixel-exact BMP parity (`0 bytes diff`) against `ref_title.bmp` (1,550 frames), `ref_ft.bmp` (8,000 frames, both `Debug` and `ReleaseFast`), and `ref_win.bmp` (26,320 frames), plus full 54,600-frame `tools/field_training_m2.txt` Mission 2 replay and 64 KB Flash `.sav` round-trip.
+  - Re-verified frame `931` (`--dump-dir` + `BG1CNT=0x5E02`, `BG2X=0x00000000`, `WIN0H=0x00F0` and matching `frames.log`) and clean `F1211`/`F2511` `m4a` PCM buffers (max step `<= 31`).
 
 ## Phase 5 — WebAssembly Browser Port (`wasm32-freestanding`)
 - Compile the pure Zig core + runtime to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten), serving desktop and mobile browsers (with pure touch controls).
