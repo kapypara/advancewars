@@ -11,13 +11,6 @@ fn resolvePath(b: *std.Build, p: []const u8) std.Build.LazyPath {
     return b.path(p);
 }
 
-fn isRuntimeFile(name: []const u8) bool {
-    return std.mem.eql(u8, name, "game_entry.c") or
-        std.mem.eql(u8, name, "runtime.c") or
-        std.mem.eql(u8, name, "display.c") or
-        std.mem.eql(u8, name, "unresolved.c");
-}
-
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -74,28 +67,65 @@ pub fn build(b: *std.Build) void {
     const translate_step = b.step("translate", "Translate the GBA ROM into C sources under gen/");
     translate_step.dependOn(&run_translate.step);
 
-    // ---- Zig support library & unit tests ----
-    const awre_zig_mod = b.createModule(.{
+    // ---- Zig core library, SDL2 bindings & unit tests ----
+    const build_opts = b.addOptions();
+    build_opts.addOption(bool, "headless", headless);
+
+    const test_opts = b.addOptions();
+    test_opts.addOption(bool, "headless", true);
+
+    const awre_core_mod = b.createModule(.{
         .root_source_file = b.path("src/zig/root.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
+    awre_core_mod.addOptions("build_options", build_opts);
+
+    if (!headless) {
+        const wf = b.addWriteFiles();
+        const sdl_h = wf.add("sdl2_wrap.h", "#include <SDL2/SDL.h>\n");
+        const translate_sdl = b.addTranslateC(.{
+            .root_source_file = sdl_h,
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        translate_sdl.linkSystemLibrary("SDL2", .{});
+        awre_core_mod.addImport("sdl2", translate_sdl.createModule());
+    }
+
+    const awre_abi_mod = b.createModule(.{
+        .root_source_file = b.path("src/zig/display_abi.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    awre_abi_mod.addImport("awre_core", awre_core_mod);
+
     const awre_zig_lib = b.addLibrary(.{
         .name = "awre_zig",
         .linkage = .static,
-        .root_module = awre_zig_mod,
+        .root_module = awre_abi_mod,
     });
 
+    const awre_test_mod = b.createModule(.{
+        .root_source_file = b.path("src/zig/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    awre_test_mod.addOptions("build_options", test_opts);
+
     const zig_tests = b.addTest(.{
-        .root_module = awre_zig_mod,
+        .root_module = awre_test_mod,
     });
     const run_zig_tests = b.addRunArtifact(zig_tests);
     const test_step = b.step("test", "Run Zig unit tests");
     test_step.dependOn(&run_zig_tests.step);
 
     // ---- Native Advance Wars executable (`awre`) ----
-    var runtime_files: std.ArrayList([]const u8) = .empty;
-    var generated_files: std.ArrayList([]const u8) = .empty;
+    var c_files: std.ArrayList([]const u8) = .empty;
     var has_game_entry = false;
 
     if (b.root.openDir(b.graph.io, "gen", .{ .iterate = true })) |dir_const| {
@@ -108,16 +138,14 @@ pub fn build(b: *std.Build) void {
         while (it.next(b.graph.io) catch null) |entry| {
             if (entry.kind != .file) continue;
             if (!std.mem.endsWith(u8, entry.name, ".c")) continue;
+            // Replaced in Phase 3A by src/zig/display_abi.zig + ppu.zig + headless.zig + platform*.zig.
+            if (std.mem.eql(u8, entry.name, "display.c")) continue;
 
             const duped = b.graph.arena.dupe(u8, entry.name) catch @panic("OOM");
             if (std.mem.eql(u8, duped, "game_entry.c")) {
                 has_game_entry = true;
             }
-            if (isRuntimeFile(duped)) {
-                runtime_files.append(b.graph.arena, duped) catch @panic("OOM");
-            } else {
-                generated_files.append(b.graph.arena, duped) catch @panic("OOM");
-            }
+            c_files.append(b.graph.arena, duped) catch @panic("OOM");
         }
     } else |_| {}
 
@@ -127,8 +155,7 @@ pub fn build(b: *std.Build) void {
         return;
     }
 
-    std.mem.sort([]const u8, runtime_files.items, {}, stringLessThan);
-    std.mem.sort([]const u8, generated_files.items, {}, stringLessThan);
+    std.mem.sort([]const u8, c_files.items, {}, stringLessThan);
 
     const awre_mod = b.createModule(.{
         .root_source_file = null,
@@ -152,31 +179,9 @@ pub fn build(b: *std.Build) void {
         "-fno-sanitize=undefined",
     };
 
-    const runtime_c_flags: []const []const u8 = if (headless)
-        &.{
-            "-std=gnu11",
-            "-O1",
-            "-Wall",
-            "-Wno-unused-label",
-            "-Wno-pointer-to-int-cast",
-            "-Wno-int-to-pointer-cast",
-            "-Wno-unused-variable",
-            "-Wno-unused-function",
-            "-Wno-deprecated-declarations",
-            "-fno-sanitize=undefined",
-            "-DGBA_NO_SDL",
-        }
-    else
-        gen_c_flags;
-
     awre_mod.addCSourceFiles(.{
         .root = b.path("gen"),
-        .files = runtime_files.items,
-        .flags = runtime_c_flags,
-    });
-    awre_mod.addCSourceFiles(.{
-        .root = b.path("gen"),
-        .files = generated_files.items,
+        .files = c_files.items,
         .flags = gen_c_flags,
     });
 
@@ -191,7 +196,6 @@ pub fn build(b: *std.Build) void {
         .root_module = awre_mod,
     });
     awre_exe.stack_size = 16 * 1024 * 1024;
-    awre_exe.forceUndefinedSymbol("awre_zig_abi_version");
     b.installArtifact(awre_exe);
 
     // ---- Run, conformance & headless smoke steps ----

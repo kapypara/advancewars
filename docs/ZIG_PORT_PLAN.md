@@ -28,11 +28,12 @@ All builds, translation, headless smoke tests, and conformance checks run reprod
 
 ## Phase 3 — Display/PPU, Platform Interface, Pure Touch & Audio in Zig (`src/zig/`)
 Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: SDL2 on Linux first, pure Zig `ANativeActivity` + GLES3/Vulkan on Android, WebGPU/WebGL2/Canvas2D on WASM):
-- **Phase 3A — Zig PPU, Headless Runner & SDL2 Backend:**
-  - `gba.zig` / `ppu.zig` — per-scanline GBA PPU renderer (Modes 0/3/4, regular & affine sprites, affine BGs, windows, alpha/brightness blends). Verified pixel-for-pixel against C PPU on headless replays.
-  - `headless.zig` — `--headless`, `--frames`, `--input`, `--screenshot` (BMP), `--dump-at`, `--record`.
-  - `platform.zig` / `platform_sdl2.zig` — resizable Wayland/X11 SDL2 window with nearest-neighbor logical `240x160` scaling, keyboard + mouse/touch pointer capture.
-  - `display_abi.zig` — replaces `gen/display.c` completely behind the `display_*` C ABI (removing `forceUndefinedSymbol` and `awre_zig_abi_version`).
+- **Phase 3A — Zig PPU, Headless Runner & SDL2 Backend (Done):**
+  - `src/zig/gba.zig` / `src/zig/ppu.zig` — per-scanline GBA PPU renderer (Modes 0/3/4, regular & affine sprites, affine BGs, windows, alpha/brightness blends). Verified **0 bytes difference** against the C PPU across `title.txt` (1,550 frames), `field_training.txt` (8,000 frames), and `field_training_win.txt` (26,320 frames).
+  - `src/zig/headless.zig` — `--headless`, `--frames`, `--input`, `--screenshot` (BMP), `--dump-at`, `--record`.
+  - `src/zig/platform.zig` / `src/zig/platform_sdl2.zig` — resizable Wayland/X11 SDL2 window (`F11` fullscreen, nearest-neighbor logical `240x160` scaling), keyboard + mouse/touch pointer capture via `b.addTranslateC`.
+  - `src/zig/display_abi.zig` — replaces `gen/display.c` completely behind the `display_*` C ABI (`gen/display.c` is no longer compiled; `forceUndefinedSymbol` and `awre_zig_abi_version` removed).
+  - `zig build test`, `zig build -Dheadless=true`, `zig build`, and `zig build conformance` (`165/165 functions agree`) all pass in Podman.
 - **Phase 3B — Pure Touch Controls (`touch.zig`):**
   - **Tier 1 (Universal fallback):** clean contextual touch gestures & minimal on-screen action buttons (`A`, `B`, `L`, `R`, `Start`, `Select`) mapped to GBA `KEYINPUT` so all screens/menus/dialogs work immediately across Linux touchscreen/mouse, Android, and WASM.
   - **Tier 2 (Native direct-touch):** read live cursor coordinates, camera scroll (`BGHOFS`/`BGVOFS`), and active menu/UI state directly from GBA RAM so players can tap map tiles/units directly, drag to pan, and tap menu items natively.
