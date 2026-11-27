@@ -41,10 +41,10 @@ pub fn func_0801BE10() callconv(.c) void {
     abi.fetches(10);
     const tbl = abi.read32(0x0801BE2C);
     const res = (rt.r[0] << 8) +% 0x540 +% tbl;
-    rt.r[1] = tbl;
     abi.setRegNz(&rt.r[0], res);
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
     rt.r[15] = lr_val;
     rt.recompReturn(lr_val);
 }
@@ -61,10 +61,10 @@ pub fn func_0801BE30() callconv(.c) void {
     const off = abi.read32(0x0801BE48);
     const tbl = abi.read32(0x0801BE4C);
     const res = (rt.r[0] << 7) +% off +% tbl;
-    rt.r[1] = tbl;
     abi.setRegNz(&rt.r[0], res);
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
     rt.r[15] = lr_val;
     rt.recompReturn(lr_val);
 }
@@ -81,10 +81,10 @@ pub fn func_0801BEA0() callconv(.c) void {
     const co_idx: u8 = @truncate(rt.r[0]);
     const tbl = abi.read32(0x0801BEB8);
     const res = (@as(u32, co_idx) << 9) +% tbl;
-    rt.r[1] = tbl;
     abi.setRegNz(&rt.r[0], res);
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
     rt.r[15] = lr_val;
     rt.recompReturn(lr_val);
 }
@@ -129,10 +129,10 @@ pub fn func_0801BEE4() callconv(.c) void {
     const co_idx: u8 = @truncate(rt.r[0]);
     const tbl = abi.read32(0x0801BEFC);
     const res = (@as(u32, co_idx) << 5) +% tbl;
-    rt.r[1] = tbl;
     abi.setRegNz(&rt.r[0], res);
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
     rt.r[15] = lr_val;
     rt.recompReturn(lr_val);
 }
