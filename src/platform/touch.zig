@@ -256,6 +256,7 @@ pub const TouchController = struct {
     reticle_cam_x: i16 = 0,
     reticle_cam_y: i16 = 0,
     reticle_timer: u8 = 0,
+    last_mode: UiMode = .frontend_menu,
 
     pub fn setHudVisible(self: *TouchController, visible: bool) void {
         if (self.hud_visible == visible) return;
@@ -344,6 +345,10 @@ pub const TouchController = struct {
     fn clearPulseQueue(self: *TouchController) void {
         self.pulse_head = 0;
         self.pulse_count = 0;
+        self.pulse_active_mask = 0;
+        self.pulse_timer = 0;
+        self.pulse_gap_rem = 0;
+        self.pulse_in_gap = false;
     }
 
     fn startNavigation(self: *TouchController, target: TileCoord, state: GameState) void {
@@ -640,7 +645,7 @@ pub const TouchController = struct {
                         self.cancelNavigation();
                     }
                     if (slot.drag_kind == .scroll_menu) {
-                        // X-axis moves directly with pointer; Y-axis uses natural vertical list scrolling.
+                        // X-axis moves directly with pointer; scrollable lists use natural Y scrolling while grids (e.g. map designer) move directly.
                         while (ev.logical_x - slot.anchor_x >= swipe_step_px) {
                             if (self.pulse_count < 3) self.enqueuePulse(gba.Key.right.mask(), 3, 2);
                             slot.anchor_x += swipe_step_px;
@@ -649,13 +654,28 @@ pub const TouchController = struct {
                             if (self.pulse_count < 3) self.enqueuePulse(gba.Key.left.mask(), 3, 2);
                             slot.anchor_x -= swipe_step_px;
                         }
-                        while (ev.logical_y - slot.anchor_y <= -swipe_step_px) {
-                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.down.mask(), 3, 2);
-                            slot.anchor_y -= swipe_step_px;
-                        }
-                        while (ev.logical_y - slot.anchor_y >= swipe_step_px) {
-                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.up.mask(), 3, 2);
-                            slot.anchor_y += swipe_step_px;
+                        const natural_y_scroll = switch (slot.mode_on_down) {
+                            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info, .frontend_main_menu, .frontend_map_select => true,
+                            else => false,
+                        };
+                        if (natural_y_scroll) {
+                            while (ev.logical_y - slot.anchor_y <= -swipe_step_px) {
+                                if (self.pulse_count < 3) self.enqueuePulse(gba.Key.down.mask(), 3, 2);
+                                slot.anchor_y -= swipe_step_px;
+                            }
+                            while (ev.logical_y - slot.anchor_y >= swipe_step_px) {
+                                if (self.pulse_count < 3) self.enqueuePulse(gba.Key.up.mask(), 3, 2);
+                                slot.anchor_y += swipe_step_px;
+                            }
+                        } else {
+                            while (ev.logical_y - slot.anchor_y >= swipe_step_px) {
+                                if (self.pulse_count < 3) self.enqueuePulse(gba.Key.down.mask(), 3, 2);
+                                slot.anchor_y += swipe_step_px;
+                            }
+                            while (slot.anchor_y - ev.logical_y >= swipe_step_px) {
+                                if (self.pulse_count < 3) self.enqueuePulse(gba.Key.up.mask(), 3, 2);
+                                slot.anchor_y -= swipe_step_px;
+                            }
                         }
                     }
                 } else {
@@ -720,14 +740,18 @@ pub const TouchController = struct {
         const pad_l_f: f32 = (hud_w_f - gba_w_f) * 0.5;
         const map_mode = (state.mode == .battle_free_map or state.mode == .battle_unit_selected);
         const battle_menu_mode = switch (state.mode) {
-            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info, .frontend_co_setup, .frontend_rules => true,
+            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info, .frontend_map_select, .frontend_co_setup, .frontend_rules => true,
+            else => false,
+        };
+        const wide_advance_mode = switch (state.mode) {
+            .battle_overlay, .dialog, .title, .frontend_menu => true,
             else => false,
         };
         const in_standard_bounds = lx >= 0 and ly >= 0 and lx < gba_w_f and ly < gba_h_f;
         const in_wide_bounds = lx >= -pad_l_f and lx < gba_w_f + pad_l_f and ly >= 0 and ly < gba_h_f;
         const accept_tap = if (map_mode and state.map_width > 0)
             isInWideMapBounds(lx, ly, state)
-        else if (battle_menu_mode)
+        else if (battle_menu_mode or wide_advance_mode)
             in_wide_bounds
         else
             in_standard_bounds;
@@ -1042,6 +1066,14 @@ pub const TouchController = struct {
     }
 
     pub fn stepFrame(self: *TouchController, state: GameState) void {
+        if (state.mode != self.last_mode) {
+            const was_advance_overlay = (self.last_mode == .battle_overlay or self.last_mode == .dialog or self.last_mode == .title);
+            const is_map = (state.mode == .battle_free_map or state.mode == .battle_unit_selected);
+            if (was_advance_overlay and is_map) {
+                self.clearPulseQueue();
+            }
+            self.last_mode = state.mode;
+        }
         if (!state.isMapInteractive()) {
             self.reticle_timer = 0;
         } else if (self.reticle_timer > 0) {
@@ -1637,37 +1669,54 @@ test "Dialog tap emits A and Mode 4 title tap emits Start" {
     try std.testing.expectEqual(gba.Key.start.mask(), tc.activeKeys());
 }
 
-test "Battle overlay and frontend menus use natural scrolling and tap emits A" {
+test "Scrollable lists use natural scrolling while map designer and overlays use direct drag" {
     var tc = TouchController{};
-    const menu_state = GameState{ .mode = .frontend_menu };
-    // Natural scrolling: swipe UP scrolls DOWN (Key.down), clears queue on lift without emitting A.
-    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 100, .y = 90, .logical_x = 100, .logical_y = 90 }, menu_state);
-    tc.handlePointer(.{ .id = 1, .phase = .move, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, menu_state);
-    tc.stepFrame(menu_state);
+    // Scrollable list: natural scrolling (swipe UP scrolls DOWN), clears queue on lift without emitting A.
+    const list_state = GameState{ .mode = .frontend_map_select, .menu_count = 6 };
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 100, .y = 90, .logical_x = 100, .logical_y = 90 }, list_state);
+    tc.handlePointer(.{ .id = 1, .phase = .move, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, list_state);
+    tc.stepFrame(list_state);
     try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
-    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, menu_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, list_state);
     try std.testing.expectEqual(@as(usize, 0), tc.pulse_count);
-    for (0..6) |_| tc.stepFrame(menu_state);
+    for (0..6) |_| tc.stepFrame(list_state);
     try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 
-    // Plain tap in frontend menu emits A.
+    // Frontend menu / Map Designer: direct Y drag (drag DOWN -> Key.down, drag UP -> Key.up) and tap -> Key.a.
+    const menu_state = GameState{ .mode = .frontend_menu };
+    tc.stepFrame(menu_state);
     tc.handlePointer(.{ .id = 2, .phase = .down, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, menu_state);
-    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, menu_state);
+    tc.handlePointer(.{ .id = 2, .phase = .move, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, menu_state);
+    tc.stepFrame(menu_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, menu_state);
+    for (0..6) |_| tc.stepFrame(menu_state);
+
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 100, .y = 90, .logical_x = 100, .logical_y = 90 }, menu_state);
+    tc.handlePointer(.{ .id = 3, .phase = .move, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, menu_state);
+    tc.stepFrame(menu_state);
+    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, menu_state);
+    for (0..6) |_| tc.stepFrame(menu_state);
+
+    // Plain tap in frontend menu emits A.
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, menu_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, menu_state);
     tc.stepFrame(menu_state);
     try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
     for (0..6) |_| tc.stepFrame(menu_state);
 
-    // Battle overlay (e.g. Action Menu / Map Menu / Unit List): natural scrolling + tap A, never map nav.
+    // Battle overlay: direct Y drag + tap A, never map nav.
     const overlay_state = GameState{ .mode = .battle_overlay, .cursor_x = 3, .cursor_y = 5 };
-    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, overlay_state);
-    tc.handlePointer(.{ .id = 3, .phase = .move, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, overlay_state);
+    tc.handlePointer(.{ .id = 5, .phase = .down, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, overlay_state);
+    tc.handlePointer(.{ .id = 5, .phase = .move, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, overlay_state);
     tc.stepFrame(overlay_state);
-    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
-    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, overlay_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 5, .phase = .up, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, overlay_state);
     for (0..6) |_| tc.stepFrame(overlay_state);
 
-    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, overlay_state);
-    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, overlay_state);
+    tc.handlePointer(.{ .id = 6, .phase = .down, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, overlay_state);
+    tc.handlePointer(.{ .id = 6, .phase = .up, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, overlay_state);
     try std.testing.expect(tc.nav_target == null);
     tc.stepFrame(overlay_state);
     try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
@@ -2622,5 +2671,50 @@ test "VS Rules full direct touch supports bubble selection, value arrows, PRESS 
     tc.handlePointer(.{ .id = 8, .phase = .down, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
     tc.handlePointer(.{ .id = 8, .phase = .up, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
     tc.stepFrame(rules_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+}
+
+test "Wide advance taps, map select margin B, and overlay-to-map pulse flush" {
+    var tc = TouchController{};
+    tc.setHudWidth(410);
+
+    // 1. Wide margin tap during battle_overlay (anim/cut-in/banner) emits A, and transitioning to battle_free_map flushes it.
+    const overlay_state = GameState{ .mode = .battle_overlay };
+    tc.stepFrame(overlay_state);
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = -30, .y = 60, .logical_x = -30, .logical_y = 60 }, overlay_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = -30, .y = 60, .logical_x = -30, .logical_y = 60 }, overlay_state);
+    tc.stepFrame(overlay_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+
+    const map_state = GameState{ .mode = .battle_free_map, .map_width = 15, .map_height = 10 };
+    tc.stepFrame(map_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // 2. Queued dialog pulse also flushes cleanly upon entering battle_unit_selected.
+    const dlg_state = GameState{ .mode = .dialog };
+    tc.stepFrame(dlg_state);
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 260, .y = 80, .logical_x = 260, .logical_y = 80 }, dlg_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 260, .y = 80, .logical_x = 260, .logical_y = 80 }, dlg_state);
+    tc.stepFrame(dlg_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+
+    const unit_state = GameState{ .mode = .battle_unit_selected, .map_width = 15, .map_height = 10 };
+    tc.stepFrame(unit_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // 3. Wide margin tap during frontend_menu (Results / Stats) emits A; frontend_map_select (War Room / VS) margin emits B.
+    const menu_state = GameState{ .mode = .frontend_menu };
+    tc.stepFrame(menu_state);
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = -30, .y = 80, .logical_x = -30, .logical_y = 80 }, menu_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = -30, .y = 80, .logical_x = -30, .logical_y = 80 }, menu_state);
+    tc.stepFrame(menu_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(menu_state);
+
+    const war_room_state = GameState{ .mode = .frontend_map_select, .menu_count = 6, .menu_selected = 0 };
+    tc.stepFrame(war_room_state);
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = -30, .y = 80, .logical_x = -30, .logical_y = 80 }, war_room_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = -30, .y = 80, .logical_x = -30, .logical_y = 80 }, war_room_state);
+    tc.stepFrame(war_room_state);
     try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
 }

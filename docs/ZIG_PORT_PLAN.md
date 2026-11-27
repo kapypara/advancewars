@@ -125,8 +125,9 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
 - **Milestone 10A — Software Rotate (`90°`) & IndexedDB Save Slots (Done):**
   - Added an in-page `90°` clockwise rotation toggle (`Rot`) persisted in `localStorage` so portrait-locked phones can play in full wide landscape without enabling OS auto-rotate, updating `fitCanvas()` viewport swapping and inverse-rotated `clientToLogical()` touch coordinates.
   - Added a 3-slot IndexedDB Flash save switcher (`S1`–`S3`, keeping Slot 1 compatible with existing saves) alongside `.sav` export/import and a compact mobile toolbar layout. *(Fast-forward skipped by user preference.)*
-- **Milestone 10B — Remaining Screens Touch Audit (Planned):**
-  - Probe live EWRAM/proc addresses and add dedicated direct touch handling in `src/platform/display.zig` and `src/platform/touch.zig` for **War Room**, **Design Maps** (map editor tile palette + tap/drag paint vs. pan), **Battle Animations / CO Power cut-ins**, and **Stats / Results** screens.
+- **Milestone 10B — Remaining Screens Touch Audit (Done):**
+  - Audited War Room (`0x082E_BF68` map select), Battle Animations / CO Power cut-ins (`.battle_overlay`), Victory / Day banners / Results (`0x0830_9790`), and Design Maps slot menu.
+  - Enabled full wide-bounds tap-to-advance across `.battle_overlay`, `.dialog`, `.title`, and `.frontend_menu`, added extended-margin `B` support to `.frontend_map_select` (covering both War Room and VS map selection), and flushed queued `A` pulses on overlay/dialog → tactical map transitions to prevent accidental tap leakage onto units or tiles. *(Fine-grained Design Maps grid painting deferred until an unlocked editor save fixture is available.)*
 - **Milestone 10C — Outer-Corner In-Battle HUD & Full-Width Reachability (Planned):**
   - Upgrade `renderReachabilityMargins` → `renderReachabilityFull` across `0..vw` in `src/gba/renderer.zig`.
   - Anchor the in-battle CO Funds badge and Terrain Info box to the outer wide corners in wide mode while preserving 100% bit-exact `240x160` fallback.
