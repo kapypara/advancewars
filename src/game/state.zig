@@ -1297,6 +1297,70 @@ pub fn func_0804F924() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Reset field state `0x08015A6C`/`0x08015CA8`, apply palette slot `0x0801A7A4`, and sync `0x0803F87C` (`0x08015F8C`).
+pub fn func_08015F8C() callconv(.c) void {
+    if (!abi.enter(0x08015F8C)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    if (!abi.call(decls.func_08015A6C, 0x08015F93)) return;
+
+    abi.fetches(6);
+    const tbl = abi.read32(0x08015FB0);
+    rt.r[4] = tbl;
+    abi.copyRegFlags(&rt.r[0], tbl);
+    if (!abi.call(decls.func_08015CA8, 0x08015F9B)) return;
+
+    abi.fetches(7);
+    rt.r[2] = rt.r[0];
+    abi.setRegNz(&rt.r[0], 0);
+    abi.copyRegFlags(&rt.r[1], tbl);
+    if (!abi.call(decls.func_0801A7A4, 0x08015FA5)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0803F87C, 0x08015FA9)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Transition tactical UI state (`0x0801F058`, `0x08015EF8`, `0x08024D88`, `0x08020D6C`, `0x080381C4`, `0x0801BE88`) (`0x080168E8`).
+pub fn func_080168E8() callconv(.c) void {
+    if (!abi.enter(0x080168E8)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const st_ptr = rt.r[0];
+    rt.r[4] = st_ptr;
+    if (!abi.call(decls.func_0801F058, 0x080168F1)) return;
+
+    abi.fetches(5);
+    rt.r[0] = abi.read16(st_ptr +% 0x1E);
+    if (!abi.call(decls.func_08015EF8, 0x080168F7)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08024D88, 0x080168FB)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08020D6C, 0x080168FF)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_080381C4, 0x08016903)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read16(abi.read32(0x08016910));
+    if (!abi.call(decls.func_0801BE88, 0x0801690B)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08015E10, .{ .name = "func_08015E10", .linkage = .strong });
@@ -1402,6 +1466,8 @@ comptime {
         @export(&func_0803A224, .{ .name = "func_0803A224", .linkage = .strong });
         @export(&func_0803AB5C, .{ .name = "func_0803AB5C", .linkage = .strong });
         @export(&func_0804F924, .{ .name = "func_0804F924", .linkage = .strong });
+        @export(&func_08015F8C, .{ .name = "func_08015F8C", .linkage = .strong });
+        @export(&func_080168E8, .{ .name = "func_080168E8", .linkage = .strong });
     }
 }
 

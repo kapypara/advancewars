@@ -1223,6 +1223,65 @@ pub fn func_0807AE04() callconv(.c) void {
     popReturnPcHw();
 }
 
+/// Fill a `(width, height)` BG tilemap rectangle at `base + x*2 + y*0x40` with `fill_val` (`0x08010C70`).
+pub fn func_08010C70() callconv(.c) void {
+    if (!abi.enter(0x08010C70)) return;
+    abi.fetches(21);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const base = rt.r[0];
+    const tx = rt.r[1] & 0xFFFF;
+    const ty = rt.r[2] & 0xFFFF;
+    const width = rt.r[3] & 0xFFFF;
+    const height = abi.read32(rt.r[13] +% 0x14) & 0xFFFF;
+    const fill_val: u16 = @truncate(abi.read32(rt.r[13] +% 0x18));
+    const start_addr = base +% (tx << 1) +% (ty << 6);
+
+    var out_r0 = base +% (tx << 1);
+    var out_r1 = tx << 1;
+    var row: u32 = 0;
+    var row_tiles: u32 = 0;
+    while (row < height) {
+        abi.fetches(9);
+        out_r1 = start_addr +% (row_tiles << 1);
+        out_r0 = 0;
+        row_tiles +%= 0x20;
+        row +%= 1;
+        while (out_r0 < width) {
+            abi.fetches(9);
+            abi.write16(out_r1, fill_val);
+            out_r1 +%= 2;
+            out_r0 = (out_r0 +% 1) & 0xFFFF;
+        }
+        abi.fetches(8);
+        row_tiles &= 0xFFFF;
+        row &= 0xFFFF;
+    }
+
+    rt.r[0] = out_r0;
+    rt.r[1] = out_r1;
+    rt.r[2] = row;
+    rt.r[3] = row_tiles;
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -1300,6 +1359,7 @@ comptime {
         @export(&func_0807AD10, .{ .name = "func_0807AD10", .linkage = .strong });
         @export(&func_0807AD74, .{ .name = "func_0807AD74", .linkage = .strong });
         @export(&func_0807AE04, .{ .name = "func_0807AE04", .linkage = .strong });
+        @export(&func_08010C70, .{ .name = "func_08010C70", .linkage = .strong });
     }
 }
 

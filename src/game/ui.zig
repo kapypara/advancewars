@@ -5564,6 +5564,63 @@ pub fn func_08075B2C() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Upload dual `0x180`-byte HUD blocks via `0x0802C5E0` and sync BG layers `0` & `2` via `0x080117EC` (`0x0802C604`).
+pub fn func_0802C604() callconv(.c) void {
+    if (!abi.enter(0x0802C604)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[4] = 0x180;
+    rt.r[0] = abi.read32(0x0802C630);
+    rt.r[1] = abi.read32(0x0802C634);
+    abi.setRegNz(&rt.r[2], 0x180);
+    if (!abi.call(decls.func_0802C5E0, 0x0802C615)) return;
+
+    abi.fetches(7);
+    rt.r[0] = abi.read32(0x0802C638);
+    rt.r[1] = abi.read32(0x0802C63C);
+    abi.setRegNz(&rt.r[2], 0x180);
+    if (!abi.call(decls.func_0802C5E0, 0x0802C61F)) return;
+
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 0);
+    if (!abi.call(decls.func_080117EC, 0x0802C625)) return;
+
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 2);
+    if (!abi.call(decls.func_080117EC, 0x0802C62B)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Tear down tactical HUD (`0x08021DF8`, `0x08011910`, `0x08011804`, `0x0803906C`) and set `r0+0x1E = 6` (`0x0802C808`).
+pub fn func_0802C808() callconv(.c) void {
+    if (!abi.enter(0x0802C808)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const st = rt.r[0];
+    rt.r[4] = st;
+    if (!abi.call(decls.func_08021DF8, 0x0802C811)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08011910, 0x0802C815)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08011804, 0x0802C819)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_0803906C, 0x0802C81D)) return;
+
+    abi.fetches(7);
+    abi.write16(st +% 0x1E, 6);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08018DE4, .{ .name = "func_08018DE4", .linkage = .strong });
@@ -5922,6 +5979,8 @@ comptime {
         @export(&func_080752E0, .{ .name = "func_080752E0", .linkage = .strong });
         @export(&func_08075490, .{ .name = "func_08075490", .linkage = .strong });
         @export(&func_08075B2C, .{ .name = "func_08075B2C", .linkage = .strong });
+        @export(&func_0802C604, .{ .name = "func_0802C604", .linkage = .strong });
+        @export(&func_0802C808, .{ .name = "func_0802C808", .linkage = .strong });
     }
 }
 

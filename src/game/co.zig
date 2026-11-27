@@ -497,6 +497,41 @@ pub fn func_0806CE84() callconv(.c) void {
     abi.popReturn();
 }
 
+/// DMA UI graphic `[0x0801C5A0]` into BG char bank `[0x0801C5A4]`, fill frame `0x08010C18`, upload palette `0x100`, flush BG (`0x0801C55C`).
+pub fn func_0801C55C() callconv(.c) void {
+    if (!abi.enter(0x0801C55C)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+
+    const char_bank = ((abi.read32(abi.read32(0x0801C5A4)) << 28) >> 30) << 14;
+    rt.r[0] = abi.read32(0x0801C5A0);
+    rt.r[1] = char_bank +% abi.read32(0x0801C5A8);
+    abi.setRegNz(&rt.r[2], @as(u32, 0x80) << 4);
+    if (!abi.call(decls.func_0800FFA8, 0x0801C579)) return;
+
+    abi.fetches(10);
+    abi.write32(rt.r[13], abi.read32(0x0801C5B4));
+    rt.r[0] = abi.read32(0x0801C5AC);
+    rt.r[1] = abi.read32(0x0801C5B0);
+    abi.setRegNz(&rt.r[2], 0);
+    abi.setRegNz(&rt.r[3], 0);
+    if (!abi.call(decls.func_08010C18, 0x0801C589)) return;
+
+    abi.fetches(8);
+    rt.r[0] = abi.read32(0x0801C5B8);
+    abi.setRegNz(&rt.r[1], @as(u32, 0x80) << 1);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0801C595)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08011804, 0x0801C599)) return;
+
+    abi.fetches(5);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_0801BDDC, .{ .name = "func_0801BDDC", .linkage = .strong });
@@ -523,6 +558,7 @@ comptime {
         @export(&func_0806CA38, .{ .name = "func_0806CA38", .linkage = .strong });
         @export(&func_0806CD10, .{ .name = "func_0806CD10", .linkage = .strong });
         @export(&func_0806CE84, .{ .name = "func_0806CE84", .linkage = .strong });
+        @export(&func_0801C55C, .{ .name = "func_0801C55C", .linkage = .strong });
     }
 }
 

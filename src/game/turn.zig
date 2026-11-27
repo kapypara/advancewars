@@ -959,6 +959,94 @@ pub fn func_08035DAC() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Clear IRQ/DMA flags (`0x0807AE50`, `0x0807AE60`) after `0x08030708` and update `[0x08032128]`/`[0x0803212C]` (`0x080320E4`).
+pub fn func_080320E4() callconv(.c) void {
+    if (!abi.enter(0x080320E4)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    if (!abi.call(decls.func_08030708, 0x080320EB)) return;
+
+    abi.fetches(11);
+    const base = abi.read32(0x08032124);
+    abi.write16(base, 0);
+    abi.write16(base -% 0xC, 0);
+    abi.setRegNz(&rt.r[0], 7);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0807AE50, 0x080320FD)) return;
+
+    abi.fetches(6);
+    abi.setRegNz(&rt.r[0], 6);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0807AE50, 0x08032105)) return;
+
+    abi.fetches(7);
+    abi.setRegNz(&rt.r[0], 1);
+    rt.r[1] = 0 -% @as(u32, 0xC1);
+    if (!abi.call(decls.func_0807AE60, 0x0803210F)) return;
+
+    abi.fetches(13);
+    const target_obj = abi.read32(abi.read32(0x08032128));
+    abi.write8(target_obj +% 6, 0xFF);
+    const flag_ptr = abi.read32(0x0803212C) +% 0x32;
+    abi.write8(flag_ptr, 0);
+    abi.setRegNz(&rt.r[0], flag_ptr);
+    rt.r[1] = target_obj;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Configure PPU BG/blend/window registers for faction `r0` from table `[0x080322D4]` and call `0x08032200` (`0x08032240`).
+pub fn func_08032240() callconv(.c) void {
+    if (!abi.enter(0x08032240)) return;
+    abi.fetches(69);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const faction = rt.r[0];
+    const disp = abi.read32(0x080322CC);
+    abi.write8(disp +% 1, abi.read8(disp +% 1) | 0x40);
+    const tbl = abi.read32(0x080322D4);
+    const f_x2 = faction << 3;
+    const f_x4 = faction << 2;
+    const w0_h = abi.read8(tbl +% f_x2);
+    const w1_h = abi.read8(tbl +% ((f_x4 +% 2) << 1));
+    abi.write8(abi.read32(0x080322D0), w0_h);
+    abi.write8(abi.read32(0x080322D8), w0_h +% w1_h);
+
+    const w0_v_ptr = tbl +% ((f_x4 +% 1) << 1);
+    const w0_v = abi.read8(w0_v_ptr);
+    const w1_v = abi.read8(tbl +% ((f_x4 +% 3) << 1));
+    abi.write8(abi.read32(0x080322DC), w0_v);
+    abi.write8(abi.read32(0x080322E0), w0_v +% w1_v);
+
+    const win_in = abi.read32(0x080322E4);
+    const mask_in: u8 = @truncate(0 -% @as(u32, 0x21));
+    abi.write8(win_in +% 1, (abi.read8(win_in +% 1) | 0x1F) & mask_in);
+
+    const bld = abi.read32(0x080322E8);
+    abi.write16(bld, 0);
+    const bld_lo = ((abi.read8(bld) | 1) & @as(u8, @truncate(0 -% @as(u32, 3)))) | 0x3C;
+    abi.write8(bld, bld_lo);
+    if (!abi.call(func_08032200, 0x080322C7)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08032200, .{ .name = "func_08032200", .linkage = .strong });
@@ -1009,6 +1097,8 @@ comptime {
         @export(&func_08035AD4, .{ .name = "func_08035AD4", .linkage = .strong });
         @export(&func_08035D40, .{ .name = "func_08035D40", .linkage = .strong });
         @export(&func_08035DAC, .{ .name = "func_08035DAC", .linkage = .strong });
+        @export(&func_080320E4, .{ .name = "func_080320E4", .linkage = .strong });
+        @export(&func_08032240, .{ .name = "func_08032240", .linkage = .strong });
     }
 }
 

@@ -775,6 +775,471 @@ pub fn func_0800E738() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Upload 4 menu unit icon tiles `0..3` via `0x0802FC70` and palette slice `(read8([0x08002AE8]+4)<<5)+[0x08002AEC]` at `0x280` (`0x08002A9C`).
+pub fn func_08002A9C() callconv(.c) void {
+    if (!abi.enter(0x08002A9C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    const entries = [_]struct { ref: u32, ret: u32 }{
+        .{ .ref = 0x08002AD8, .ret = 0x08002AA7 },
+        .{ .ref = 0x08002ADC, .ret = 0x08002AAF },
+        .{ .ref = 0x08002AE0, .ret = 0x08002AB7 },
+        .{ .ref = 0x08002AE4, .ret = 0x08002ABF },
+    };
+    inline for (entries, 0..) |ent, idx| {
+        if (idx > 0) abi.fetches(6);
+        rt.r[0] = abi.read32(ent.ref);
+        abi.setRegNz(&rt.r[1], @intCast(idx));
+        if (!abi.call(decls.func_0802FC70, ent.ret)) return;
+    }
+
+    abi.fetches(12);
+    const pal_idx = abi.read8(abi.read32(0x08002AE8) +% 4);
+    rt.r[0] = (@as(u32, pal_idx) << 5) +% abi.read32(0x08002AEC);
+    abi.setRegNz(&rt.r[1], @as(u32, 0xA0) << 2);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x08002AD3)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload selected menu faction palette and 4 menu UI palette banks `[0x08002B4C]` via `0x08011330` (`0x08002AF0`).
+pub fn func_08002AF0() callconv(.c) void {
+    if (!abi.enter(0x08002AF0)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const pal_idx = abi.read8(abi.read32(0x08002B44) +% 4);
+    rt.r[0] = (@as(u32, pal_idx) << 5) +% abi.read32(0x08002B48);
+    abi.setRegNz(&rt.r[1], @as(u32, 0xA0) << 2);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x08002B07)) return;
+
+    const base = abi.read32(0x08002B4C);
+    const slots = [_]struct { off: u32, dst: u32, ret: u32 }{
+        .{ .off = 0x00, .dst = @as(u32, 0xB8) << 2, .ret = 0x08002B15 },
+        .{ .off = 0x20, .dst = @as(u32, 0xB0) << 2, .ret = 0x08002B23 },
+        .{ .off = 0x40, .dst = @as(u32, 0xF0) << 2, .ret = 0x08002B31 },
+        .{ .off = 0x60, .dst = @as(u32, 0xF8) << 2, .ret = 0x08002B3F },
+    };
+    inline for (slots) |s| {
+        abi.fetches(9);
+        rt.r[4] = base +% s.off;
+        rt.r[0] = rt.r[4];
+        abi.setRegNz(&rt.r[1], s.dst);
+        abi.setRegNz(&rt.r[2], 0x20);
+        if (!abi.call(decls.func_08011330, s.ret)) return;
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Dispatch 4 menu icon rows `0..3` via `0x08002EE0(idx, r0, r1)` (`0x08002EAC`).
+pub fn func_08002EAC() callconv(.c) void {
+    if (!abi.enter(0x08002EAC)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const a0 = rt.r[0];
+    const a1 = rt.r[1];
+    rt.r[4] = a0;
+    rt.r[5] = a1;
+    const rets = [_]u32{ 0x08002EBD, 0x08002EC7, 0x08002ED1, 0x08002EDB };
+    inline for (rets, 0..) |ret_addr, i| {
+        if (i > 0) abi.fetches(7);
+        abi.setRegNz(&rt.r[0], @intCast(i));
+        abi.copyRegFlags(&rt.r[1], a0);
+        abi.copyRegFlags(&rt.r[2], a1);
+        if (!abi.call(decls.func_08002EE0, ret_addr)) return;
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// DMA 3 menu icon blocks `0x80` bytes via `0x0800FFA8` and upload palette `[0x080035C8]` at `0x3A0` (`0x08003580`).
+pub fn func_08003580() callconv(.c) void {
+    if (!abi.enter(0x08003580)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    const pairs = [_]struct { src: u32, dst: u32, ret: u32 }{
+        .{ .src = 0x080035B0, .dst = 0x080035B4, .ret = 0x0800358D },
+        .{ .src = 0x080035B8, .dst = 0x080035BC, .ret = 0x08003597 },
+        .{ .src = 0x080035C0, .dst = 0x080035C4, .ret = 0x080035A1 },
+    };
+    inline for (pairs, 0..) |p, idx| {
+        if (idx > 0) abi.fetches(7);
+        rt.r[0] = abi.read32(p.src);
+        rt.r[1] = abi.read32(p.dst);
+        abi.setRegNz(&rt.r[2], 0x80);
+        if (!abi.call(decls.func_0800FFA8, p.ret)) return;
+    }
+
+    abi.fetches(8);
+    rt.r[0] = abi.read32(0x080035C8);
+    abi.setRegNz(&rt.r[1], @as(u32, 0xE8) << 2);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x080035AD)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Configure menu PPU display/window/blend registers after `0x080104B0` (`0x0800378C`).
+pub fn func_0800378C() callconv(.c) void {
+    if (!abi.enter(0x0800378C)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_080104B0, 0x08003793)) return;
+
+    abi.fetches(58);
+    const disp = abi.read32(0x08003804);
+    const mask_fe: u8 = @truncate(0 -% @as(u32, 2));
+    abi.write8(disp, ((abi.read8(disp) | 0xC0) & mask_fe) | 0x1E);
+    const mask_lo: u8 = @truncate((((0 -% @as(u32, 3)) -% 2) -% 4) -% 8);
+    abi.write8(disp +% 1, abi.read8(disp +% 1) & mask_fe & mask_lo);
+    abi.write16(abi.read32(0x08003808), 0);
+    abi.write16(abi.read32(0x0800380C), 0x10);
+    abi.write16(abi.read32(0x08003810), 0);
+    const win = abi.read32(0x08003814);
+    const w_mask: u8 = @truncate((0 -% @as(u32, 0x21)) & (0 -% @as(u32, 0x41)));
+    abi.write8(win +% 1, abi.read8(win +% 1) & w_mask);
+    abi.write8(abi.read32(0x08003818), 0);
+    abi.write8(abi.read32(0x0800381C), 0);
+    abi.write8(abi.read32(0x08003820), 0xA0);
+    abi.write8(abi.read32(0x08003824), 0xA0);
+    abi.popReturn();
+}
+
+/// Tear down tactical submenus and reload main menu icon palettes via `0x08002AF0` (`0x080045EC`).
+pub fn func_080045EC() callconv(.c) void {
+    if (!abi.enter(0x080045EC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08020D6C, 0x080045F3)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080381C4, 0x080045F7)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08021DF8, 0x080045FB)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080226B8, 0x080045FF)) return;
+    abi.fetches(4);
+    if (!abi.call(func_08002AF0, 0x08004603)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Open menu panel `6` (`0x080001FC`), spawn `[0x0800471C]`, DMA `[0x08004720]`, and init `[0x08004728]` coords `(0x57, 0x10)` (`0x080046E0`).
+pub fn func_080046E0() callconv(.c) void {
+    if (!abi.enter(0x080046E0)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019A1C, 0x080046E7)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08019608, 0x080046EB)) return;
+
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 6);
+    if (!abi.call(decls.func_080001FC, 0x080046F1)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x0800471C);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x080046F9)) return;
+
+    abi.fetches(8);
+    rt.r[0] = abi.read32(0x08004720);
+    rt.r[1] = abi.read32(0x08004724);
+    abi.setRegNz(&rt.r[2], 0x100);
+    if (!abi.call(decls.func_0800FFA8, 0x08004705)) return;
+
+    abi.fetches(13);
+    const st = abi.read32(abi.read32(0x08004728));
+    abi.write16(st +% 0x46, 0x57);
+    abi.write16(st +% 0x48, 0x10);
+    abi.popReturn();
+}
+
+/// Reset field UI, dispatch `0x080039F8(r0)` -> `0x08002B50` -> `0x08021DF8`, and set bit `0x1000` in `*[0x08004768]` (`0x0800473C`).
+pub fn func_0800473C() callconv(.c) void {
+    if (!abi.enter(0x0800473C)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const arg0 = rt.r[0];
+    rt.r[4] = arg0;
+    if (!abi.call(decls.func_08019608, 0x08004745)) return;
+
+    abi.fetches(5);
+    abi.copyRegFlags(&rt.r[0], arg0);
+    if (!abi.call(decls.func_080039F8, 0x0800474B)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08002B50, 0x0800474F)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08021DF8, 0x08004753)) return;
+
+    abi.fetches(13);
+    const st = abi.read32(abi.read32(0x08004768));
+    abi.write16(st, abi.read16(st) | 0x1000);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Enter map/field setup: `0x08019A1C`, `0x08019608`, `0x08021DF8`, `0x080195E8([0x08004990], 2, 3, 0)`, `0x08004930` (`0x0800496C`).
+pub fn func_0800496C() callconv(.c) void {
+    if (!abi.enter(0x0800496C)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019A1C, 0x08004973)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08019608, 0x08004977)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08021DF8, 0x0800497B)) return;
+
+    abi.fetches(8);
+    rt.r[0] = abi.read32(0x08004990);
+    abi.setRegNz(&rt.r[1], 2);
+    abi.setRegNz(&rt.r[2], 3);
+    abi.setRegNz(&rt.r[3], 0);
+    if (!abi.call(decls.func_080195E8, 0x08004987)) return;
+
+    abi.fetches(4);
+    if (!abi.call(func_08004930, 0x0800498B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Initialize menu prompt workspace `[0x080049E0]`, DMA UI tiles, reset palette `0x70`, and sync `0x0802055C` (`0x08004994`).
+pub fn func_08004994() callconv(.c) void {
+    if (!abi.enter(0x08004994)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const ctx_ptr = abi.read32(0x080049E0);
+    rt.r[4] = ctx_ptr;
+    const ctx0 = abi.read32(ctx_ptr);
+    abi.write8(ctx0 +% 6, 0);
+    abi.write16(ctx0 +% 2, 1);
+    if (!abi.call(decls.func_080034F0, 0x080049A9)) return;
+
+    abi.fetches(7);
+    rt.r[0] = abi.read32(0x080049E4);
+    rt.r[1] = abi.read32(0x080049E8);
+    abi.setRegNz(&rt.r[2], 0x80);
+    if (!abi.call(decls.func_0800FFA8, 0x080049B3)) return;
+
+    abi.fetches(13);
+    const ctx1 = abi.read32(ctx_ptr);
+    abi.write16(ctx1 +% 0x46, 0x15);
+    abi.write16(ctx1 +% 0x48, 0x10);
+    abi.setRegNz(&rt.r[0], 0x70);
+    if (!abi.call(decls.func_0801B8D4, 0x080049C9)) return;
+
+    abi.fetches(6);
+    abi.setRegNz(&rt.r[0], 0x10);
+    abi.setRegNz(&rt.r[1], 0x10);
+    if (!abi.call(decls.func_0802055C, 0x080049D1)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0800199C, 0x080049D5)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080036F0, 0x080049D9)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Fill dual `(0, 0xE, 0x1E)` tilemap boxes (`0x14` tall) via `0x08010C70` and flush BG `0x08011804`/`0x08011824` (`0x08004F44`).
+pub fn func_08004F44() callconv(.c) void {
+    if (!abi.enter(0x08004F44)) return;
+    abi.fetches(15);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 8;
+
+    rt.r[4] = 0x14;
+    abi.write32(rt.r[13], 0x14);
+    abi.write32(rt.r[13] +% 4, 0x174);
+    rt.r[0] = abi.read32(0x08004F80);
+    abi.setRegNz(&rt.r[1], 0);
+    abi.setRegNz(&rt.r[2], 0xE);
+    abi.setRegNz(&rt.r[3], 0x1E);
+    if (!abi.call(decls.func_08010C70, 0x08004F5F)) return;
+
+    abi.fetches(11);
+    abi.write32(rt.r[13], 0x14);
+    abi.write32(rt.r[13] +% 4, abi.read32(0x08004F88));
+    rt.r[0] = abi.read32(0x08004F84);
+    abi.setRegNz(&rt.r[1], 0);
+    abi.setRegNz(&rt.r[2], 0xE);
+    abi.setRegNz(&rt.r[3], 0x1E);
+    if (!abi.call(decls.func_08010C70, 0x08004F71)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08011804, 0x08004F75)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08011824, 0x08004F79)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// DMA 6 menu graphic/tile blocks `[0x08005764..0x08005790]` via `0x0800FFA8` (`0x08005720`).
+pub fn func_08005720() callconv(.c) void {
+    if (!abi.enter(0x08005720)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    const xfers = [_]struct { src: u32, dst: u32, len: u32, ret: u32 }{
+        .{ .src = 0x08005764, .dst = 0x08005768, .len = 0x80, .ret = 0x0800572D },
+        .{ .src = 0x0800576C, .dst = 0x08005770, .len = 0x80, .ret = 0x08005737 },
+        .{ .src = 0x08005774, .dst = 0x08005778, .len = 0x80, .ret = 0x08005741 },
+        .{ .src = 0x0800577C, .dst = 0x08005780, .len = 0x80, .ret = 0x0800574B },
+        .{ .src = 0x08005784, .dst = 0x08005788, .len = 0x100, .ret = 0x08005757 },
+        .{ .src = 0x0800578C, .dst = 0x08005790, .len = 0x40, .ret = 0x08005761 },
+    };
+    inline for (xfers, 0..) |x, idx| {
+        if (idx > 0) abi.fetches(if (x.len >= 0x100) 8 else 7);
+        rt.r[0] = abi.read32(x.src);
+        rt.r[1] = abi.read32(x.dst);
+        abi.setRegNz(&rt.r[2], x.len);
+        if (!abi.call(decls.func_0800FFA8, x.ret)) return;
+    }
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Open submenu `8`, DMA `[0x08005B3C]`, set `[0x08005B44]` coords `(0x15, 0x10)`, spawn `[0x08005B48]`, close `8` (`0x08005AFC`).
+pub fn func_08005AFC() callconv(.c) void {
+    if (!abi.enter(0x08005AFC)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 8);
+    if (!abi.call(decls.func_080001FC, 0x08005B05)) return;
+
+    abi.fetches(7);
+    rt.r[0] = abi.read32(0x08005B3C);
+    rt.r[1] = abi.read32(0x08005B40);
+    abi.setRegNz(&rt.r[2], 0x80);
+    if (!abi.call(decls.func_0800FFA8, 0x08005B0F)) return;
+
+    abi.fetches(13);
+    const st = abi.read32(abi.read32(0x08005B44));
+    abi.write16(st +% 0x46, 0x15);
+    abi.write16(st +% 0x48, 0x10);
+    if (!abi.call(decls.func_08019A1C, 0x08005B25)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08019608, 0x08005B29)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x08005B48);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08005B31)) return;
+
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 8);
+    if (!abi.call(decls.func_080001FC, 0x08005B37)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Cache 4 mode/faction values `0x080238D0(1..4)` into `*[0x080085A0] + 0x13..0x16` (`0x0800856C`).
+pub fn func_0800856C() callconv(.c) void {
+    if (!abi.enter(0x0800856C)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const dst_ptr = abi.read32(0x080085A0);
+    rt.r[4] = dst_ptr;
+
+    const rets = [_]u32{ 0x08008575, 0x08008581, 0x0800858B, 0x08008595 };
+    inline for (rets, 0..) |ret_addr, i| {
+        if (i == 0) {
+            abi.setRegNz(&rt.r[0], 1);
+        } else {
+            abi.fetches(if (i == 1) 8 else 7);
+            abi.write8(abi.read32(dst_ptr) +% 0x12 +% @as(u32, @intCast(i)), @truncate(rt.r[0]));
+            abi.setRegNz(&rt.r[0], @intCast(i + 1));
+        }
+        if (!abi.call(decls.func_080238D0, ret_addr)) return;
+    }
+
+    abi.fetches(7);
+    abi.write8(abi.read32(dst_ptr) +% 0x16, @truncate(rt.r[0]));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Accumulate 4 icon tile metrics `0x0800C1BC(0x28, 0x68, 0x48, 0x88)` onto stack scratch and return total (`0x0800C17C`).
+pub fn func_0800C17C() callconv(.c) void {
+    if (!abi.enter(0x0800C17C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 8;
+
+    const out_ptr = rt.r[13] +% 4;
+    rt.r[5] = out_ptr;
+    const cmds = [_]struct { arg: u32, ret: u32 }{
+        .{ .arg = 0x28, .ret = 0x0800C18D },
+        .{ .arg = 0x68, .ret = 0x0800C199 },
+        .{ .arg = 0x48, .ret = 0x0800C1A5 },
+        .{ .arg = 0x88, .ret = 0x0800C1B1 },
+    };
+    var acc: u32 = 0;
+    inline for (cmds, 0..) |c, idx| {
+        if (idx > 0) {
+            abi.fetches(8);
+            acc = if (idx == 1) rt.r[0] else acc +% rt.r[0];
+        }
+        abi.setRegNz(&rt.r[0], c.arg);
+        rt.r[1] = rt.r[13];
+        rt.r[2] = out_ptr;
+        if (!abi.call(decls.func_0800C1BC, c.ret)) return;
+    }
+
+    abi.fetches(8);
+    acc +%= rt.r[0];
+    abi.copyRegFlags(&rt.r[0], acc);
+    rt.r[13] +%= 8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08000280, .{ .name = "func_08000280", .linkage = .strong });
@@ -838,6 +1303,21 @@ comptime {
         @export(&func_08004F0C, .{ .name = "func_08004F0C", .linkage = .strong });
         @export(&func_080052C8, .{ .name = "func_080052C8", .linkage = .strong });
         @export(&func_0800E738, .{ .name = "func_0800E738", .linkage = .strong });
+        @export(&func_08002A9C, .{ .name = "func_08002A9C", .linkage = .strong });
+        @export(&func_08002AF0, .{ .name = "func_08002AF0", .linkage = .strong });
+        @export(&func_08002EAC, .{ .name = "func_08002EAC", .linkage = .strong });
+        @export(&func_08003580, .{ .name = "func_08003580", .linkage = .strong });
+        @export(&func_0800378C, .{ .name = "func_0800378C", .linkage = .strong });
+        @export(&func_080045EC, .{ .name = "func_080045EC", .linkage = .strong });
+        @export(&func_080046E0, .{ .name = "func_080046E0", .linkage = .strong });
+        @export(&func_0800473C, .{ .name = "func_0800473C", .linkage = .strong });
+        @export(&func_0800496C, .{ .name = "func_0800496C", .linkage = .strong });
+        @export(&func_08004994, .{ .name = "func_08004994", .linkage = .strong });
+        @export(&func_08004F44, .{ .name = "func_08004F44", .linkage = .strong });
+        @export(&func_08005720, .{ .name = "func_08005720", .linkage = .strong });
+        @export(&func_08005AFC, .{ .name = "func_08005AFC", .linkage = .strong });
+        @export(&func_0800856C, .{ .name = "func_0800856C", .linkage = .strong });
+        @export(&func_0800C17C, .{ .name = "func_0800C17C", .linkage = .strong });
     }
 }
 

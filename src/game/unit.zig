@@ -899,6 +899,158 @@ pub fn func_0802C5C0() callconv(.c) void {
     abi.popReturn();
 }
 
+fn spawnUnitAnimEffect(
+    comptime tbl_ref: u32,
+    comptime obj_ref: u32,
+    init_mode: u32,
+    scale_x: u32,
+    tile_ref: u32,
+    oam_layer: u32,
+    comptime r0: u32,
+    comptime r1: u32,
+    comptime r2: u32,
+    comptime r3: u32,
+    comptime r4: u32,
+) void {
+    abi.fetches(17);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+
+    const px = rt.r[0] & 0xFFFF;
+    const py = rt.r[1] & 0xFFFF;
+    rt.r[5] = px;
+    rt.r[6] = py;
+    abi.write32(rt.r[13], 0);
+    rt.r[0] = abi.read32(tbl_ref);
+    rt.r[2] = abi.read32(obj_ref);
+    abi.setRegNz(&rt.r[1], 0);
+    abi.setRegNz(&rt.r[3], init_mode);
+    if (!abi.call(decls.func_080133C0, r0)) return;
+
+    abi.fetches(8);
+    const slot_id: u32 = @bitCast(abi.signExtend8(@truncate(rt.r[0])));
+    rt.r[4] = slot_id;
+    rt.updateNz(slot_id);
+    abi.copyRegFlags(&rt.r[0], slot_id);
+    if (!abi.call(decls.func_080147B8, r1)) return;
+
+    abi.fetches(if (scale_x >= 0x100) 8 else 7);
+    abi.copyRegFlags(&rt.r[0], slot_id);
+    abi.setRegNz(&rt.r[1], scale_x);
+    abi.setRegNz(&rt.r[2], 0x10);
+    if (!abi.call(decls.func_080137E4, r2)) return;
+
+    abi.fetches(11);
+    rt.r[5] = @bitCast(abi.signExtend16(@truncate(px)));
+    rt.r[6] = @bitCast(abi.signExtend16(@truncate(py)));
+    abi.copyRegFlags(&rt.r[0], slot_id);
+    rt.r[1] = rt.r[5];
+    rt.r[2] = rt.r[6];
+    if (!abi.call(decls.func_08013550, r3)) return;
+
+    abi.fetches(7);
+    abi.copyRegFlags(&rt.r[0], slot_id);
+    rt.r[1] = abi.read32(tile_ref);
+    abi.setRegNz(&rt.r[2], oam_layer);
+    if (!abi.call(decls.func_0801381C, r4)) return;
+
+    abi.fetches(7);
+    abi.copyRegFlags(&rt.r[0], slot_id);
+    rt.r[13] +%= 4;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnR1Unit();
+}
+
+/// Build combatant unit preview struct at `r0` for unit index `i16(r1)` (`0x08022B6C`).
+pub fn func_08022B6C() callconv(.c) void {
+    if (!abi.enter(0x08022B6C)) return;
+    abi.fetches(48);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const out = rt.r[0];
+    const unit_idx = abi.signExtend16(@truncate(rt.r[1]));
+    const tbl_base = abi.read32(abi.read32(0x08022BEC));
+    const uptr = tbl_base +% @as(u32, @bitCast(unit_idx *% 12));
+    abi.write32(out, uptr);
+
+    const map_base = abi.read32(abi.read32(0x08022BF0));
+    const ux = abi.read8(uptr +% 2);
+    const uy = abi.read8(uptr +% 3);
+    const row_off = abi.read16(map_base +% abi.read32(0x08022BF4) +% (@as(u32, uy) << 1));
+    const tile_val = abi.read8(map_base +% abi.read32(0x08022BF8) +% row_off +% ux);
+    abi.write16(out +% 4, tile_val & 0x1F);
+
+    const byte_off = uptr -% tbl_base;
+    const neg_prod = 0 -% (byte_off *% 0x5555_5555);
+    const army_idx: u16 = @truncate(@as(u32, @bitCast(@as(i32, @bitCast(neg_prod)) >> 8)) +% 1);
+    rt.r[4] = byte_off;
+    rt.r[5] = out;
+    rt.r[6] = 0;
+    rt.r[0] = army_idx;
+    rt.r[1] = 0x1F;
+    rt.r[2] = abi.read8(uptr);
+    if (!abi.call(decls.func_08022A58, 0x08022BC9)) return;
+
+    abi.fetches(20);
+    abi.write16(out +% 6, @truncate(@as(u32, @bitCast(abi.signExtend8(@truncate(rt.r[0]))))));
+    const ptr2 = abi.read32(out);
+    abi.write16(out +% 8, abi.read8(ptr2 +% 4) & 0x7F);
+    const raw16 = abi.read16(ptr2 +% 4);
+    abi.write16(out +% 0xA, @truncate((@as(u32, raw16) << 21) >> 28));
+    abi.write16(out +% 0x18, 0);
+    abi.write16(out +% 0x10, 0);
+    abi.write16(out +% 0x12, 0);
+
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Spawn unit effect variant A (layer `3`, `0x10x0x10`) at `(i16 r0, i16 r1)` (`0x08027018`).
+pub fn func_08027018() callconv(.c) void {
+    if (!abi.enter(0x08027018)) return;
+    spawnUnitAnimEffect(0x08027074, 0x08027078, 0, 0x10, 0x0802707C, 3, 0x08027037, 0x08027043, 0x0802704D, 0x0802705F, 0x08027069);
+}
+
+/// Spawn unit effect variant B (layer `4`, init `1`, `0x10x0x10`) at `(i16 r0, i16 r1)` (`0x08027080`).
+pub fn func_08027080() callconv(.c) void {
+    if (!abi.enter(0x08027080)) return;
+    spawnUnitAnimEffect(0x080270DC, 0x080270E0, 1, 0x10, 0x080270E4, 4, 0x0802709F, 0x080270AB, 0x080270B5, 0x080270C7, 0x080270D1);
+}
+
+/// Spawn unit effect variant C (layer `4`, init `0`, `0x10x0x10`) at `(i16 r0, i16 r1)` (`0x080270E8`).
+pub fn func_080270E8() callconv(.c) void {
+    if (!abi.enter(0x080270E8)) return;
+    spawnUnitAnimEffect(0x08027144, 0x08027148, 0, 0x10, 0x0802714C, 4, 0x08027107, 0x08027113, 0x0802711D, 0x0802712F, 0x08027139);
+}
+
+/// Spawn unit effect variant D (layer `3`, init `3`, `0x100x0x10`) at `(i16 r0, i16 r1)` (`0x08027150`).
+pub fn func_08027150() callconv(.c) void {
+    if (!abi.enter(0x08027150)) return;
+    spawnUnitAnimEffect(0x080271AC, 0x080271B0, 3, 0x100, 0x080271B4, 3, 0x0802716F, 0x0802717B, 0x08027187, 0x08027199, 0x080271A3);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08019970, .{ .name = "func_08019970", .linkage = .strong });
@@ -958,6 +1110,11 @@ comptime {
         @export(&func_0802C504, .{ .name = "func_0802C504", .linkage = .strong });
         @export(&func_0802C55C, .{ .name = "func_0802C55C", .linkage = .strong });
         @export(&func_0802C5C0, .{ .name = "func_0802C5C0", .linkage = .strong });
+        @export(&func_08022B6C, .{ .name = "func_08022B6C", .linkage = .strong });
+        @export(&func_08027018, .{ .name = "func_08027018", .linkage = .strong });
+        @export(&func_08027080, .{ .name = "func_08027080", .linkage = .strong });
+        @export(&func_080270E8, .{ .name = "func_080270E8", .linkage = .strong });
+        @export(&func_08027150, .{ .name = "func_08027150", .linkage = .strong });
     }
 }
 

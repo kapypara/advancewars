@@ -1068,6 +1068,218 @@ pub fn func_080153BC() callconv(.c) void {
     abi.popReturn();
 }
 
+fn spawnAnimOverlayWindow(
+    comptime work_ptr_ref: u32,
+    comptime flag_ref: u32,
+    comptime proc_ref: u32,
+    comptime ret1: u32,
+    comptime ret2: u32,
+    comptime ret3: u32,
+) void {
+    abi.fetches(34);
+    abi.pushLr();
+    const saved_r9 = rt.r[9];
+    const saved_r8 = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r9);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+    rt.r[13] -%= 0xC;
+
+    const x: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    const y: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
+    const style = rt.r[2];
+    const a3 = rt.r[3];
+    const s0 = abi.read32(rt.r[13] +% 0x24) & 0xFFFF;
+    const s1 = abi.read32(rt.r[13] +% 0x28) & 0xFFFF;
+    const work = abi.read32(work_ptr_ref);
+    abi.write8(abi.read32(flag_ref), 0);
+    abi.write32(rt.r[13], a3);
+    abi.write32(rt.r[13] +% 4, s0);
+    abi.write32(rt.r[13] +% 8, s1);
+
+    rt.r[8] = work;
+    rt.r[9] = style;
+    rt.r[0] = work;
+    rt.r[1] = x;
+    rt.r[2] = y;
+    rt.r[3] = style;
+    if (!abi.call(func_0801241C, ret1)) return;
+
+    abi.fetches(5);
+    rt.r[0] = work;
+    if (!abi.call(func_08011CF0, ret2)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read32(proc_ref);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, ret3)) return;
+
+    abi.fetches(9);
+    rt.r[13] +%= 0xC;
+    rt.r[3] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[9] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = rt.r[3];
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    finishPoppedLr(1);
+}
+
+fn commitAnimSlotTileWindow(comptime base_ref: u32, stack_mode: u32, comptime ret_addr: u32) void {
+    abi.fetches(34);
+    abi.pushLr();
+    const saved_r9 = rt.r[9];
+    const saved_r8 = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    if (stack_mode == 0) {
+        rt.r[13] -%= 4;
+        abi.write32(rt.r[13], saved_r9);
+    }
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+    rt.r[13] -%= 4;
+
+    const a1 = rt.r[1] & 0xFFFF;
+    const a2 = rt.r[2] & 0xFFFF;
+    const a3 = rt.r[3] & 0xFFFF;
+    const base = abi.read32(base_ref);
+    abi.write16(base +% (a3 << 1), 0);
+    abi.write32(base +% 0x400 +% (a3 << 2), rt.r[0]);
+    abi.write16(base +% 0x408 +% (a3 << 1), @truncate(a1));
+    abi.write32(rt.r[13], stack_mode);
+    rt.r[1] = a1;
+    rt.r[2] = a2;
+    rt.r[3] = a3;
+    if (!abi.call(decls.func_080124F8, ret_addr)) return;
+
+    abi.fetches(if (stack_mode == 0) 11 else 10);
+    rt.r[0] &= 0xFFFF;
+    rt.updateNz(rt.r[0]);
+    rt.r[13] +%= 4;
+    rt.r[3] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = rt.r[3];
+    if (stack_mode == 0) {
+        rt.r[9] = abi.read32(rt.r[13]);
+        rt.r[13] +%= 4;
+    }
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    finishPoppedLr(1);
+}
+
+/// Spawn overlay window `0x0801241C` / `0x08011CF0` at `[0x08012334]` and activate proc `[0x0801233C]` (`0x080122D8`).
+pub fn func_080122D8() callconv(.c) void {
+    if (!abi.enter(0x080122D8)) return;
+    spawnAnimOverlayWindow(0x08012334, 0x08012338, 0x0801233C, 0x08012319, 0x0801231F, 0x08012327);
+}
+
+/// Spawn overlay window `0x0801241C` / `0x08011CF0` at `[0x0801239C]` and activate proc `[0x080123A4]` (`0x08012340`).
+pub fn func_08012340() callconv(.c) void {
+    if (!abi.enter(0x08012340)) return;
+    spawnAnimOverlayWindow(0x0801239C, 0x080123A0, 0x080123A4, 0x08012381, 0x08012387, 0x0801238F);
+}
+
+/// Allocate overlay proc `[0x08012418]`, clear `[0x08012414]`, setup `0x0801241C`, and return proc pointer (`0x080123A8`).
+pub fn func_080123A8() callconv(.c) void {
+    if (!abi.enter(0x080123A8)) return;
+    abi.fetches(30);
+    abi.pushLr();
+    const saved_r10 = rt.r[10];
+    const saved_r9 = rt.r[9];
+    const saved_r8 = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r10);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r9);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+    rt.r[13] -%= 0x10;
+
+    const ax = rt.r[0] & 0xFFFF;
+    const ay = rt.r[1] & 0xFFFF;
+    const a2 = rt.r[2];
+    const a3 = rt.r[3];
+    const s0 = abi.read32(rt.r[13] +% 0x2C) & 0xFFFF;
+    const s1 = abi.read32(rt.r[13] +% 0x30) & 0xFFFF;
+    abi.write8(abi.read32(0x08012414), 0);
+    abi.write32(rt.r[13] +% 0xC, s1);
+    rt.r[0] = abi.read32(0x08012418);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x080123E1)) return;
+
+    abi.fetches(18);
+    const proc_ptr = rt.r[0];
+    rt.r[8] = proc_ptr;
+    abi.write32(rt.r[13], a3);
+    abi.write32(rt.r[13] +% 4, s0);
+    abi.write32(rt.r[13] +% 8, s1);
+    rt.r[1] = @bitCast(abi.signExtend16(@truncate(ax)));
+    rt.r[2] = @bitCast(abi.signExtend16(@truncate(ay)));
+    rt.r[3] = a2;
+    if (!abi.call(func_0801241C, 0x08012401)) return;
+
+    abi.fetches(11);
+    rt.r[0] = proc_ptr;
+    rt.r[13] +%= 0x10;
+    rt.r[8] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[9] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[10] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    finishPoppedLr(1);
+}
+
+/// Register primary window slot `u16(r3)` in `[0x080125C4]` via `0x080124F8(..., 0)` (`0x0801256C`).
+pub fn func_0801256C() callconv(.c) void {
+    if (!abi.enter(0x0801256C)) return;
+    commitAnimSlotTileWindow(0x080125C4, 0, 0x080125B3);
+}
+
+/// Register secondary window slot `u16(r3)` in `[0x08012618]` via `0x080124F8(..., 1)` (`0x080125C8`).
+pub fn func_080125C8() callconv(.c) void {
+    if (!abi.enter(0x080125C8)) return;
+    commitAnimSlotTileWindow(0x08012618, 1, 0x08012609);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08011CF0, .{ .name = "func_08011CF0", .linkage = .strong });
@@ -1133,6 +1345,11 @@ comptime {
         @export(&func_0801A0EC, .{ .name = "func_0801A0EC", .linkage = .strong });
         @export(&func_0801A1AC, .{ .name = "func_0801A1AC", .linkage = .strong });
         @export(&func_0801A1BC, .{ .name = "func_0801A1BC", .linkage = .strong });
+        @export(&func_080122D8, .{ .name = "func_080122D8", .linkage = .strong });
+        @export(&func_08012340, .{ .name = "func_08012340", .linkage = .strong });
+        @export(&func_080123A8, .{ .name = "func_080123A8", .linkage = .strong });
+        @export(&func_0801256C, .{ .name = "func_0801256C", .linkage = .strong });
+        @export(&func_080125C8, .{ .name = "func_080125C8", .linkage = .strong });
     }
 }
 
