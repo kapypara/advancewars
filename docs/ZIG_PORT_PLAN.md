@@ -121,5 +121,17 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
 - **Milestone 9C — WebGL2 Crisp Pixel Presenter (`web/gl_presenter.js`) (Done):**
   - Added `web/gl_presenter.js` WebGL2 quad presenter with pure `NEAREST` crisp pixel-art sampling (HiDPI backing buffer and automatic Canvas2D fallback) synchronized to a clean `requestAnimationFrame` loop (`0%` idle GPU, zero UI jitter).
 
+## Phase 10 — Mobile UX, Remaining Touch Audit & Next-Gen Renderer
+- **Milestone 10A — Software Rotate (`90°`) & IndexedDB Save Slots (Done):**
+  - Added an in-page `90°` clockwise rotation toggle (`Rot`) persisted in `localStorage` so portrait-locked phones can play in full wide landscape without enabling OS auto-rotate, updating `fitCanvas()` viewport swapping and inverse-rotated `clientToLogical()` touch coordinates.
+  - Added a 3-slot IndexedDB Flash save switcher (`S1`–`S3`, keeping Slot 1 compatible with existing saves) alongside `.sav` export/import and a compact mobile toolbar layout. *(Fast-forward skipped by user preference.)*
+- **Milestone 10B — Remaining Screens Touch Audit (Planned):**
+  - Probe live EWRAM/proc addresses and add dedicated direct touch handling in `src/platform/display.zig` and `src/platform/touch.zig` for **War Room**, **Design Maps** (map editor tile palette + tap/drag paint vs. pan), **Battle Animations / CO Power cut-ins**, and **Stats / Results** screens.
+- **Milestone 10C — Outer-Corner In-Battle HUD & Full-Width Reachability (Planned):**
+  - Upgrade `renderReachabilityMargins` → `renderReachabilityFull` across `0..vw` in `src/gba/renderer.zig`.
+  - Anchor the in-battle CO Funds badge and Terrain Info box to the outer wide corners in wide mode while preserving 100% bit-exact `240x160` fallback.
+- **Milestone 10D — Vertical Widescreen (`vw x vh`), Pinch/Wheel Zoom & Decoupled Camera Panning (Planned):**
+  - Extend `wide_framebuf` and `WideScene` vertically beyond `160px` height (`vw x vh`) to reveal additional map rows, add pinch-to-zoom / wheel zoom on the tactical map, and separate map scrolling from static UI overlays in the WebGL2 compositor (`web/gl_presenter.js`).
+
 ## Deferred / Optional (Skipped for Now)
 - **Android Native Port (`aarch64-linux-android` + Pure Touch APK):** Deferred indefinitely in favor of the Phase 5 WebAssembly port for mobile browser play with touch controls; can be revisited later using `zig build -Dtarget=aarch64-linux-android` + `touch.zig`.

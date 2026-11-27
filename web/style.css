@@ -69,7 +69,14 @@ html, body {
 
 #btn-hud { min-width: 64px; }
 #btn-wide { min-width: 68px; }
+#btn-rotate { min-width: 58px; }
 #btn-mute { min-width: 66px; }
+.slot-select {
+  min-width: 46px;
+  text-align: center;
+  text-align-last: center;
+  padding: 4px 6px;
+}
 
 @media (max-width: 540px) {
   .toolbar {
@@ -96,12 +103,14 @@ html, body {
   .actions {
     grid-area: actions;
     width: 100%;
+    gap: 4px;
   }
 
   .actions .btn {
     flex: 1 1 0;
     min-width: 0;
-    padding: 5px 6px;
+    padding: 5px 4px;
+    font-size: 11px;
     white-space: nowrap;
   }
 }
@@ -206,6 +215,7 @@ body.is-portrait .bar-restore {
   position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -255,6 +265,7 @@ body.is-portrait .bar-restore {
 
 #screen {
   display: block;
+  flex: 0 0 auto;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   touch-action: none;
@@ -270,6 +281,16 @@ body.is-portrait .bar-restore {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   z-index: 8;
+}
+
+body.is-rotated #screen {
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+
+body.is-rotated .hud-canvas {
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
 }
 
 .hud-canvas[hidden] {

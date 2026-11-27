@@ -60,7 +60,9 @@ const romInputHero = document.getElementById("rom-input-hero");
 const savInput = document.getElementById("sav-input");
 const btnHud = document.getElementById("btn-hud");
 const btnWide = document.getElementById("btn-wide");
+const btnRotate = document.getElementById("btn-rotate");
 const btnMute = document.getElementById("btn-mute");
+const saveSlotSelect = document.getElementById("save-slot");
 const btnExportSav = document.getElementById("btn-export-sav");
 const btnHideBar = document.getElementById("btn-hide-bar");
 
@@ -76,6 +78,22 @@ let currentRomKey = null;
 let currentRomName = null;
 let currentRomBytes = null;
 let lastSaveBytes = null;
+let activeSaveSlot = (() => {
+  try {
+    const v = parseInt(localStorage.getItem("awre-save-slot") || "1", 10);
+    return v >= 1 && v <= 3 ? v : 1;
+  } catch (_) {
+    return 1;
+  }
+})();
+let rotated = (() => {
+  try {
+    return localStorage.getItem("awre-rotated") === "1";
+  } catch (_) {
+    return false;
+  }
+})();
+let effectiveRotated = false;
 let muted = false;
 let widescreen = true;
 let currentFrameW = GBA_W;
@@ -227,6 +245,18 @@ function updateWideButton() {
   btnWide.classList.toggle("active", widescreen);
 }
 
+function updateRotateButton() {
+  btnRotate.textContent = rotated ? "Rot 90°" : "Rot";
+  btnRotate.classList.toggle("active", rotated);
+}
+
+function activeSaveKey(baseKey) {
+  if (!baseKey) return null;
+  return activeSaveSlot === 1 ? baseKey : `${baseKey}:slot${activeSaveSlot}`;
+}
+
+saveSlotSelect.value = String(activeSaveSlot);
+
 const extButtonPointers = new Map();
 const latchedExtTimers = new Map();
 let dpadPointerId = null;
@@ -279,7 +309,11 @@ function computeHudWidthPx(availW, gameH) {
 function fitCanvas() {
   const rawW = stage.clientWidth;
   const rawH = stage.clientHeight;
-  const isPortrait = rawH > rawW;
+  const isRealPortrait = rawH > rawW;
+  effectiveRotated = rotated && isRealPortrait;
+  btnRotate.hidden = !isRealPortrait;
+  document.body.classList.toggle("is-rotated", effectiveRotated);
+  const isPortrait = !effectiveRotated && isRealPortrait;
   document.body.classList.toggle("is-portrait", isPortrait);
 
   const isPortraitHud =
@@ -297,9 +331,11 @@ function fitCanvas() {
   const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
   const availW = Math.max(0, rawW - padX);
   const availH = Math.max(0, rawH - padY);
+  const effW = effectiveRotated ? availH : availW;
+  const effH = effectiveRotated ? availW : availH;
 
-  let targetW = availW;
-  let targetH = availH;
+  let targetW = effW;
+  let targetH = effH;
 
   if (isPortraitHud) {
     const minDeckH = 256;
@@ -342,7 +378,7 @@ function fitCanvas() {
     schedulePresent();
   }
 
-  stageWideWidth = !isPortraitHud && ch > 0 ? computeHudWidthPx(availW, ch) : GBA_W;
+  stageWideWidth = !isPortraitHud && ch > 0 ? computeHudWidthPx(effW, ch) : GBA_W;
   hudWidth = inFrameHud && ch > 0 ? stageWideWidth : GBA_W;
   if (inFrameHud && cw > 0 && ch > 0) {
     const hudCssW = hudWidth === GBA_W ? cw : Math.round((hudWidth * ch) / GBA_H);
@@ -367,6 +403,7 @@ window.addEventListener("resize", fitCanvas);
 document.addEventListener("fullscreenchange", fitCanvas);
 updateHudButton();
 updateWideButton();
+updateRotateButton();
 fitCanvas();
 
 function pushPointerEvent(id, phase, lx, ly) {
@@ -406,9 +443,13 @@ function clientToLogical(ev) {
   const rect = canvas.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return { lx: 0, ly: 0 };
   const padL = (currentFrameW - GBA_W) * 0.5;
+  const sx = (ev.clientX - rect.left) / rect.width;
+  const sy = (ev.clientY - rect.top) / rect.height;
+  const u = effectiveRotated ? sy : sx;
+  const v = effectiveRotated ? 1 - sx : sy;
   return {
-    lx: ((ev.clientX - rect.left) * currentFrameW) / rect.width - padL,
-    ly: ((ev.clientY - rect.top) * GBA_H) / rect.height,
+    lx: u * currentFrameW - padL,
+    ly: v * GBA_H,
   };
 }
 
@@ -446,8 +487,9 @@ async function startSession({ name, key, romBytes }) {
   currentRomBytes = romBytes;
 
   let savBytes = null;
+  const saveKey = activeSaveKey(currentRomKey);
   try {
-    savBytes = await idbGetSave(currentRomKey);
+    savBytes = await idbGetSave(saveKey);
   } catch (err) {
     console.warn("IndexedDB load failed:", err);
   }
@@ -509,8 +551,8 @@ async function startSession({ name, key, romBytes }) {
     } else if (msg.type === "save") {
       lastSaveBytes = msg.data;
       try {
-        await idbPutSave(currentRomKey, msg.data);
-        showToast("Flash saved locally");
+        await idbPutSave(activeSaveKey(currentRomKey), msg.data);
+        showToast(`Flash saved to Slot ${activeSaveSlot}`);
       } catch (err) {
         showToast(`Save error: ${err}`, { isError: true, durationMs: 4000 });
       }
@@ -833,6 +875,16 @@ function toggleWidescreen() {
   fitCanvas();
 }
 
+function toggleRotate() {
+  releaseAllInputs();
+  rotated = !rotated;
+  try {
+    localStorage.setItem("awre-rotated", rotated ? "1" : "0");
+  } catch (_) {}
+  updateRotateButton();
+  fitCanvas();
+}
+
 function toggleMute() {
   muted = !muted;
   btnMute.textContent = muted ? "Unmute" : "Mute";
@@ -851,7 +903,24 @@ function toggleFullscreen() {
 
 btnHud.addEventListener("click", toggleHud);
 btnWide.addEventListener("click", toggleWidescreen);
+btnRotate.addEventListener("click", toggleRotate);
 btnMute.addEventListener("click", toggleMute);
+saveSlotSelect.addEventListener("change", async () => {
+  const next = parseInt(saveSlotSelect.value, 10);
+  if (!(next >= 1 && next <= 3) || next === activeSaveSlot) return;
+  activeSaveSlot = next;
+  try {
+    localStorage.setItem("awre-save-slot", String(activeSaveSlot));
+  } catch (_) {}
+  if (currentRomKey) {
+    await startSession({
+      name: currentRomName,
+      key: currentRomKey,
+      romBytes: currentRomBytes,
+    });
+  }
+  showToast(`Switched to Save Slot ${activeSaveSlot}`);
+});
 btnHideBar.addEventListener("click", () => {
   toolbar.hidden = true;
   barRestore.hidden = false;
@@ -884,7 +953,8 @@ btnExportSav.addEventListener("click", () => {
     currentRomKey === "awre-save:embedded"
       ? "advancewars"
       : currentRomName?.replace(/\.gba$/i, "") || "advancewars";
-  a.download = `${saveBase}.sav`;
+  const slotSuffix = activeSaveSlot > 1 ? `_slot${activeSaveSlot}` : "";
+  a.download = `${saveBase}${slotSuffix}.sav`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   showToast(`Exported ${a.download}`);
@@ -898,14 +968,14 @@ savInput.addEventListener("change", async (ev) => {
     return;
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
-  await idbPutSave(currentRomKey, bytes);
+  await idbPutSave(activeSaveKey(currentRomKey), bytes);
   lastSaveBytes = bytes;
   await startSession({
     name: currentRomName,
     key: currentRomKey,
     romBytes: currentRomBytes,
   });
-  showToast(`Imported ${file.name}`);
+  showToast(`Imported ${file.name} into Slot ${activeSaveSlot}`);
 });
 
 stage.addEventListener("dragover", (ev) => {
