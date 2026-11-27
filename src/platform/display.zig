@@ -118,7 +118,8 @@ fn sampleGameState() GameState {
     const main_scene_fn = peek32(0x0300_4478);
     const in_battle_scene = (main_scene_fn == 0x0803_849D);
     const dialog_active = hasActiveProc(0x0828_0E0C);
-    const frontend_root = hasActiveProc(0x082F_1160);
+    const rules_active = hasActiveProc(0x083B_9244);
+    const co_setup_active = hasActiveProc(0x083B_93C8);
     const cursor_x_raw = peek16(0x0300_36A4);
     const cursor_y_raw = peek16(0x0300_36A6);
     var cursor_x: u16 = cursor_x_raw;
@@ -166,7 +167,7 @@ fn sampleGameState() GameState {
             1 => .battle_unit_selected,
             else => .battle_overlay,
         };
-    } else if (dialog_active and !frontend_root)
+    } else if (dialog_active and !hasActiveProc(0x082F_1160) and !rules_active and !co_setup_active)
         .dialog
     else if (!in_battle_scene or battle_lock < 0) blk: {
         if (disp_mode == 0) {
@@ -191,7 +192,12 @@ fn sampleGameState() GameState {
                 menu_y = 64;
                 break :blk .frontend_map_select;
             }
-            if (hasActiveProc(0x083B_93C8) or hasActiveProc(0x083B_9244)) {
+            if (rules_active) {
+                menu_count = 7;
+                menu_selected = @min(peek8(0x0200_0037), 6);
+                break :blk .frontend_rules;
+            }
+            if (co_setup_active) {
                 break :blk .frontend_co_setup;
             }
         }
@@ -457,13 +463,13 @@ pub fn display_render_line(y: c_int) void {
     if (y == 0) {
         if (s_runner.headless or !s_widescreen or s_wide_width <= gba.width) {
             s_ppu.setViewport(gba.width, 0, false);
-            s_ppu.setBattleMapWide(null);
+            s_ppu.setWideScene(null);
             s_has_prev_battle_cam = false;
         } else {
             const dispcnt = readIo16(io, gba.io_reg.dispcnt);
             const disp_mode = dispcnt & 7;
             var wide_bg_mask: u4 = 0;
-            var bm_cfg: ?core.ppu.BattleMapWide = null;
+            var wide_scene: ?core.renderer.WideScene = null;
             var keep_prev_cam = false;
             if (disp_mode == 0) {
                 const main_scene_fn = peek32(0x0300_4478);
@@ -499,7 +505,14 @@ pub fn display_render_line(y: c_int) void {
                                 if (rt.romSlice()) |rom| {
                                     const view_wx: i32 = if (s_has_prev_battle_cam) s_prev_battle_cam_x else cam_x;
                                     const view_wy: i32 = if (s_has_prev_battle_cam) s_prev_battle_cam_y else cam_y;
-                                    bm_cfg = .{
+                                    const battle_lock: i16 = @bitCast(peek16(0x0300_43C8));
+                                    const battle_lock2: i16 = @bitCast(peek16(0x0300_4470));
+                                    const show_reach = !in_battle_menu and
+                                        peek16(0x0300_35EC) == 1 and
+                                        peek16(0x0300_357C) == 5 and
+                                        battle_lock == 0 and
+                                        battle_lock2 == 0;
+                                    wide_scene = .{
                                         .ewram = ew,
                                         .iwram = rt.iwram,
                                         .rom = rom.ptr,
@@ -508,6 +521,7 @@ pub fn display_render_line(y: c_int) void {
                                         .map_height = raw_h,
                                         .view_wx = view_wx,
                                         .view_wy = view_wy,
+                                        .show_reachability = show_reach,
                                     };
                                     s_prev_battle_cam_x = cam_x;
                                     s_prev_battle_cam_y = cam_y;
@@ -516,14 +530,14 @@ pub fn display_render_line(y: c_int) void {
                             }
                         }
                     }
-                    if (bm_cfg == null and in_battle_menu and isBgBackmost(io, dispcnt, 3)) {
+                    if (wide_scene == null and in_battle_menu and isBgBackmost(io, dispcnt, 3)) {
                         wide_bg_mask = 0b1000;
                     }
                 }
             }
             s_has_prev_battle_cam = keep_prev_cam;
             s_ppu.setViewport(s_wide_width, wide_bg_mask, false);
-            s_ppu.setBattleMapWide(bm_cfg);
+            s_ppu.setWideScene(wide_scene);
         }
     }
 

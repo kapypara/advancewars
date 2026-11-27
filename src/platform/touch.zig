@@ -120,6 +120,7 @@ pub const UiMode = enum {
     frontend_main_menu,
     frontend_map_select,
     frontend_co_setup,
+    frontend_rules,
     frontend_menu,
 };
 
@@ -227,6 +228,7 @@ pub const TouchController = struct {
 
     menu_nav_target: ?u8 = null,
     menu_nav_confirm: bool = false,
+    menu_nav_horizontal: bool = false,
     menu_nav_timer: u8 = 0,
     menu_nav_in_gap: bool = false,
     menu_nav_last_idx: u8 = 0,
@@ -361,6 +363,7 @@ pub const TouchController = struct {
     fn clearMenuNavigation(self: *TouchController) void {
         self.menu_nav_target = null;
         self.menu_nav_confirm = false;
+        self.menu_nav_horizontal = false;
         self.menu_nav_timer = 0;
         self.menu_nav_in_gap = false;
         self.menu_nav_last_idx = 0;
@@ -371,6 +374,18 @@ pub const TouchController = struct {
     fn startMenuNavigation(self: *TouchController, target: u8, confirm: bool, state: GameState) void {
         self.menu_nav_target = target;
         self.menu_nav_confirm = confirm;
+        self.menu_nav_horizontal = false;
+        self.menu_nav_timer = 0;
+        self.menu_nav_in_gap = false;
+        self.menu_nav_last_idx = state.menu_selected;
+        self.menu_nav_stall = 0;
+        self.menu_nav_key_mask = 0;
+    }
+
+    fn startHorizontalMenuNavigation(self: *TouchController, target: u8, state: GameState) void {
+        self.menu_nav_target = target;
+        self.menu_nav_confirm = false;
+        self.menu_nav_horizontal = true;
         self.menu_nav_timer = 0;
         self.menu_nav_in_gap = false;
         self.menu_nav_last_idx = state.menu_selected;
@@ -616,6 +631,7 @@ pub const TouchController = struct {
                     slot.mode_on_down == .frontend_main_menu or
                     slot.mode_on_down == .frontend_map_select or
                     slot.mode_on_down == .frontend_co_setup or
+                    slot.mode_on_down == .frontend_rules or
                     slot.mode_on_down == .frontend_menu)
                 {
                     if (!slot.dragged and dist_sq >= drag_threshold_sq) {
@@ -624,14 +640,14 @@ pub const TouchController = struct {
                         self.cancelNavigation();
                     }
                     if (slot.drag_kind == .scroll_menu) {
-                        // Natural scrolling in menus: swipe up scrolls down, swipe down scrolls up.
-                        while (ev.logical_x - slot.anchor_x <= -swipe_step_px) {
-                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.right.mask(), 3, 2);
-                            slot.anchor_x -= swipe_step_px;
-                        }
+                        // X-axis moves directly with pointer; Y-axis uses natural vertical list scrolling.
                         while (ev.logical_x - slot.anchor_x >= swipe_step_px) {
-                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.left.mask(), 3, 2);
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.right.mask(), 3, 2);
                             slot.anchor_x += swipe_step_px;
+                        }
+                        while (ev.logical_x - slot.anchor_x <= -swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.left.mask(), 3, 2);
+                            slot.anchor_x -= swipe_step_px;
                         }
                         while (ev.logical_y - slot.anchor_y <= -swipe_step_px) {
                             if (self.pulse_count < 3) self.enqueuePulse(gba.Key.down.mask(), 3, 2);
@@ -704,7 +720,7 @@ pub const TouchController = struct {
         const pad_l_f: f32 = (hud_w_f - gba_w_f) * 0.5;
         const map_mode = (state.mode == .battle_free_map or state.mode == .battle_unit_selected);
         const battle_menu_mode = switch (state.mode) {
-            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info => true,
+            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info, .frontend_rules => true,
             else => false,
         };
         const in_standard_bounds = lx >= 0 and ly >= 0 and lx < gba_w_f and ly < gba_h_f;
@@ -973,6 +989,33 @@ pub const TouchController = struct {
                     self.enqueuePulse(gba.Key.a.mask(), 4, 2);
                 }
             },
+            .frontend_rules => {
+                if (lx >= 164 and lx < 236 and ly >= 8 and ly < 32) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                    return;
+                }
+                const px_i: i32 = @intFromFloat(@floor(lx));
+                const py_i: i32 = @intFromFloat(@floor(ly));
+                if (px_i >= 7 and px_i < 231) {
+                    const idx_raw = @divTrunc(px_i - 7, 32);
+                    if (idx_raw >= 0 and idx_raw < 7) {
+                        const idx: u8 = @intCast(idx_raw);
+                        const by: i32 = 84 - @as(i32, idx) * 8;
+                        if (py_i >= by - 14 and py_i < by + 62) {
+                            if (idx != state.menu_selected) {
+                                self.cancelNavigation();
+                                self.startHorizontalMenuNavigation(idx, state);
+                            } else {
+                                self.cancelNavigation();
+                                const mask = if (py_i >= by + 38) gba.Key.down.mask() else gba.Key.up.mask();
+                                self.enqueuePulse(mask, 4, 2);
+                            }
+                            return;
+                        }
+                    }
+                }
+            },
             .frontend_menu => {
                 self.cancelNavigation();
                 self.enqueuePulse(gba.Key.a.mask(), 4, 2);
@@ -1113,7 +1156,8 @@ pub const TouchController = struct {
             state.mode != .battle_unit_list and
             state.mode != .battle_deploy_shop and
             state.mode != .yes_no_prompt and
-            state.mode != .frontend_map_select)
+            state.mode != .frontend_map_select and
+            state.mode != .frontend_rules)
         {
             self.clearMenuNavigation();
             return;
@@ -1147,7 +1191,8 @@ pub const TouchController = struct {
                 self.menu_nav_in_gap = true;
                 self.menu_nav_timer = nav_gap_frames;
             } else {
-                self.menu_nav_key_mask = if (state.mode == .yes_no_prompt)
+                const horiz = self.menu_nav_horizontal or state.mode == .yes_no_prompt or state.mode == .frontend_rules;
+                self.menu_nav_key_mask = if (horiz)
                     (if (state.menu_selected < target) gba.Key.right.mask() else gba.Key.left.mask())
                 else
                     (if (state.menu_selected < target) gba.Key.down.mask() else gba.Key.up.mask());
@@ -1556,11 +1601,11 @@ test "Dialog tap emits A and Mode 4 title tap emits Start" {
     for (0..8) |_| tc.stepFrame(dialog_state);
     try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 
-    // Dragging right in dialog (e.g. Yes / No save prompt) emits Key.left and clears queue on lift without A.
+    // Dragging right in dialog (e.g. Yes / No save prompt) emits Key.right directly and clears queue on lift without A.
     tc.handlePointer(.{ .id = 2, .phase = .down, .x = 80, .y = 120, .logical_x = 80, .logical_y = 120 }, dialog_state);
     tc.handlePointer(.{ .id = 2, .phase = .move, .x = 128, .y = 120, .logical_x = 128, .logical_y = 120 }, dialog_state);
     tc.stepFrame(dialog_state);
-    try std.testing.expectEqual(gba.Key.left.mask(), tc.activeKeys());
+    try std.testing.expectEqual(gba.Key.right.mask(), tc.activeKeys());
     tc.handlePointer(.{ .id = 2, .phase = .up, .x = 128, .y = 120, .logical_x = 128, .logical_y = 120 }, dialog_state);
     try std.testing.expectEqual(@as(usize, 0), tc.pulse_count);
     for (0..6) |_| tc.stepFrame(dialog_state);
@@ -2098,11 +2143,11 @@ test "Yes/No prompt switches option, auto-confirms, ignores outside taps, and sc
     tc.stepFrame(yn_state);
     try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 
-    // Natural scrolling: swipe right emits Key.left.
+    // Direct X-axis menu dragging: swipe right emits Key.right.
     tc.handlePointer(.{ .id = 4, .phase = .down, .x = 80, .y = 135, .logical_x = 80, .logical_y = 135 }, yn_state);
     tc.handlePointer(.{ .id = 4, .phase = .move, .x = 128, .y = 135, .logical_x = 128, .logical_y = 135 }, yn_state);
     tc.stepFrame(yn_state);
-    try std.testing.expectEqual(gba.Key.left.mask(), tc.activeKeys());
+    try std.testing.expectEqual(gba.Key.right.mask(), tc.activeKeys());
 }
 
 test "Name Entry grid 2D navigation, row-4 left-first safety, BACK, and OK!" {
@@ -2326,11 +2371,11 @@ test "Battle Intel Status and CO Dossier direct buttons and natural scroll" {
     try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
     for (0..8) |_| tc.stepFrame(status_state);
 
-    // Natural scroll swipe left -> Key.right.
+    // Direct X-axis menu dragging: swipe left emits Key.left.
     tc.handlePointer(.{ .id = 4, .phase = .down, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, status_state);
     tc.handlePointer(.{ .id = 4, .phase = .move, .x = 72, .y = 80, .logical_x = 72, .logical_y = 80 }, status_state);
     tc.stepFrame(status_state);
-    try std.testing.expectEqual(gba.Key.right.mask(), tc.activeKeys());
+    try std.testing.expectEqual(gba.Key.left.mask(), tc.activeKeys());
     tc.handlePointer(.{ .id = 4, .phase = .up, .x = 72, .y = 80, .logical_x = 72, .logical_y = 80 }, status_state);
     for (0..8) |_| tc.stepFrame(status_state);
 
@@ -2445,5 +2490,53 @@ test "Tapping extended side margins closes battle popup and in-battle menus with
     tc.handlePointer(.{ .id = 2, .phase = .down, .x = 280, .y = 60, .logical_x = 280, .logical_y = 60 }, popup_state);
     tc.handlePointer(.{ .id = 2, .phase = .up, .x = 280, .y = 60, .logical_x = 280, .logical_y = 60 }, popup_state);
     tc.stepFrame(popup_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+}
+
+test "VS Rules full direct touch supports bubble selection, value arrows, PRESS A, and margin B" {
+    var tc = TouchController{};
+    tc.setHudWidth(410);
+    var rules_state = GameState{
+        .mode = .frontend_rules,
+        .menu_count = 7,
+        .menu_selected = 0,
+    };
+
+    // 1. Tap unselected bubble 2 (Funds: x=87, y=80) -> steps right to idx 2.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 87, .y = 80, .logical_x = 87, .logical_y = 80 }, rules_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 87, .y = 80, .logical_x = 87, .logical_y = 80 }, rules_state);
+    for (0..20) |_| {
+        tc.stepFrame(rules_state);
+        if (tc.menu_nav_timer == nav_pulse_frames - 1 and !tc.menu_nav_in_gap and (tc.activeKeys() & gba.Key.right.mask()) != 0) {
+            rules_state.menu_selected += 1;
+        }
+        if (rules_state.menu_selected == 2) break;
+    }
+    try std.testing.expectEqual(@as(u8, 2), rules_state.menu_selected);
+    for (0..8) |_| tc.stepFrame(rules_state);
+
+    // 2. Tap selected Funds bubble center/top (x=87, y=80) -> Key.up; tap below arrow (y=112) -> Key.down.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 87, .y = 80, .logical_x = 87, .logical_y = 80 }, rules_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 87, .y = 80, .logical_x = 87, .logical_y = 80 }, rules_state);
+    tc.stepFrame(rules_state);
+    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(rules_state);
+
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 87, .y = 112, .logical_x = 87, .logical_y = 112 }, rules_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 87, .y = 112, .logical_x = 87, .logical_y = 112 }, rules_state);
+    tc.stepFrame(rules_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(rules_state);
+
+    // 3. Tap PRESS A (x=196, y=20) -> Key.a; tap left extended margin (lx=-40, y=60) -> Key.b.
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 196, .y = 20, .logical_x = 196, .logical_y = 20 }, rules_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 196, .y = 20, .logical_x = 196, .logical_y = 20 }, rules_state);
+    tc.stepFrame(rules_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(rules_state);
+
+    tc.handlePointer(.{ .id = 5, .phase = .down, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
+    tc.handlePointer(.{ .id = 5, .phase = .up, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
+    tc.stepFrame(rules_state);
     try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
 }

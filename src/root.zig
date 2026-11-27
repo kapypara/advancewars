@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub const gba = @import("gba/defs.zig");
 pub const ppu = @import("gba/ppu.zig");
+pub const renderer = @import("gba/renderer.zig");
 pub const headless = @import("platform/headless.zig");
 pub const platform = @import("platform/backend.zig");
 pub const wasm_backend = @import("platform/wasm.zig");

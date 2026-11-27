@@ -1,5 +1,6 @@
 const std = @import("std");
 const gba = @import("defs.zig");
+const renderer = @import("renderer.zig");
 
 const obj_width = [3][4]i32{
     .{ 8, 16, 32, 64 }, // Square
@@ -26,29 +27,6 @@ fn winContains(range: u16, v: i32, limit_in: i32) bool {
     return v >= a and v < b;
 }
 
-inline fn readLe16(ptr: [*]const u8, off: usize) u16 {
-    return @as(u16, ptr[off]) | (@as(u16, ptr[off + 1]) << 8);
-}
-
-inline fn readLe32(ptr: [*]const u8, off: usize) u32 {
-    return @as(u32, ptr[off]) |
-        (@as(u32, ptr[off + 1]) << 8) |
-        (@as(u32, ptr[off + 2]) << 16) |
-        (@as(u32, ptr[off + 3]) << 24);
-}
-
-/// Optional Advance Wars battle map state for rendering real off-screen terrain, units, properties, and fog in widescreen side margins.
-pub const BattleMapWide = struct {
-    ewram: [*]const u8,
-    iwram: ?[*]const u8 = null,
-    rom: [*]const u8,
-    rom_len: usize,
-    map_width: u16,
-    map_height: u16,
-    view_wx: i32,
-    view_wy: i32,
-};
-
 /// Software per-scanline GBA PPU renderer producing a `240x160` (or toggleable widescreen up to `512x160`) ARGB8888 framebuffer.
 pub const Ppu = struct {
     framebuf: [gba.width * gba.height]u32 = @splat(0),
@@ -56,7 +34,7 @@ pub const Ppu = struct {
     view_width: usize = gba.width,
     wide_bg_mask: u4 = 0,
     wide_obj: bool = false,
-    battle_map: ?BattleMapWide = null,
+    wide_scene: ?renderer.WideScene = null,
     top_c: [gba.max_wide_width]u16 = @splat(0),
     bot_c: [gba.max_wide_width]u16 = @splat(0),
     top_l: [gba.max_wide_width]u8 = @splat(0),
@@ -78,9 +56,9 @@ pub const Ppu = struct {
         self.wide_obj = wide_obj;
     }
 
-    /// Configure optional Advance Wars battle map sources for side-margin rendering (null disables).
-    pub fn setBattleMapWide(self: *Ppu, cfg: ?BattleMapWide) void {
-        self.battle_map = cfg;
+    /// Configure optional scene compositor sources for extended widescreen composition (null disables).
+    pub fn setWideScene(self: *Ppu, scene: ?renderer.WideScene) void {
+        self.wide_scene = scene;
     }
 
     /// Return the active framebuffer slice (`240x160` in native mode, `view_width x 160` in widescreen mode).
@@ -93,7 +71,7 @@ pub const Ppu = struct {
         return (self.view_width - gba.width) / 2;
     }
 
-    inline fn plot(self: *Ppu, x: usize, color: u16, layer: u8, semi: u8) void {
+    pub inline fn plot(self: *Ppu, x: usize, color: u16, layer: u8, semi: u8) void {
         if (((self.win[x] >> @intCast(layer)) & 1) == 0) return;
         self.bot_c[x] = self.top_c[x];
         self.bot_l[x] = self.top_l[x];
@@ -139,7 +117,7 @@ pub const Ppu = struct {
         }
     }
 
-    inline fn plotTilePixel(
+    pub inline fn plotTilePixel(
         self: *Ppu,
         mem: gba.PpuMemory,
         dst_x: usize,
@@ -164,146 +142,6 @@ pub const Ppu = struct {
             if (ci != 0) {
                 const pal_bank: u32 = (e >> 12) & 15;
                 self.plot(dst_x, mem.palRead16((pal_bank * 16 + ci) * 2), @intCast(bg), 0);
-            }
-        }
-    }
-
-    fn lineBattleMapMargins(
-        self: *Ppu,
-        mem: gba.PpuMemory,
-        bm: BattleMapWide,
-        vw: usize,
-        pad_l: usize,
-        char_base: u32,
-        bpp8: bool,
-        bg_mos: bool,
-        bg_h: usize,
-        eff_y: usize,
-    ) void {
-        const view_wx = bm.view_wx;
-        const view_wy = bm.view_wy;
-
-        const wy: i32 = view_wy + @as(i32, @intCast(eff_y));
-        if (wy < 0 or wy >= @as(i32, bm.map_height) * 16) return;
-
-        const my: usize = @intCast(wy >> 4);
-        const sub_y: usize = @intCast((wy >> 3) & 1);
-        const py_bm: u32 = @intCast(wy & 7);
-        const map_base_off: usize = 0x157F8;
-        const row_off: usize = readLe16(bm.ewram, map_base_off + 0x4682 + my * 2);
-        const max_wx: i32 = @as(i32, bm.map_width) * 16;
-        const pad_i: i32 = @intCast(pad_l);
-        const bg_h_i: i32 = @intCast(bg_h);
-
-        const spans = [2][2]usize{
-            .{ 0, pad_l },
-            .{ pad_l + gba.width, vw },
-        };
-        for (spans) |span| {
-            for (span[0]..span[1]) |sx| {
-                const gx: i32 = @as(i32, @intCast(sx)) - pad_i;
-                const eff_gx: i32 = if (bg_mos and bg_h > 1) gx - @mod(gx, bg_h_i) else gx;
-                const wx: i32 = view_wx + eff_gx;
-                if (wx < 0 or wx >= max_wx) continue;
-
-                const mx: usize = @intCast(wx >> 4);
-                const cell_idx: usize = row_off + mx;
-                if (map_base_off + 0x234A + cell_idx >= 0x40000 or
-                    map_base_off + 0x0A22 + cell_idx * 2 + 1 >= 0x40000) continue;
-
-                const vis = bm.ewram[map_base_off + 0x234A + cell_idx];
-                const tile_id: usize = readLe16(bm.ewram, map_base_off + 0x0A22 + cell_idx * 2);
-                const sub_x: usize = @intCast((wx >> 3) & 1);
-                const rom_off: usize = 0x0D1FC0 + tile_id * 8 + sub_x * 4 + sub_y * 2;
-                if (rom_off + 1 >= bm.rom_len) continue;
-
-                var e: u16 = readLe16(bm.rom, rom_off);
-                if (vis == 0) e +%= 0x4000;
-                const px_bm: u32 = @intCast(wx & 7);
-                self.plotTilePixel(mem, sx, 3, char_base, bpp8, e, px_bm, py_bm);
-            }
-        }
-    }
-
-    fn lineBattleMapUnits(
-        self: *Ppu,
-        mem: gba.PpuMemory,
-        bm: BattleMapWide,
-        vw: usize,
-        pad_l: usize,
-        vofs: u32,
-        char_base: u32,
-        bpp8: bool,
-        bg_mos: bool,
-        bg_h: usize,
-        eff_y: usize,
-    ) void {
-        const bg3_vofs: u32 = mem.ioRead16(gba.io_reg.bg3vofs) & 0x1FF;
-        const view_wx = bm.view_wx;
-        const view_wy = bm.view_wy;
-
-        var dv: i32 = @as(i32, @intCast(vofs)) - @as(i32, @intCast(bg3_vofs));
-        if (dv >= 256) dv -= 512 else if (dv < -256) dv += 512;
-
-        const wy: i32 = view_wy + dv + @as(i32, @intCast(eff_y));
-        if (wy < 0 or wy >= @as(i32, bm.map_height) * 16) return;
-
-        const my: usize = @intCast(wy >> 4);
-        const sub_y: usize = @intCast((wy >> 3) & 1);
-        const py_bm: u32 = @intCast(wy & 7);
-        const map_base_off: usize = 0x157F8;
-        const row_off: usize = readLe16(bm.ewram, map_base_off + 0x4682 + my * 2);
-        const max_wx: i32 = @as(i32, bm.map_width) * 16;
-        const pad_i: i32 = @intCast(pad_l);
-        const bg_h_i: i32 = @intCast(bg_h);
-
-        const spans = [2][2]usize{
-            .{ 0, pad_l },
-            .{ pad_l + gba.width, vw },
-        };
-        for (spans) |span| {
-            for (span[0]..span[1]) |sx| {
-                const gx: i32 = @as(i32, @intCast(sx)) - pad_i;
-                const eff_gx: i32 = if (bg_mos and bg_h > 1) gx - @mod(gx, bg_h_i) else gx;
-                const wx: i32 = view_wx + eff_gx;
-                if (wx < 0 or wx >= max_wx) continue;
-
-                const mx: usize = @intCast(wx >> 4);
-                const cell_idx: usize = row_off + mx;
-                if (map_base_off + 0x234A + cell_idx >= 0x40000 or
-                    map_base_off + 0x051A + cell_idx >= 0x40000) continue;
-
-                const vis = bm.ewram[map_base_off + 0x234A + cell_idx];
-                if (vis == 0) continue;
-
-                const uid: usize = bm.ewram[map_base_off + 0x051A + cell_idx];
-                if (uid == 0) continue;
-
-                const u_off: usize = 0x19F34 + uid * 12;
-                if (u_off + 11 >= 0x40000) continue;
-                const utype: usize = bm.ewram[u_off];
-                const flags = bm.ewram[u_off + 1];
-                if (utype == 0 or (flags & 0x04) != 0) continue;
-
-                const army_idx: usize = (uid - 1) >> 6;
-                const style_off: usize = 0x1AB34 + (army_idx + 1) * 0x68 + 0x1A;
-                const style: usize = if (style_off < 0x40000) bm.ewram[style_off] else 0;
-                const tid_off: usize = 0x28_2F2C + style * 0x32 + utype * 2;
-                if (tid_off + 1 >= bm.rom_len) continue;
-                const tid_base: u16 = readLe16(bm.rom, tid_off) *% 4;
-
-                const pal_idx: usize = if ((flags & 1) != 0) 0 else (army_idx + 1);
-                const pal_off: usize = 0x08_0D50 + pal_idx * 2;
-                if (pal_off + 1 >= bm.rom_len) continue;
-                const pal_base: u16 = readLe16(bm.rom, pal_off);
-
-                const sub_x: usize = @intCast((wx >> 3) & 1);
-                const is_flipped = (army_idx & 1) == 0;
-                const sub_idx: u16 = @intCast(sub_y * 2 + (if (is_flipped) 1 - sub_x else sub_x));
-                const hflip: u16 = if (is_flipped) 0x0400 else 0;
-                const e: u16 = pal_base +% tid_base +% sub_idx +% hflip;
-                const px_bm: u32 = @intCast(wx & 7);
-                self.plotTilePixel(mem, sx, 1, char_base, bpp8, e, px_bm, py_bm);
             }
         }
     }
@@ -350,12 +188,16 @@ pub const Ppu = struct {
         }
 
         if (bg == 3 and vw > gba.width and !extend_wide) {
-            if (self.battle_map) |bm| {
-                self.lineBattleMapMargins(mem, bm, vw, pad_l, char_base, bpp8, bg_mos, bg_h, eff_y);
+            if (self.wide_scene) |scene| {
+                renderer.renderTerrainMargins(self, mem, scene, vw, pad_l, char_base, bpp8, bg_mos, bg_h, eff_y);
+            }
+        } else if (bg == 2 and vw > gba.width and !extend_wide) {
+            if (self.wide_scene) |scene| {
+                renderer.renderReachabilityMargins(self, scene, vw, pad_l, eff_y);
             }
         } else if (bg == 1 and vw > gba.width and !extend_wide and char_base == 0 and screen_base == 30 * 0x800) {
-            if (self.battle_map) |bm| {
-                self.lineBattleMapUnits(mem, bm, vw, pad_l, vofs, char_base, bpp8, bg_mos, bg_h, eff_y);
+            if (self.wide_scene) |scene| {
+                renderer.renderUnitsMargins(self, mem, scene, vw, pad_l, vofs, char_base, bpp8, bg_mos, bg_h, eff_y);
             }
         }
     }
@@ -544,115 +386,8 @@ pub const Ppu = struct {
         }
 
         if (prio == 3 and vw > gba.width) {
-            if (self.battle_map) |bm| {
-                self.lineBattleMapProperties(mem, bm, y, vw, pad_l);
-            }
-        }
-    }
-
-    fn propertyAttr2(bm: BattleMapWide, btype: u8, owner: u8, vis: u8) ?u16 {
-        var idx: usize = owner;
-        const tbl_addr: u32 = switch (btype) {
-            6 => 0x0828_5FB8, // City
-            10 => 0x0828_5FE0, // Base / Factory
-            11 => 0x0828_5FF4, // Airport
-            14 => blk: { // Port
-                if (vis == 0) idx = 0;
-                break :blk 0x0828_5FCC;
-            },
-            8 => blk: { // HQ
-                const army_off = 0x1AB34 + @as(usize, owner) * 0x68 + 0x1A;
-                const style: usize = if (owner > 0 and army_off < 0x40000) bm.ewram[army_off] else 1;
-                const o_idx: usize = if (owner > 0) owner - 1 else 0;
-                const s_idx: usize = if (style > 0) (style - 1) * 4 else 0;
-                idx = o_idx + s_idx;
-                break :blk 0x0828_6008;
-            },
-            else => return null,
-        };
-        const tbl_off: usize = (tbl_addr - 0x0800_0000) + idx * 4;
-        if (tbl_off + 3 >= bm.rom_len) return null;
-        const desc_ptr = readLe32(bm.rom, tbl_off);
-        if (desc_ptr < 0x0800_0000) return null;
-        const desc_off: usize = desc_ptr - 0x0800_0000;
-        if (desc_off + 7 >= bm.rom_len) return null;
-        var attr2 = readLe16(bm.rom, desc_off + 6) +% 0x36;
-        if (vis == 0) attr2 = (attr2 & 0x0FFF) | 0xD000;
-        return attr2;
-    }
-
-    fn lineBattleMapProperties(
-        self: *Ppu,
-        mem: gba.PpuMemory,
-        bm: BattleMapWide,
-        y: usize,
-        vw: usize,
-        pad_l: usize,
-    ) void {
-        const iwram = bm.iwram orelse return;
-        const view_wx = bm.view_wx;
-        const view_wy = bm.view_wy;
-        const wy: i32 = view_wy + @as(i32, @intCast(y));
-
-        const prop_base: usize = 0x3400;
-        var count: usize = 0;
-        while (count < 128) : (count += 1) {
-            if (iwram[prop_base + count * 4] == 0xFF) break;
-        }
-        if (count == 0) return;
-
-        const pad_i: i32 = @intCast(pad_l);
-        const right_start: usize = pad_l + gba.width;
-        const map_base_off: usize = 0x157F8;
-
-        var rev = count;
-        while (rev > 0) {
-            rev -= 1;
-            const entry_off = prop_base + rev * 4;
-            const b = iwram[entry_off];
-            const mx: usize = iwram[entry_off + 1];
-            const my: usize = iwram[entry_off + 2];
-            if (mx >= bm.map_width or my >= bm.map_height) continue;
-
-            const wy0: i32 = @as(i32, @intCast(my)) * 16 - 16;
-            if (wy < wy0 or wy >= wy0 + 32) continue;
-
-            const wx0: i32 = @as(i32, @intCast(mx)) * 16;
-            const ox: i32 = wx0 - view_wx + pad_i;
-            if (ox + 16 <= 0 or ox >= @as(i32, @intCast(vw))) continue;
-            // Only fill side margins; main [pad_l, pad_l + 240) is rendered natively via OAM.
-            if (ox >= @as(i32, @intCast(pad_l)) and ox + 16 <= @as(i32, @intCast(right_start))) continue;
-
-            const row_off: usize = readLe16(bm.ewram, map_base_off + 0x4682 + my * 2);
-            const cell_idx: usize = row_off + mx;
-            if (map_base_off + 0x234A + cell_idx >= 0x40000) continue;
-            const vis = bm.ewram[map_base_off + 0x234A + cell_idx];
-
-            const btype = b & 0x1F;
-            const owner = (b >> 5) & 7;
-            const attr2 = propertyAttr2(bm, btype, owner, vis) orelse continue;
-            const tile_idx: u32 = attr2 & 0x3FF;
-            const pal: u32 = (attr2 >> 12) & 15;
-            const fy_u: u32 = @intCast(wy - wy0);
-            const ty: u32 = fy_u >> 3;
-
-            var px: i32 = 0;
-            while (px < 16) : (px += 1) {
-                const sx_i = ox + px;
-                if (sx_i < 0 or sx_i >= @as(i32, @intCast(vw))) continue;
-                const sx: usize = @intCast(sx_i);
-                if (sx >= pad_l and sx < right_start) continue;
-
-                const fx_u: u32 = @intCast(px);
-                const tx: u32 = fx_u >> 3;
-                const tn: u32 = tile_idx +% ty * 2 +% tx;
-                const addr: u32 = 0x10000 + (tn & 0x3FF) * 32;
-                const byte = mem.vramRead8(addr + (fy_u & 7) * 4 + ((fx_u & 7) >> 1));
-                const ci: u32 = if ((fx_u & 1) != 0) (byte >> 4) else (byte & 15);
-                if (ci == 0) continue;
-
-                const c = mem.palRead16(0x200 + (pal * 16 + ci) * 2);
-                self.plot(sx, c, 4, 0);
+            if (self.wide_scene) |scene| {
+                renderer.renderPropertiesMargins(self, mem, scene, y, vw, pad_l);
             }
         }
     }
@@ -1045,210 +780,4 @@ test "Ppu OBJ horizontal and vertical mosaic snaps sprites with attr0 bit 12 set
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[0]);
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[1]);
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[gba.width + 0]);
-}
-
-test "Ppu BattleMapWide renders real side margins with map-bounds clamp and fog shift" {
-    const allocator = std.testing.allocator;
-    const ewram = try allocator.alloc(u8, 0x40000);
-    defer allocator.free(ewram);
-    @memset(ewram, 0);
-    const rom = try allocator.alloc(u8, 0x0D2020);
-    defer allocator.free(rom);
-    @memset(rom, 0);
-
-    // Map header at 0x157F8: row_off[0] = 0
-    // tile_id 1 -> palette bank 0, tile 1 (red in bank 0; green in bank 4 under fog)
-    const map_base: usize = 0x157F8;
-    // mx=0 visible (vis=1, tid=1), mx=16 in fog (vis=0, tid=1)
-    ewram[map_base + 0x234A + 0] = 1;
-    ewram[map_base + 0x0A22 + 0] = 1;
-    ewram[map_base + 0x234A + 16] = 0;
-    ewram[map_base + 0x0A22 + 16 * 2] = 1;
-    // Metatile 1 quad (sub_x=0, sub_y=0 -> offset 0): tile 1, pal 0
-    rom[0x0D1FC0 + 1 * 8 + 0] = 1;
-
-    var mem = TestMem{};
-    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x0800); // Mode 0 + BG3
-    TestMem.write16(&mem.io_regs, gba.io_reg.bg3cnt, 0x1F0B); // cbb=2 (0x8000), sbb=31, prio=3
-    TestMem.write16(&mem.io_regs, gba.io_reg.bg3hofs, 16); // cam_x = 16
-    TestMem.write16(&mem.palette, 0, 0x0000); // Black backdrop
-    TestMem.write16(&mem.palette, 1 * 2, 0x001F); // Bank 0 color 1 = red
-    TestMem.write16(&mem.palette, (4 * 16 + 1) * 2, 0x03E0); // Bank 4 color 1 (fog) = green
-    @memset(mem.vram[0x8000 + 32 .. 0x8000 + 64], 0x11); // Tile 1 = solid index 1
-
-    var ppu = Ppu{};
-    ppu.setViewport(320, 0, false); // pad_l = 40
-    ppu.setBattleMapWide(.{
-        .ewram = ewram.ptr,
-        .rom = rom.ptr,
-        .rom_len = rom.len,
-        .map_width = 20,
-        .map_height = 10,
-        .view_wx = 16,
-        .view_wy = 0,
-    });
-    ppu.renderLine(mem.view(), 0);
-    const wide = ppu.activeFrameSlice();
-
-    // sx=0..23 -> wx = view_wx + (sx - 40) < 0 -> clamped to backdrop black (no wraparound)
-    try std.testing.expectEqual(@as(u32, 0xFF000000), wide[0]);
-    try std.testing.expectEqual(@as(u32, 0xFF000000), wide[23]);
-    // sx=24 -> wx = 0 (mx=0, vis=1) -> bank 0 red
-    try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[24]);
-    // sx=280 -> wx = 256 (mx=16, vis=0) -> bank 4 fog green
-    try std.testing.expectEqual(@as(u32, 0xFF00FF00), wide[280]);
-}
-
-test "Ppu BattleMapWide survives post-menu zeroed BG3HOFS and draws off-screen properties" {
-    const allocator = std.testing.allocator;
-    const ewram = try allocator.alloc(u8, 0x40000);
-    defer allocator.free(ewram);
-    @memset(ewram, 0);
-    const iwram = try allocator.alloc(u8, 0x8000);
-    defer allocator.free(iwram);
-    @memset(iwram, 0);
-    const rom = try allocator.alloc(u8, 0x28_6100);
-    defer allocator.free(rom);
-    @memset(rom, 0);
-
-    // Map 22x10: row_off[my] = my * 22
-    const map_base: usize = 0x157F8;
-    for (0..10) |my| {
-        const ro: u16 = @intCast(my * 22);
-        ewram[map_base + 0x4682 + my * 2] = @truncate(ro);
-        ewram[map_base + 0x4682 + my * 2 + 1] = @truncate(ro >> 8);
-    }
-    // Tile mx=0, my=1 visible terrain tile 1 (BG3 green); City at mx=18, my=1 visible
-    ewram[map_base + 0x234A + 22 + 0] = 1;
-    ewram[map_base + 0x0A22 + (22 + 0) * 2] = 1;
-    ewram[map_base + 0x234A + 22 + 18] = 1;
-    ewram[map_base + 0x0A22 + (22 + 18) * 2] = 1;
-    rom[0x0D1FC0 + 1 * 8 + 0] = 1;
-
-    // ROM City owner 0 table entry -> descriptor at 0x0828_5E78 with attr2 = 0x8000 (pal=8, tile_off=0 -> +0x36 = 0x8036)
-    const tbl_off: usize = 0x28_5FB8;
-    const desc_addr: u32 = 0x0828_5E78;
-    rom[tbl_off + 0] = @truncate(desc_addr);
-    rom[tbl_off + 1] = @truncate(desc_addr >> 8);
-    rom[tbl_off + 2] = @truncate(desc_addr >> 16);
-    rom[tbl_off + 3] = @truncate(desc_addr >> 24);
-    rom[0x28_5E78 + 6] = 0x00;
-    rom[0x28_5E78 + 7] = 0x80;
-
-    // Property list at iwram[0x3400]: City (btype=6, owner=0) at (18, 1), terminated by 0xFF
-    iwram[0x3400 + 0] = 6;
-    iwram[0x3400 + 1] = 18;
-    iwram[0x3400 + 2] = 1;
-    iwram[0x3400 + 4] = 0xFF;
-
-    var mem = TestMem{};
-    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x1F00); // Mode 0 + BGs + OBJ
-    TestMem.write16(&mem.io_regs, gba.io_reg.bg3cnt, 0x1F0B);
-    TestMem.write16(&mem.io_regs, gba.io_reg.bg3hofs, 0); // Post-menu reset while view_wx = 64
-    TestMem.write16(&mem.palette, 0, 0x0000);
-    TestMem.write16(&mem.palette, 1 * 2, 0x03E0); // BG green
-    TestMem.write16(&mem.palette, 0x200 + (8 * 16 + 2) * 2, 0x7C00); // OBJ pal 8 color 2 = blue
-    @memset(mem.vram[0x8000 + 32 .. 0x8000 + 64], 0x11);
-    @memset(mem.vram[0x10000 + 0x36 * 32 .. 0x10000 + 0x37 * 32], 0x22);
-
-    var ppu = Ppu{};
-    ppu.setViewport(400, 0, false); // pad_l = 80
-
-    // Part A: view_wx = 64, BG3HOFS = 0 (post-menu) -> left margin sx=16 (wx=0) shows terrain!
-    ppu.setBattleMapWide(.{
-        .ewram = ewram.ptr,
-        .iwram = iwram.ptr,
-        .rom = rom.ptr,
-        .rom_len = rom.len,
-        .map_width = 22,
-        .map_height = 10,
-        .view_wx = 64,
-        .view_wy = 0,
-    });
-    ppu.renderLine(mem.view(), 16);
-    const wide_a = ppu.activeFrameSlice();
-    try std.testing.expectEqual(@as(u32, 0xFF00FF00), wide_a[16 * 400 + 16]);
-
-    // Part B: view_wx = 0 -> right margin at mx=18, my=1 (wy0=0, sx = 80 + 288 = 368) draws City OBJ blue over green terrain!
-    ppu.setBattleMapWide(.{
-        .ewram = ewram.ptr,
-        .iwram = iwram.ptr,
-        .rom = rom.ptr,
-        .rom_len = rom.len,
-        .map_width = 22,
-        .map_height = 10,
-        .view_wx = 0,
-        .view_wy = 0,
-    });
-    ppu.renderLine(mem.view(), 0);
-    const wide_b = ppu.activeFrameSlice();
-    try std.testing.expectEqual(@as(u32, 0xFF0000FF), wide_b[368]);
-}
-
-test "Ppu BattleMapWide draws off-screen BG1 units with fog culling" {
-    const allocator = std.testing.allocator;
-    const ewram = try allocator.alloc(u8, 0x40000);
-    defer allocator.free(ewram);
-    @memset(ewram, 0);
-    const rom = try allocator.alloc(u8, 0x28_3000);
-    defer allocator.free(rom);
-    @memset(rom, 0);
-
-    // Map 22x10: row_off[my] = my * 22
-    const map_base: usize = 0x157F8;
-    for (0..10) |my| {
-        const ro: u16 = @intCast(my * 22);
-        ewram[map_base + 0x4682 + my * 2] = @truncate(ro);
-        ewram[map_base + 0x4682 + my * 2 + 1] = @truncate(ro >> 8);
-    }
-
-    // Terrain tile 1 at row 1 & 2 (BL quad at +2 for sub_y=1); unit at (16, 2) visible, unit at (17, 2) in fog (vis=0 -> culled)
-    ewram[map_base + 0x234A + 1 * 22 + 17] = 0; // BG3 at y=29 hits (17, 1) -> fogged
-    ewram[map_base + 0x0A22 + (1 * 22 + 17) * 2] = 1;
-    ewram[map_base + 0x234A + 2 * 22 + 16] = 1;
-    ewram[map_base + 0x0A22 + (2 * 22 + 16) * 2] = 1;
-    ewram[map_base + 0x051A + 2 * 22 + 16] = 1; // uid=1 (army=0 -> flipped)
-    ewram[map_base + 0x234A + 2 * 22 + 17] = 0; // fogged!
-    ewram[map_base + 0x0A22 + (2 * 22 + 17) * 2] = 1;
-    ewram[map_base + 0x051A + 2 * 22 + 17] = 2; // uid=2
-    rom[0x0D1FC0 + 1 * 8 + 0] = 1;
-    rom[0x0D1FC0 + 1 * 8 + 2] = 1;
-
-    // Unit 1 & 2: utype=1, flags=0 at ewram[0x19F34 + uid*12]; army 0 style=0 -> 0x282F2C + 1*2 -> tile_group 1 (*4 = 4)
-    ewram[0x19F34 + 1 * 12] = 1;
-    ewram[0x19F34 + 2 * 12] = 1;
-    rom[0x28_2F2C + 1 * 2] = 1;
-    // pal_base table at 0x08_0D50 + 1*2 (active army 0) = 0x2000 (pal bank 2, base tile 0)
-    rom[0x08_0D50 + 2] = 0x00;
-    rom[0x08_0D50 + 3] = 0x20;
-
-    var mem = TestMem{};
-    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x0A00); // Mode 0 + BG1 + BG3
-    TestMem.write16(&mem.io_regs, gba.io_reg.bg1cnt, 0x1E02); // cbb=0 (0x0000), sbb=30, prio=2
-    TestMem.write16(&mem.io_regs, gba.io_reg.bg3cnt, 0x1F0B); // cbb=2 (0x8000), sbb=31, prio=3
-    TestMem.write16(&mem.io_regs, gba.io_reg.bg1vofs, 3); // BG1 shifted +3px vs BG3
-    TestMem.write16(&mem.palette, 0, 0x0000);
-    TestMem.write16(&mem.palette, 1 * 2, 0x001F); // BG3 terrain red
-    TestMem.write16(&mem.palette, (4 * 16 + 1) * 2, 0x03E0); // BG3 fog terrain green
-    TestMem.write16(&mem.palette, (2 * 16 + 3) * 2, 0x03FF); // BG1 unit yellow (bank 2, color 3)
-    @memset(mem.vram[0x8000 + 32 .. 0x8000 + 64], 0x11); // BG3 tile 1
-    // army=0 facing right -> sub_x=0 uses tid_base + 1 = tile 5
-    @memset(mem.vram[0x0000 + 5 * 32 .. 0x0000 + 6 * 32], 0x33);
-
-    var ppu = Ppu{};
-    ppu.setViewport(320, 0, false); // pad_l = 40
-    ppu.setBattleMapWide(.{
-        .ewram = ewram.ptr,
-        .rom = rom.ptr,
-        .rom_len = rom.len,
-        .map_width = 22,
-        .map_height = 10,
-        .view_wx = 0,
-        .view_wy = 0,
-    });
-    // my=2 with BG1VOFS=3 -> screen y = 2*16 - 3 = 29; sx(mx=16) = 40+256 = 296, sx(mx=17) = 40+272 = 312
-    ppu.renderLine(mem.view(), 29);
-    const wide = ppu.activeFrameSlice();
-    try std.testing.expectEqual(@as(u32, 0xFFFFFF00), wide[29 * 320 + 296]);
-    try std.testing.expectEqual(@as(u32, 0xFF00FF00), wide[29 * 320 + 312]); // fogged unit hidden -> fogged terrain green
 }
