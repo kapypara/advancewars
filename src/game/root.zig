@@ -4,16 +4,22 @@
 
 pub const abi = @import("abi.zig");
 pub const types = @import("types.zig");
+pub const bios = @import("bios.zig");
 pub const math = @import("math.zig");
+pub const dma = @import("dma.zig");
 
 comptime {
     _ = abi;
     _ = types;
+    _ = bios;
     _ = math;
+    _ = dma;
 }
 
 test {
     _ = abi;
     _ = types;
+    _ = bios;
     _ = math;
+    _ = dma;
 }

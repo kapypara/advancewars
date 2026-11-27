@@ -14,6 +14,50 @@ pub inline fn fetches(n: u32) void {
     rt.cpu_fetches(n);
 }
 
+/// Push `r14` (`lr`) onto the emulated GBA stack.
+pub inline fn pushLr() void {
+    rt.r[13] -%= 4;
+    rt.bus_write32(rt.r[13], rt.r[14]);
+}
+
+/// Pop return address from the emulated GBA stack into `r0`/`r15` and return.
+pub inline fn popReturn() void {
+    const lr_val = rt.bus_read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Return to caller using `r14` (`bx lr`).
+pub inline fn retLr() void {
+    rt.recompReturn(rt.r[14]);
+}
+
+/// Invoke GBA BIOS software interrupt `#num`.
+pub inline fn swi(num: u32) void {
+    rt.gba_swi(num);
+}
+
+/// Call a function pointer using GBA `bl` conventions (`lr = ret_addr`, `g_ret = 0`).
+pub inline fn call(func: *const fn () callconv(.c) void, ret_addr: u32) bool {
+    rt.r[14] = ret_addr;
+    rt.g_ret = 0;
+    func();
+    return rt.recompCalled(ret_addr);
+}
+
+/// Assign a register and update N/Z flags (matching Thumb `movs`).
+pub inline fn setRegNz(reg: *u32, val: u32) void {
+    reg.* = val;
+    rt.updateNz(val);
+}
+
+/// Assign a register using `rt.cpuAdd` semantics (sets all NZCV flags).
+pub inline fn copyRegFlags(dst: *u32, src: u32) void {
+    rt.cpuAdd(dst, src, 0, true);
+}
+
 /// Read argument register `r0..r3`.
 pub inline fn arg(comptime idx: u2) u32 {
     return rt.r[idx];
