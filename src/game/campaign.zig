@@ -360,6 +360,77 @@ pub fn func_08037CF8() callconv(.c) void {
     querySaveFlagBit(17, true, 0x08037D03);
 }
 
+/// Set bit resolved by `0x0801DE88(r0)` inside `save_flags + 3` to `u8(r1)` (`0x0803EEE8`).
+pub fn func_0803EEE8() callconv(.c) void {
+    if (!abi.enter(0x0803EEE8)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[1] & 0xFF;
+    if (!abi.call(decls.func_0801DE88, 0x0803EEF3)) return;
+
+    abi.fetches(21);
+    const bit_num = rt.r[0] & 0xFFFF;
+    const byte_addr = abi.read32(0x0803EF18) +% 3 +% (bit_num >> 3);
+    const shift: u3 = @truncate(bit_num & 7);
+    const clear_mask = ~(@as(u8, 1) << shift);
+    const set_bits: u8 = @truncate(rt.r[4] << shift);
+    abi.write8(byte_addr, (abi.read8(byte_addr) & clear_mask) | set_bits);
+
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Query campaign/mission rank `0x0803F1DC(0, 0, u8(r0))` (`0x0803F294`).
+pub fn func_0803F294() callconv(.c) void {
+    if (!abi.enter(0x0803F294)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[2] = rt.r[0] & 0xFF;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0803F1DC, 0x0803F2A5)) return;
+    abi.fetches(6);
+    rt.r[0] &= 0xFF;
+    popReturnValue();
+}
+
+/// Reset mission record slot `(0, 0)` via `0x0803F244` (`0x0803F2AC`).
+pub fn func_0803F2AC() callconv(.c) void {
+    if (!abi.enter(0x0803F2AC)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0803F244, 0x0803F2B7)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Sync/save campaign map state via `0x0803906C` (`0x0803F2BC`).
+pub fn func_0803F2BC() callconv(.c) void {
+    if (!abi.enter(0x0803F2BC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0803906C, 0x0803F2C3)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Mark campaign slot byte `+0x1D = 3` and commit save via `0x0803EE5C` (`0x0804017C`).
+pub fn func_0804017C() callconv(.c) void {
+    if (!abi.enter(0x0804017C)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    abi.write8(abi.read32(0x0804018C) +% 0x1D, 3);
+    if (!abi.call(decls.func_0803EE5C, 0x08040189)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080378C8, .{ .name = "func_080378C8", .linkage = .strong });
@@ -388,6 +459,11 @@ comptime {
         @export(&func_0803E53C, .{ .name = "func_0803E53C", .linkage = .strong });
         @export(&func_0803E5F0, .{ .name = "func_0803E5F0", .linkage = .strong });
         @export(&func_0803EEBC, .{ .name = "func_0803EEBC", .linkage = .strong });
+        @export(&func_0803EEE8, .{ .name = "func_0803EEE8", .linkage = .strong });
+        @export(&func_0803F294, .{ .name = "func_0803F294", .linkage = .strong });
+        @export(&func_0803F2AC, .{ .name = "func_0803F2AC", .linkage = .strong });
+        @export(&func_0803F2BC, .{ .name = "func_0803F2BC", .linkage = .strong });
+        @export(&func_0804017C, .{ .name = "func_0804017C", .linkage = .strong });
         @export(&func_0803EF1C, .{ .name = "func_0803EF1C", .linkage = .strong });
         @export(&func_0803EF48, .{ .name = "func_0803EF48", .linkage = .strong });
         @export(&func_0803F014, .{ .name = "func_0803F014", .linkage = .strong });

@@ -206,6 +206,20 @@ pub fn func_0806D260() callconv(.c) void {
     rt.recompReturn(lr_val);
 }
 
+/// Calls `func_08010A84` and returns `0` (`pop {r1}; bx r1`).
+pub fn func_0803D4F0() callconv(.c) void {
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08010A84, 0x0803D4F7)) return;
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 0);
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010A84, .{ .name = "func_08010A84", .linkage = .strong });
@@ -214,6 +228,7 @@ comptime {
         @export(&func_0806D260, .{ .name = "func_0806D260", .linkage = .strong });
         @export(&func_0807AF30, .{ .name = "func_0807AF30", .linkage = .strong });
         @export(&func_0800FCFA, .{ .name = "func_0800FCFA", .linkage = .strong });
+        @export(&func_0803D4F0, .{ .name = "func_0803D4F0", .linkage = .strong });
     }
 }
 

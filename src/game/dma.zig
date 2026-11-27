@@ -112,6 +112,19 @@ pub fn func_080178F4() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Bulk-copy `0x800` bytes from `0x0803C340` to `0x0803C344` via `0x0800FDA4` (`0x0803C32C`).
+pub fn func_0803C32C() callconv(.c) void {
+    if (!abi.enter(0x0803C32C)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0803C340);
+    rt.r[1] = abi.read32(0x0803C344);
+    abi.setRegNz(&rt.r[2], 0x800);
+    if (!abi.call(decls.func_0800FDA4, 0x0803C33B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_0800F894, .{ .name = "func_0800F894", .linkage = .strong });
@@ -121,6 +134,7 @@ comptime {
         @export(&func_08011310, .{ .name = "func_08011310", .linkage = .strong });
         @export(&func_08011354, .{ .name = "func_08011354", .linkage = .strong });
         @export(&func_080178F4, .{ .name = "func_080178F4", .linkage = .strong });
+        @export(&func_0803C32C, .{ .name = "func_0803C32C", .linkage = .strong });
     }
 }
 

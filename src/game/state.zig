@@ -652,6 +652,115 @@ pub fn func_08016F44() callconv(.c) void {
     abi.popReturn();
 }
 
+fn setBattleSubmodeAfter19608(comptime mode: u8, comptime ptr_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, ret_addr)) return;
+    abi.fetches(8);
+    abi.write8(abi.read32(abi.read32(ptr_ref)), mode);
+    abi.popReturn();
+}
+
+/// Switch active script table to `0x0803E23C` and dispatch `0x0803E170` with `0x0803E240` (`0x0803E224`).
+pub fn func_0803E224() callconv(.c) void {
+    if (!abi.enter(0x0803E224)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const val = abi.read32(0x0803E23C);
+    abi.write32(abi.read32(0x0803E238), val);
+    rt.r[0] = val;
+    rt.r[1] = abi.read32(0x0803E240);
+    if (!abi.call(decls.func_0803E170, 0x0803E233)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Reset battle/UI state block `0x0803E438` preserving field `+0x0C` across `0x08034C74` (`0x0803E400`).
+pub fn func_0803E400() callconv(.c) void {
+    if (!abi.enter(0x0803E400)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[5] = abi.read32(0x0803E438);
+    rt.r[4] = abi.read8(rt.r[5] +% 0xC);
+    if (!abi.call(decls.func_08034C74, 0x0803E40B)) return;
+
+    abi.fetches(25);
+    abi.write8(rt.r[5] +% 0xC, @truncate(rt.r[4]));
+    inline for ([_]u32{ 0x39, 0x3A, 0x3B, 0x3C, 0x2C }) |off| {
+        abi.write8(rt.r[5] +% off, 0);
+    }
+    inline for ([_]u32{ 0xD, 0x7, 0x8, 0x2D, 0x0 }) |off| {
+        abi.write8(rt.r[5] +% off, 1);
+    }
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Refresh HUD via `0x08019608` and enter phase `2` (`0x0803E43C`).
+pub fn func_0803E43C() callconv(.c) void {
+    if (!abi.enter(0x0803E43C)) return;
+    setBattleSubmodeAfter19608(2, 0x0803E450, 0x0803E443);
+}
+
+/// Refresh HUD via `0x08019608` and enter phase `3` (`0x0803E454`).
+pub fn func_0803E454() callconv(.c) void {
+    if (!abi.enter(0x0803E454)) return;
+    setBattleSubmodeAfter19608(3, 0x0803E468, 0x0803E45B);
+}
+
+/// Refresh HUD via `0x08019608` and enter phase `4` (`0x0803E46C`).
+pub fn func_0803E46C() callconv(.c) void {
+    if (!abi.enter(0x0803E46C)) return;
+    setBattleSubmodeAfter19608(4, 0x0803E480, 0x0803E473);
+}
+
+/// Run turn/AI step helper `0x080247DC` (`0x0803E5DC`).
+pub fn func_0803E5DC() callconv(.c) void {
+    if (!abi.enter(0x0803E5DC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_080247DC, 0x0803E5E3)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Resolve message block `0x0803FCDC` via `0x08018400` and copy `u8(arg->+0x1E)` into `+0x10` (`0x0803FCC8`).
+pub fn func_0803FCC8() callconv(.c) void {
+    if (!abi.enter(0x0803FCC8)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0];
+    rt.r[0] = abi.read32(0x0803FCDC);
+    if (!abi.call(decls.func_08018400, 0x0803FCD3)) return;
+
+    abi.fetches(7);
+    abi.write8(rt.r[0] +% 0x10, @truncate(abi.read16(rt.r[4] +% 0x1E)));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Clear/flush campaign state helper `0x0800FC58` (`0x0803FCE0`).
+pub fn func_0803FCE0() callconv(.c) void {
+    if (!abi.enter(0x0803FCE0)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0800FC58, 0x0803FCE7)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08015E10, .{ .name = "func_08015E10", .linkage = .strong });
@@ -659,6 +768,14 @@ comptime {
         @export(&func_08016918, .{ .name = "func_08016918", .linkage = .strong });
         @export(&func_08016F44, .{ .name = "func_08016F44", .linkage = .strong });
         @export(&func_08018AAC, .{ .name = "func_08018AAC", .linkage = .strong });
+        @export(&func_0803E224, .{ .name = "func_0803E224", .linkage = .strong });
+        @export(&func_0803E400, .{ .name = "func_0803E400", .linkage = .strong });
+        @export(&func_0803E43C, .{ .name = "func_0803E43C", .linkage = .strong });
+        @export(&func_0803E454, .{ .name = "func_0803E454", .linkage = .strong });
+        @export(&func_0803E46C, .{ .name = "func_0803E46C", .linkage = .strong });
+        @export(&func_0803E5DC, .{ .name = "func_0803E5DC", .linkage = .strong });
+        @export(&func_0803FCC8, .{ .name = "func_0803FCC8", .linkage = .strong });
+        @export(&func_0803FCE0, .{ .name = "func_0803FCE0", .linkage = .strong });
         @export(&func_08018C60, .{ .name = "func_08018C60", .linkage = .strong });
         @export(&func_08018C6C, .{ .name = "func_08018C6C", .linkage = .strong });
         @export(&func_08018C9C, .{ .name = "func_08018C9C", .linkage = .strong });

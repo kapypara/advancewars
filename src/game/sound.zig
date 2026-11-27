@@ -240,6 +240,86 @@ pub fn func_080386D8() callconv(.c) void {
     callSoundCue(decls.func_080796F0, 0xFE, 0x080386E1);
 }
 
+fn callSoundVoid(comptime target: fn () callconv(.c) void, comptime ret_addr: u32) void {
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(target, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Stop/end m4a driver helper proc `0x0803D70C` (`0x0803D700`).
+pub fn func_0803D700() callconv(.c) void {
+    if (!abi.enter(0x0803D700)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0803D70C);
+    if (!abi.call(decls.func_0801329C, 0x0803D709)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Play song table entry `*(0x0803D774 + r0 * 4)` via `0x080787CC` (`0x0803D760`).
+pub fn func_0803D760() callconv(.c) void {
+    if (!abi.enter(0x0803D760)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const tbl = abi.read32(0x0803D774);
+    rt.r[0] = abi.read32(tbl +% (rt.r[0] << 2));
+    if (!abi.call(decls.func_080787CC, 0x0803D76F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Play/configure song header `r0 << 8` via `0x080787CC` (`0x0803D778`).
+pub fn func_0803D778() callconv(.c) void {
+    if (!abi.enter(0x0803D778)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] <<= 8;
+    if (!abi.call(decls.func_080787CC, 0x0803D781)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Trigger `m4aSongNumStop` helper `0x08078934` (`0x0803D784`).
+pub fn func_0803D784() callconv(.c) void {
+    if (!abi.enter(0x0803D784)) return;
+    callSoundVoid(decls.func_08078934, 0x0803D78B);
+}
+
+/// Update m4a sound driver frame `0x080788B8` (`0x0803D790`).
+pub fn func_0803D790() callconv(.c) void {
+    if (!abi.enter(0x0803D790)) return;
+    callSoundVoid(decls.func_080788B8, 0x0803D797);
+}
+
+/// Play signed sound effect `i16(r0)` via `0x0803D830` (`0x0803D880`).
+pub fn func_0803D880() callconv(.c) void {
+    if (!abi.enter(0x0803D880)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    if (!abi.call(decls.func_0803D830, 0x0803D88B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Set audio config word `0x0803D938` into `[0x0803D934]` and init via `0x08078424` (`0x0803D920`).
+pub fn func_0803D920() callconv(.c) void {
+    if (!abi.enter(0x0803D920)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const val = abi.read32(0x0803D938);
+    rt.r[1] = abi.read32(0x0803D934);
+    rt.r[2] = val;
+    rt.cpuAdd(&rt.r[0], val, 0, true);
+    abi.write16(rt.r[1], @truncate(rt.r[0]));
+    if (!abi.call(decls.func_08078424, 0x0803D92F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
@@ -248,11 +328,18 @@ comptime {
         @export(&func_0803804C, .{ .name = "func_0803804C", .linkage = .strong });
         @export(&func_08038058, .{ .name = "func_08038058", .linkage = .strong });
         @export(&func_080386D8, .{ .name = "func_080386D8", .linkage = .strong });
+        @export(&func_0803D700, .{ .name = "func_0803D700", .linkage = .strong });
         @export(&func_0803D710, .{ .name = "func_0803D710", .linkage = .strong });
         @export(&func_0803D714, .{ .name = "func_0803D714", .linkage = .strong });
         @export(&func_0803D720, .{ .name = "func_0803D720", .linkage = .strong });
+        @export(&func_0803D760, .{ .name = "func_0803D760", .linkage = .strong });
+        @export(&func_0803D778, .{ .name = "func_0803D778", .linkage = .strong });
+        @export(&func_0803D784, .{ .name = "func_0803D784", .linkage = .strong });
+        @export(&func_0803D790, .{ .name = "func_0803D790", .linkage = .strong });
         @export(&func_0803D79C, .{ .name = "func_0803D79C", .linkage = .strong });
         @export(&func_0803D7AC, .{ .name = "func_0803D7AC", .linkage = .strong });
+        @export(&func_0803D880, .{ .name = "func_0803D880", .linkage = .strong });
+        @export(&func_0803D920, .{ .name = "func_0803D920", .linkage = .strong });
         @export(&func_0803D954, .{ .name = "func_0803D954", .linkage = .strong });
         @export(&func_080779D8, .{ .name = "func_080779D8", .linkage = .strong });
         @export(&func_080795B4, .{ .name = "func_080795B4", .linkage = .strong });

@@ -607,6 +607,28 @@ pub fn func_08010B78() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Dispatch 5-arg `(i16 r0, i16 r1, 0x080422E8, packed (arg4<<12 | r3))` via IWRAM trampoline (`0x080422C4`).
+pub fn func_080422C4() callconv(.c) void {
+    if (!abi.enter(0x080422C4)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const arg3_hi = rt.r[3] << 16;
+    const arg4 = abi.read32(rt.r[13] +% 8);
+    rt.r[0] = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    rt.r[1] = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
+    rt.r[2] = abi.read32(0x080422E8);
+    rt.r[3] = ((arg4 << 28) | arg3_hi) >> 16;
+    if (!abi.call(decls.func_0801B888, 0x080422E1)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -637,6 +659,7 @@ comptime {
         @export(&func_0801B888, .{ .name = "func_0801B888", .linkage = .strong });
         @export(&func_0801B8A8, .{ .name = "func_0801B8A8", .linkage = .strong });
         @export(&func_0801DAB8, .{ .name = "func_0801DAB8", .linkage = .strong });
+        @export(&func_080422C4, .{ .name = "func_080422C4", .linkage = .strong });
         @export(&func_08069B1C, .{ .name = "func_08069B1C", .linkage = .strong });
         @export(&func_08079958, .{ .name = "func_08079958", .linkage = .strong });
         @export(&func_08079A00, .{ .name = "func_08079A00", .linkage = .strong });

@@ -1464,6 +1464,348 @@ pub fn func_0803BD54() callconv(.c) void {
     checkProcActive(0x0803BD70, 0x0803BD5D);
 }
 
+fn callUIProc31E0(comptime def_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read32(def_ref);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_080131E0, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn callUIWindow11060(
+    comptime mode_val: ?u8,
+    comptime mode_ref: ?u32,
+    comptime a0_ref: u32,
+    comptime a1_ref: u32,
+    comptime a2_ref: u32,
+    comptime ret_addr: u32,
+) void {
+    abi.fetches(if (mode_val != null) 11 else 8);
+    abi.pushLr();
+    if (mode_val) |m| {
+        abi.write8(abi.read32(mode_ref.?) +% 1, m);
+    }
+    rt.r[0] = abi.read32(a0_ref);
+    rt.r[1] = abi.read32(a1_ref);
+    rt.r[2] = abi.read32(a2_ref);
+    if (!abi.call(decls.func_08011060, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn queryUI13BA0(comptime def_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(def_ref);
+    if (!abi.call(decls.func_08013BA0, ret_addr)) return;
+    abi.fetches(6);
+    rt.r[0] &= 0xFF;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+fn callUIStep3DD24(comptime step: u32, comptime ret_addr: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], step);
+    if (!abi.call(decls.func_0803DD24, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Queue overlay callback `0x0803C828` with arg `1` via `0x08015824` (`0x0803C818`).
+pub fn func_0803C818() callconv(.c) void {
+    if (!abi.enter(0x0803C818)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0803C828);
+    abi.setRegNz(&rt.r[1], 1);
+    if (!abi.call(decls.func_08015824, 0x0803C823)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Return `1` if `0x0803D034` UI proc is active, else `0` (`0x0803D018`).
+pub fn func_0803D018() callconv(.c) void {
+    if (!abi.enter(0x0803D018)) return;
+    checkProcActive(0x0803D034, 0x0803D021);
+}
+
+/// Spawn `0x0803D2C0` UI proc (`0x0803D2B0`).
+pub fn func_0803D2B0() callconv(.c) void {
+    if (!abi.enter(0x0803D2B0)) return;
+    spawnProcZero(0x0803D2C0, 0x0803D2BB);
+}
+
+/// Dispatch UI palette/panel init `0x0801B478` (`0x0803D2CC`).
+pub fn func_0803D2CC() callconv(.c) void {
+    if (!abi.enter(0x0803D2CC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0801B478, 0x0803D2D3)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Dispatch UI palette/panel cleanup `0x0801B4F8` (`0x0803D2D8`).
+pub fn func_0803D2D8() callconv(.c) void {
+    if (!abi.enter(0x0803D2D8)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0801B4F8, 0x0803D2DF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Spawn `0x0803D44C` UI proc (`0x0803D43C`).
+pub fn func_0803D43C() callconv(.c) void {
+    if (!abi.enter(0x0803D43C)) return;
+    spawnProcZero(0x0803D44C, 0x0803D447);
+}
+
+/// End `0x0803D4CC` UI proc (`0x0803D4C0`).
+pub fn func_0803D4C0() callconv(.c) void {
+    if (!abi.enter(0x0803D4C0)) return;
+    endProcPool(0x0803D4CC, 0x0803D4C9);
+}
+
+/// Return `1` if `0x0803D4EC` UI proc is active, else `0` (`0x0803D4D0`).
+pub fn func_0803D4D0() callconv(.c) void {
+    if (!abi.enter(0x0803D4D0)) return;
+    checkProcActive(0x0803D4EC, 0x0803D4D9);
+}
+
+/// Clear `[0x0803D584]` flag byte and configure menu via `0x08048AA4(..., 6)` (`0x0803D570`).
+pub fn func_0803D570() callconv(.c) void {
+    if (!abi.enter(0x0803D570)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const ptr = abi.read32(0x0803D584);
+    abi.write8(ptr, 0);
+    rt.r[0] = ptr;
+    abi.setRegNz(&rt.r[1], 6);
+    if (!abi.call(decls.func_08048AA4, 0x0803D57F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Spawn indexed proc `0x0803D614` via `0x080131E0` (`0x0803D604`).
+pub fn func_0803D604() callconv(.c) void {
+    if (!abi.enter(0x0803D604)) return;
+    callUIProc31E0(0x0803D614, 0x0803D60F);
+}
+
+/// End `0x0803D624` UI proc (`0x0803D618`).
+pub fn func_0803D618() callconv(.c) void {
+    if (!abi.enter(0x0803D618)) return;
+    endProcPool(0x0803D624, 0x0803D621);
+}
+
+/// Spawn `0x0803DB10` UI proc (`0x0803DB00`).
+pub fn func_0803DB00() callconv(.c) void {
+    if (!abi.enter(0x0803DB00)) return;
+    spawnProcZero(0x0803DB10, 0x0803DB0B);
+}
+
+/// Query byte proc flag `0x0803DB24` via `0x08013BA0` (`0x0803DB14`).
+pub fn func_0803DB14() callconv(.c) void {
+    if (!abi.enter(0x0803DB14)) return;
+    queryUI13BA0(0x0803DB24, 0x0803DB1D);
+}
+
+/// Spawn `0x0803DB38` UI proc (`0x0803DB28`).
+pub fn func_0803DB28() callconv(.c) void {
+    if (!abi.enter(0x0803DB28)) return;
+    spawnProcZero(0x0803DB38, 0x0803DB33);
+}
+
+/// Query byte proc flag `0x0803DB4C` via `0x08013BA0` (`0x0803DB3C`).
+pub fn func_0803DB3C() callconv(.c) void {
+    if (!abi.enter(0x0803DB3C)) return;
+    queryUI13BA0(0x0803DB4C, 0x0803DB45);
+}
+
+/// Spawn `0x0803DB7C` UI proc (`0x0803DB6C`).
+pub fn func_0803DB6C() callconv(.c) void {
+    if (!abi.enter(0x0803DB6C)) return;
+    spawnProcZero(0x0803DB7C, 0x0803DB77);
+}
+
+/// Open/draw UI window preset `0x0803DBD4..0x0803DBDC` (`0x0803DBC4`).
+pub fn func_0803DBC4() callconv(.c) void {
+    if (!abi.enter(0x0803DBC4)) return;
+    callUIWindow11060(null, null, 0x0803DBD4, 0x0803DBD8, 0x0803DBDC, 0x0803DBD1);
+}
+
+/// Spawn `0x0803DC10` UI proc (`0x0803DC00`).
+pub fn func_0803DC00() callconv(.c) void {
+    if (!abi.enter(0x0803DC00)) return;
+    spawnProcZero(0x0803DC10, 0x0803DC0B);
+}
+
+/// Dispatch UI panel mode `1` via `0x0803DD24` (`0x0803DC14`).
+pub fn func_0803DC14() callconv(.c) void {
+    if (!abi.enter(0x0803DC14)) return;
+    callUIStep3DD24(1, 0x0803DC1D);
+}
+
+/// Dispatch UI panel mode `2` via `0x0803DD24` (`0x0803DC20`).
+pub fn func_0803DC20() callconv(.c) void {
+    if (!abi.enter(0x0803DC20)) return;
+    callUIStep3DD24(2, 0x0803DC29);
+}
+
+/// Dispatch UI panel mode `3` via `0x0803DD24` (`0x0803DC2C`).
+pub fn func_0803DC2C() callconv(.c) void {
+    if (!abi.enter(0x0803DC2C)) return;
+    callUIStep3DD24(3, 0x0803DC35);
+}
+
+/// Dispatch UI panel mode `4` via `0x0803DD24` (`0x0803DC38`).
+pub fn func_0803DC38() callconv(.c) void {
+    if (!abi.enter(0x0803DC38)) return;
+    callUIStep3DD24(4, 0x0803DC41);
+}
+
+/// Set UI window mode byte `3` and open window `0x0803DC60..0x0803DC68` (`0x0803DC44`).
+pub fn func_0803DC44() callconv(.c) void {
+    if (!abi.enter(0x0803DC44)) return;
+    callUIWindow11060(3, 0x0803DC5C, 0x0803DC60, 0x0803DC64, 0x0803DC68, 0x0803DC57);
+}
+
+/// Trigger UI helper `0x0806A3A0` (`0x0803DD94`).
+pub fn func_0803DD94() callconv(.c) void {
+    if (!abi.enter(0x0803DD94)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0806A3A0, 0x0803DD9B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Set UI window mode byte `4` and open window `0x0803DDBC..0x0803DDC4` (`0x0803DDA0`).
+pub fn func_0803DDA0() callconv(.c) void {
+    if (!abi.enter(0x0803DDA0)) return;
+    callUIWindow11060(4, 0x0803DDB8, 0x0803DDBC, 0x0803DDC0, 0x0803DDC4, 0x0803DDB3);
+}
+
+/// Set UI window mode byte `4` and open window `0x0803DDE4..0x0803DDEC` (`0x0803DDC8`).
+pub fn func_0803DDC8() callconv(.c) void {
+    if (!abi.enter(0x0803DDC8)) return;
+    callUIWindow11060(4, 0x0803DDE0, 0x0803DDE4, 0x0803DDE8, 0x0803DDEC, 0x0803DDDB);
+}
+
+/// Trigger UI helper `0x0804DA34` (`0x0803DDF0`).
+pub fn func_0803DDF0() callconv(.c) void {
+    if (!abi.enter(0x0803DDF0)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0804DA34, 0x0803DDF7)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Set mode byte `2` at `*(0x0803DE20)+1` and spawn `0x0803DE24` proc (`0x0803DE0C`).
+pub fn func_0803DE0C() callconv(.c) void {
+    if (!abi.enter(0x0803DE0C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    abi.write8(abi.read32(0x0803DE20) +% 1, 2);
+    rt.r[0] = abi.read32(0x0803DE24);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x0803DE1D)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Spawn `0x0803E934` UI proc (`0x0803E924`).
+pub fn func_0803E924() callconv(.c) void {
+    if (!abi.enter(0x0803E924)) return;
+    spawnProcZero(0x0803E934, 0x0803E92F);
+}
+
+/// Return `1` if `0x0803E954` UI proc is active, else `0` (`0x0803E938`).
+pub fn func_0803E938() callconv(.c) void {
+    if (!abi.enter(0x0803E938)) return;
+    checkProcActive(0x0803E954, 0x0803E941);
+}
+
+/// Dispatch slot entry `u8(r0)` (stride `24`) callback pair `(+0x10, 1, +0x0C)` via `0x0807B454` (`0x0803EE30`).
+pub fn func_0803EE30() callconv(.c) void {
+    if (!abi.enter(0x0803EE30)) return;
+    abi.fetches(19);
+    abi.pushLr();
+    const base = abi.read32(0x0803EE58);
+    const entry = base +% ((rt.r[0] & 0xFF) * 24);
+    rt.r[0] = abi.read32(entry +% 0x10);
+    abi.setRegNz(&rt.r[1], 1);
+    rt.r[2] = abi.read32(entry +% 0xC);
+    if (!abi.call(decls.func_0807B454, 0x0803EE53)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Return `1` if `0x0803FBD0` UI proc is active, else `0` (`0x0803FBB4`).
+pub fn func_0803FBB4() callconv(.c) void {
+    if (!abi.enter(0x0803FBB4)) return;
+    checkProcActive(0x0803FBD0, 0x0803FBBD);
+}
+
+/// Spawn `0x08040178` UI proc (`0x08040168`).
+pub fn func_08040168() callconv(.c) void {
+    if (!abi.enter(0x08040168)) return;
+    spawnProcZero(0x08040178, 0x08040173);
+}
+
+/// Spawn `0x08040AFC` UI proc (`0x08040AEC`).
+pub fn func_08040AEC() callconv(.c) void {
+    if (!abi.enter(0x08040AEC)) return;
+    spawnProcZero(0x08040AFC, 0x08040AF7);
+}
+
+/// Trigger transition via `0x08010C18` with `(0x08040B1C, 0x08040B20, 0, 0, stack: 0x08040B24)` (`0x08040B00`).
+pub fn func_08040B00() callconv(.c) void {
+    if (!abi.enter(0x08040B00)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    rt.r[0] = abi.read32(0x08040B1C);
+    rt.r[1] = abi.read32(0x08040B20);
+    abi.write32(rt.r[13], abi.read32(0x08040B24));
+    abi.setRegNz(&rt.r[2], 0);
+    abi.setRegNz(&rt.r[3], 0);
+    if (!abi.call(decls.func_08010C18, 0x08040B15)) return;
+    abi.fetches(5);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Spawn `0x08041F0C` UI proc (`0x08041EFC`).
+pub fn func_08041EFC() callconv(.c) void {
+    if (!abi.enter(0x08041EFC)) return;
+    spawnProcZero(0x08041F0C, 0x08041F07);
+}
+
+/// Reset hardware audio/display state and apply blend preset `(0xF, 6)` (`0x08042B28`).
+pub fn func_08042B28() callconv(.c) void {
+    if (!abi.enter(0x08042B28)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_080104B0, 0x08042B2F)) return;
+    abi.fetches(27);
+    const reg = abi.read32(0x08042B60);
+    abi.write8(reg, @truncate((abi.read8(reg) & 0x3F) | 0x44));
+    abi.write8(reg +% 1, abi.read8(reg +% 1) | 0x1A);
+    abi.write16(abi.read32(0x08042B64), 0xF);
+    abi.write16(abi.read32(0x08042B68), 6);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08018DE4, .{ .name = "func_08018DE4", .linkage = .strong });
@@ -1516,7 +1858,44 @@ comptime {
         @export(&func_0803A650, .{ .name = "func_0803A650", .linkage = .strong });
         @export(&func_0803BC2C, .{ .name = "func_0803BC2C", .linkage = .strong });
         @export(&func_0803BD54, .{ .name = "func_0803BD54", .linkage = .strong });
+        @export(&func_0803C818, .{ .name = "func_0803C818", .linkage = .strong });
+        @export(&func_0803D018, .{ .name = "func_0803D018", .linkage = .strong });
         @export(&func_0803D038, .{ .name = "func_0803D038", .linkage = .strong });
+        @export(&func_0803D2B0, .{ .name = "func_0803D2B0", .linkage = .strong });
+        @export(&func_0803D2CC, .{ .name = "func_0803D2CC", .linkage = .strong });
+        @export(&func_0803D2D8, .{ .name = "func_0803D2D8", .linkage = .strong });
+        @export(&func_0803D43C, .{ .name = "func_0803D43C", .linkage = .strong });
+        @export(&func_0803D4C0, .{ .name = "func_0803D4C0", .linkage = .strong });
+        @export(&func_0803D4D0, .{ .name = "func_0803D4D0", .linkage = .strong });
+        @export(&func_0803D570, .{ .name = "func_0803D570", .linkage = .strong });
+        @export(&func_0803D604, .{ .name = "func_0803D604", .linkage = .strong });
+        @export(&func_0803D618, .{ .name = "func_0803D618", .linkage = .strong });
+        @export(&func_0803DB00, .{ .name = "func_0803DB00", .linkage = .strong });
+        @export(&func_0803DB14, .{ .name = "func_0803DB14", .linkage = .strong });
+        @export(&func_0803DB28, .{ .name = "func_0803DB28", .linkage = .strong });
+        @export(&func_0803DB3C, .{ .name = "func_0803DB3C", .linkage = .strong });
+        @export(&func_0803DB6C, .{ .name = "func_0803DB6C", .linkage = .strong });
+        @export(&func_0803DBC4, .{ .name = "func_0803DBC4", .linkage = .strong });
+        @export(&func_0803DC00, .{ .name = "func_0803DC00", .linkage = .strong });
+        @export(&func_0803DC14, .{ .name = "func_0803DC14", .linkage = .strong });
+        @export(&func_0803DC20, .{ .name = "func_0803DC20", .linkage = .strong });
+        @export(&func_0803DC2C, .{ .name = "func_0803DC2C", .linkage = .strong });
+        @export(&func_0803DC38, .{ .name = "func_0803DC38", .linkage = .strong });
+        @export(&func_0803DC44, .{ .name = "func_0803DC44", .linkage = .strong });
+        @export(&func_0803DD94, .{ .name = "func_0803DD94", .linkage = .strong });
+        @export(&func_0803DDA0, .{ .name = "func_0803DDA0", .linkage = .strong });
+        @export(&func_0803DDC8, .{ .name = "func_0803DDC8", .linkage = .strong });
+        @export(&func_0803DDF0, .{ .name = "func_0803DDF0", .linkage = .strong });
+        @export(&func_0803DE0C, .{ .name = "func_0803DE0C", .linkage = .strong });
+        @export(&func_0803E924, .{ .name = "func_0803E924", .linkage = .strong });
+        @export(&func_0803E938, .{ .name = "func_0803E938", .linkage = .strong });
+        @export(&func_0803EE30, .{ .name = "func_0803EE30", .linkage = .strong });
+        @export(&func_0803FBB4, .{ .name = "func_0803FBB4", .linkage = .strong });
+        @export(&func_08040168, .{ .name = "func_08040168", .linkage = .strong });
+        @export(&func_08040AEC, .{ .name = "func_08040AEC", .linkage = .strong });
+        @export(&func_08040B00, .{ .name = "func_08040B00", .linkage = .strong });
+        @export(&func_08041EFC, .{ .name = "func_08041EFC", .linkage = .strong });
+        @export(&func_08042B28, .{ .name = "func_08042B28", .linkage = .strong });
         @export(&func_0803D2C4, .{ .name = "func_0803D2C4", .linkage = .strong });
         @export(&func_0803D588, .{ .name = "func_0803D588", .linkage = .strong });
         @export(&func_0804505C, .{ .name = "func_0804505C", .linkage = .strong });
