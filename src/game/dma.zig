@@ -125,9 +125,79 @@ pub fn func_0803C32C() callconv(.c) void {
     abi.popReturn();
 }
 
+fn copyMaskedPaletteAndSync(comptime mask_ref: u32, comptime base_ref: u32, comptime ret_copy: u32, comptime ret_sync: u32) void {
+    abi.fetches(12);
+    abi.pushLr();
+    const masked = rt.r[1] & abi.read32(mask_ref);
+    const base = abi.read32(base_ref);
+    rt.r[3] = base;
+    rt.r[1] = masked +% base;
+    rt.r[2] &= 0xFFFF;
+    if (!abi.call(decls.func_0800FD94, ret_copy)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_080112C0, ret_sync)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Copy `u16(r2)` halfwords from `r0` to masked BG/OBJ palette `0x0801134C`/`0x08011350` and commit (`0x08011330`).
+pub fn func_08011330() callconv(.c) void {
+    if (!abi.enter(0x08011330)) return;
+    copyMaskedPaletteAndSync(0x0801134C, 0x08011350, 0x08011345, 0x08011349);
+}
+
+/// Copy `u16(r2)` halfwords from `r0` to masked palette mirror `0x08011390`/`0x08011394` and commit (`0x08011374`).
+pub fn func_08011374() callconv(.c) void {
+    if (!abi.enter(0x08011374)) return;
+    copyMaskedPaletteAndSync(0x08011390, 0x08011394, 0x08011389, 0x0801138D);
+}
+
+/// Copy `u16(r2)` palette entries from `r0` into both shadow buffer `[0x080113CC]` and HW palette RAM `0x0500_0000` (`0x08011398`).
+pub fn func_08011398() callconv(.c) void {
+    if (!abi.enter(0x08011398)) return;
+    abi.fetches(17);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[6] = rt.r[0];
+    rt.r[4] = rt.r[2] & 0xFFFF;
+    const slot_off = rt.r[1] << 16;
+    rt.r[5] = slot_off >> 16;
+    const align_off = (slot_off >> 17) << 1;
+    rt.r[1] = align_off +% abi.read32(0x080113CC);
+    rt.r[2] = rt.r[4];
+    if (!abi.call(decls.func_0800FD94, 0x080113B7)) return;
+
+    abi.fetches(10);
+    rt.r[5] +%= @as(u32, 0xA0) << 19;
+    rt.r[0] = rt.r[6];
+    rt.r[1] = rt.r[5];
+    rt.r[2] = rt.r[4];
+    if (!abi.call(decls.func_0800FD94, 0x080113C7)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_0800F894, .{ .name = "func_0800F894", .linkage = .strong });
+        @export(&func_08011330, .{ .name = "func_08011330", .linkage = .strong });
+        @export(&func_08011374, .{ .name = "func_08011374", .linkage = .strong });
+        @export(&func_08011398, .{ .name = "func_08011398", .linkage = .strong });
         @export(&func_0800FD94, .{ .name = "func_0800FD94", .linkage = .strong });
         @export(&func_0800FDCC, .{ .name = "func_0800FDCC", .linkage = .strong });
         @export(&func_08010AC8, .{ .name = "func_08010AC8", .linkage = .strong });

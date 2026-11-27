@@ -4,19 +4,19 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 16 — Late-ROM Audio, BIOS, Flash & UI Overlay Helpers
+- **Stage:** Stage 17 — Early-ROM Menu Flows, Window Layers & Cutscene Opcodes
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 794 / 7,577 (10.48%)
+- **Lifted to Clean Zig (`src/game/`):** 854 / 7,577 (11.27%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
-- `src/game/math.zig` (7): `0x08010A84` (`advanceRng`), `0x0803D4F0`, `0x0806CF50`, `0x0806D23C`, `0x0806D260`, `0x0807AF30`, `0x0800FCFA`
-- `src/game/dma.zig` (8): `0x0800F894`, `0x0800FD94`, `0x0800FDCC`, `0x08010AC8`, `0x08011310`, `0x08011354`, `0x080178F4`, `0x0803C32C`
+- `src/game/math.zig` (8): `0x08003918`, `0x08010A84` (`advanceRng`), `0x0803D4F0`, `0x0806CF50`, `0x0806D23C`, `0x0806D260`, `0x0807AF30`, `0x0800FCFA`
+- `src/game/dma.zig` (11): `0x0800F894`, `0x0800FD94`, `0x0800FDCC`, `0x08010AC8`, `0x08011310..0x08011398`, `0x080178F4`, `0x0803C32C`
 - `src/game/sound.zig` (41): `0x08038028..0x080386D8`, `0x0803D700..0x0803D954`, `0x080492A0..0x08051868`, `0x080779D8..0x0807968C` (m4a driver, cues & track handlers)
-- `src/game/hw.zig` (66): `0x08002E88..0x08015A54`, `0x0801B850..0x0801B8A8`/`0x0801DAB8`, `0x080422C4..0x08075B14`, `0x08079958`/`0x08079A00`, `0x0807ACE8..0x0807CE10`
-- `src/game/proc.zig` (66): `0x08010F04..0x08019608`, `0x0802ABF0` (`0x0300_0E10` proc opcodes, proc-script & `0x0300_1D50` cutscene script opcodes)
-- `src/game/sprite_anim.zig` (39): `0x08011CF0..0x08015A20`, `0x0801A0EC..0x0801A1BC`, `0x08049554` (`0x0300_2320` animator pool & OAM buffers)
-- `src/game/menu.zig` (41): `0x08000280..0x0800F738` (title/menu flow, mode dispatchers, sound triggers, save/campaign checks & menu proc spawners)
+- `src/game/hw.zig` (71): `0x08002E88..0x0801785C`, `0x0801B850..0x0801B8A8`/`0x0801DAB8`, `0x080422C4..0x08075B14`, `0x08079958`/`0x08079A00`, `0x0807ACE8..0x0807CE10`
+- `src/game/proc.zig` (73): `0x08010F04..0x08019608`, `0x0802ABF0` (`0x0300_0E10` proc opcodes, proc-script & `0x0300_1D50` cutscene script opcodes)
+- `src/game/sprite_anim.zig` (63): `0x08011CF0..0x08015A20`, `0x0801A0EC..0x0801A1BC`, `0x08049554` (`0x0300_2320` animator pool & OAM buffers)
+- `src/game/menu.zig` (61): `0x08000280..0x0800F738` (title/menu flow, mode dispatchers, sound triggers, save/campaign checks & menu proc spawners)
 - `src/game/map.zig` (19): `0x080191E8..0x0803B73C` (tilemap, palette, viewport, BG staging & cursor helpers)
 - `src/game/campaign.zig` (38): `0x080378C8..0x08040310` (save flag shadow copy, unlock bitsets `0x0201_F9A8`, mission records & flag queries)
 - `src/game/state.zig` (74): `0x08015E10..0x0804B430` (`0x0300_4310` battle/UI substate setters & counters, `0x0201_AB34` entity flags, `0x0300_3200`/`0x0300_43C8` battle flags)
@@ -44,7 +44,8 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 14:** UI scene spawners, blend transitions & animator helpers (`0x080438..0x0804F8`, `674 total`).
 - [x] **Stage 15:** VRAM/OAM uploads, battle overlays & UI menu controllers (`0x0804F8..0x0806D8`, `734 total`).
 - [x] **Stage 16:** Late-ROM audio, BIOS, Flash & UI overlay helpers (`0x08042D..0x0807CE`, `794 total`).
-- [ ] **Stage 17:** Clean 2-3 call ROM helpers & medium subsystems (`<=120L`, `< 0x08080000`).
+- [x] **Stage 17:** Early-ROM menu flows, window layers & cutscene opcodes (`0x08002C..0x08017A`, `854 total`).
+- [ ] **Stage 18:** Clean `<=3 calls, <=75L` helpers (`0x08017A..0x08042C`).
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`

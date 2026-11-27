@@ -991,9 +991,237 @@ pub fn func_08018260() callconv(.c) void {
     runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_08026750, 0x0801828C, 0, 0x0801826D);
 }
 
+/// Spawn `0x0801108C` proc, init I/O state via `0x0807B460`, and store `(r1, r2)` into `+0x20/+0x24` (`0x08011060`).
+pub fn func_08011060() callconv(.c) void {
+    if (!abi.enter(0x08011060)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[6] = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+
+    rt.r[5] = rt.r[0];
+    rt.r[6] = rt.r[1];
+    rt.r[8] = rt.r[2];
+    rt.r[0] = abi.read32(0x0801108C);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08011075)) return;
+
+    abi.fetches(5);
+    rt.r[4] = rt.r[0];
+    if (!abi.call(decls.func_0807B460, 0x0801107B)) return;
+
+    abi.fetches(10);
+    abi.write32(rt.r[4] +% 0x20, rt.r[6]);
+    rt.r[0] = rt.r[8];
+    abi.write32(rt.r[4] +% 0x24, rt.r[0]);
+    const saved_r8 = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = saved_r8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Run cutscene script subsystem tear-down `0x08016438` then `0x08016820` (`0x080168D8`).
+pub fn func_080168D8() callconv(.c) void {
+    if (!abi.enter(0x080168D8)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08016438, 0x080168DF)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08016820, 0x080168E3)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Load cutscene script buffer `0x08016F40` via `0x08016F68` and flush DMA via `0x080178F4` (`0x08016F30`).
+pub fn func_08016F30() callconv(.c) void {
+    if (!abi.enter(0x08016F30)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08016F40);
+    if (!abi.call(decls.func_08016F68, 0x08016F39)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080178F4, 0x08016F3D)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Fill `[0x08016FE4]` halfword array up to count `[0x08016FEC]` with `[0x08016FE8]` and set both cursor shadows to `[0x08016FF0]` (`0x08016FA8`).
+pub fn func_08016FA8() callconv(.c) void {
+    if (!abi.enter(0x08016FA8)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    var idx: i32 = 0;
+    const dst_a = abi.read32(0x08016FDC);
+    const dst_b = abi.read32(0x08016FE0);
+    const arr = abi.read32(0x08016FE4);
+    const fill = abi.read32(0x08016FE8);
+    const limit = abi.read32(0x08016FEC);
+    while (true) {
+        abi.fetches(13);
+        const cur: u32 = @bitCast(idx);
+        abi.write16(arr +% (cur << 1), @truncate(fill));
+        const next: i32 = @as(i16, @truncate(idx +% 1));
+        if (next > @as(i32, @bitCast(limit))) {
+            break;
+        }
+        idx = next;
+    }
+
+    abi.fetches(9);
+    const end_val = abi.read32(0x08016FF0);
+    abi.setRegNz(&rt.r[0], end_val);
+    abi.write16(dst_a, @truncate(end_val));
+    abi.write16(dst_b, @truncate(end_val));
+    rt.r[1] = end_val;
+    rt.r[2] = limit;
+    rt.r[3] = fill;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Cutscene script opcode: set handler `[0x080170E4]`, trigger `0x08035220` + `0x08027FB4`, advance `+0x10`, return `0` (`0x080170A4`).
+pub fn func_080170A4() callconv(.c) void {
+    if (!abi.enter(0x080170A4)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const pool = abi.read32(0x080170E0);
+    const slot_off = scriptCursorFieldAddr(@bitCast(@as(u16, @truncate(rt.r[0])))) -% types.addr.script_pool -% 4;
+    rt.r[5] = pool;
+    rt.r[4] = slot_off;
+    abi.write32(pool +% 8 +% slot_off, abi.read32(0x080170E4));
+    if (!abi.call(decls.func_08035220, 0x080170C1)) return;
+
+    abi.fetches(10);
+    rt.r[0] = abi.read8(abi.read32(0x080170E8) +% 2);
+    const ptr_field = pool +% 4 +% slot_off;
+    rt.r[1] = abi.read32(abi.read32(ptr_field) +% 4);
+    if (!abi.call(decls.func_08027FB4, 0x080170D1)) return;
+
+    abi.fetches(9);
+    abi.write32(ptr_field, abi.read32(ptr_field) +% 0x10);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+/// Cutscene script opcode: move cursor via `0x0802928C(i16 s+8, i16 s+0xA)`, set handler `[0x08017250]`, advance `+0x10` (`0x08017214`).
+pub fn func_08017214() callconv(.c) void {
+    if (!abi.enter(0x08017214)) return;
+    abi.fetches(18);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const pool = abi.read32(0x0801724C);
+    const slot_off = scriptCursorFieldAddr(@bitCast(@as(u16, @truncate(rt.r[0])))) -% types.addr.script_pool -% 4;
+    const ptr_field = pool +% 4 +% slot_off;
+    const s = abi.read32(ptr_field);
+    rt.r[6] = pool;
+    rt.r[4] = slot_off;
+    rt.r[5] = ptr_field;
+    rt.r[0] = @bitCast(abi.signExtend16(abi.read16(s +% 8)));
+    rt.r[1] = @bitCast(abi.signExtend16(abi.read16(s +% 0xA)));
+    abi.setRegNz(&rt.r[2], 0xA);
+    if (!abi.call(decls.func_0802928C, 0x08017235)) return;
+
+    abi.fetches(13);
+    abi.write32(pool +% 8 +% slot_off, abi.read32(0x08017250));
+    abi.write32(ptr_field, abi.read32(ptr_field) +% 0x10);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+/// Cutscene script opcode: open window via `0x080123A8`, set flags/handler, advance `+0x10`, return `0` (`0x08017A40`).
+pub fn func_08017A40() callconv(.c) void {
+    if (!abi.enter(0x08017A40)) return;
+    abi.fetches(27);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 8;
+
+    const pool = abi.read32(0x08017AA0);
+    const slot_off = scriptCursorFieldAddr(@bitCast(@as(u16, @truncate(rt.r[0])))) -% types.addr.script_pool -% 4;
+    rt.r[4] = slot_off;
+    rt.r[5] = pool;
+    rt.r[2] = abi.read32(0x08017A9C);
+    rt.r[3] = abi.read32(pool +% 0x14 +% slot_off);
+    abi.write32(rt.r[13], @as(u32, abi.read8(abi.read32(0x08017AA4))) << 28 >> 16);
+    abi.write32(rt.r[13] +% 4, 0x100);
+    abi.setRegNz(&rt.r[0], 7);
+    abi.setRegNz(&rt.r[1], 1);
+    if (!abi.call(decls.func_080123A8, 0x08017A73)) return;
+
+    abi.fetches(22);
+    abi.write32(rt.r[0] +% 0x3C, abi.read32(0x08017AA8));
+    abi.write8(rt.r[0] +% 0x38, 1);
+    abi.write32(pool +% 8 +% slot_off, abi.read32(0x08017AAC));
+    const ptr_field = pool +% 4 +% slot_off;
+    abi.write32(ptr_field, abi.read32(ptr_field) +% 0x10);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[13] +%= 8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010F04, .{ .name = "func_08010F04", .linkage = .strong });
+        @export(&func_08011060, .{ .name = "func_08011060", .linkage = .strong });
+        @export(&func_080168D8, .{ .name = "func_080168D8", .linkage = .strong });
+        @export(&func_08016F30, .{ .name = "func_08016F30", .linkage = .strong });
+        @export(&func_08016FA8, .{ .name = "func_08016FA8", .linkage = .strong });
+        @export(&func_080170A4, .{ .name = "func_080170A4", .linkage = .strong });
+        @export(&func_08017214, .{ .name = "func_08017214", .linkage = .strong });
+        @export(&func_08017A40, .{ .name = "func_08017A40", .linkage = .strong });
         @export(&func_08010F10, .{ .name = "func_08010F10", .linkage = .strong });
         @export(&func_08013C84, .{ .name = "func_08013C84", .linkage = .strong });
         @export(&func_08013C94, .{ .name = "func_08013C94", .linkage = .strong });

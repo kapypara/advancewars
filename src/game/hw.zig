@@ -1073,9 +1073,106 @@ pub fn func_0807CE10() callconv(.c) void {
     popPcReturn();
 }
 
+/// Set `[0x08010568] = 0x80`, zero `[0x0801056C]` and `[0x08010570]`, and run display init sequence (`0x08010544`).
+pub fn func_08010544() callconv(.c) void {
+    if (!abi.enter(0x08010544)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    abi.write16(abi.read32(0x08010568), 0x80);
+    abi.write16(abi.read32(0x0801056C), 0);
+    abi.setRegNz(&rt.r[1], 0);
+    abi.write16(abi.read32(0x08010570), 0);
+    if (!abi.call(decls.func_08010444, 0x0801055B)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_080104B0, 0x0801055F)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_080104D4, 0x08010563)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn setupIrqMasksAndTail(
+    comptime call_tail: fn () callconv(.c) void,
+    comptime tail_arg_ref: ?u32,
+    comptime ret1: u32,
+    comptime ret2: u32,
+    comptime ret3: u32,
+) void {
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[1] = rt.r[0];
+    abi.setRegNz(&rt.r[0], 1);
+    if (!abi.call(decls.func_0807AE50, ret1)) return;
+
+    abi.fetches(6);
+    abi.setRegNz(&rt.r[0], 2);
+    abi.setRegNz(&rt.r[1], 2);
+    if (!abi.call(decls.func_0807AE60, ret2)) return;
+
+    abi.fetches(if (tail_arg_ref != null) 5 else 4);
+    if (tail_arg_ref) |ref| {
+        rt.r[0] = abi.read32(ref);
+    }
+    if (!abi.call(call_tail, ret3)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Register IRQ handlers `(1, r0)` / `(2, 2)` and flush `[0x08010B14]` (`0x08010AF8`).
+pub fn func_08010AF8() callconv(.c) void {
+    if (!abi.enter(0x08010AF8)) return;
+    setupIrqMasksAndTail(decls.func_0800FBEC, 0x08010B14, 0x08010B03, 0x08010B0B, 0x08010B11);
+}
+
+/// Register IRQ handlers `(1, r0)` / `(2, 2)` and reset hardware state (`0x08010B28`).
+pub fn func_08010B28() callconv(.c) void {
+    if (!abi.enter(0x08010B28)) return;
+    setupIrqMasksAndTail(decls.func_08010AC8, null, 0x08010B33, 0x08010B3B, 0x08010B3F);
+}
+
+/// Select IRQ vector `0x08017854[i16([0x08017858])]` via `0x08010AF8` and init audio (`0x08017838`).
+pub fn func_08017838() callconv(.c) void {
+    if (!abi.enter(0x08017838)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    const tbl = abi.read32(0x08017854);
+    const idx = @as(u32, @bitCast(abi.signExtend16(abi.read16(abi.read32(0x08017858))) << 2));
+    rt.r[0] = abi.read32(idx +% tbl);
+    if (!abi.call(func_08010AF8, 0x0801784D)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0803D784, 0x08017851)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Reset display/IRQ via `0x08010B18` and reset audio mixer via `0x0803D790` (`0x0801785C`).
+pub fn func_0801785C() callconv(.c) void {
+    if (!abi.enter(0x0801785C)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(func_08010B18, 0x08017863)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0803D790, 0x08017867)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
+        @export(&func_08010544, .{ .name = "func_08010544", .linkage = .strong });
+        @export(&func_08010AF8, .{ .name = "func_08010AF8", .linkage = .strong });
+        @export(&func_08010B28, .{ .name = "func_08010B28", .linkage = .strong });
+        @export(&func_08017838, .{ .name = "func_08017838", .linkage = .strong });
+        @export(&func_0801785C, .{ .name = "func_0801785C", .linkage = .strong });
         @export(&func_0806E098, .{ .name = "func_0806E098", .linkage = .strong });
         @export(&func_0806F56C, .{ .name = "func_0806F56C", .linkage = .strong });
         @export(&func_08073D40, .{ .name = "func_08073D40", .linkage = .strong });

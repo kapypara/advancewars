@@ -484,6 +484,297 @@ pub fn func_080012D0() callconv(.c) void {
     popReturnValue();
 }
 
+fn callMenu19608Then45CC(comptime ret1: u32, comptime ret2: u32) void {
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, ret1)) return;
+    abi.fetches(4);
+    if (!abi.call(func_080045CC, ret2)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn callMenu19608Spawn02E4(comptime def_ref: u32, comptime r0_ret: u32, comptime r1_ret: u32, comptime r2_ret: u32) void {
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, r0_ret)) return;
+    abi.fetches(6);
+    rt.r[0] = abi.read32(def_ref);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, r1_ret)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080002E4, r2_ret)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn finishWithMenu01FC(comptime ret_addr: u32) void {
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 1);
+    if (!abi.call(decls.func_080001FC, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_08002CC0() callconv(.c) void {
+    if (!abi.enter(0x08002CC0)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08002AF0, 0x08002CC7)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08002A9C, 0x08002CCB)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08002BE0, 0x08002CCF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_080034AC() callconv(.c) void {
+    if (!abi.enter(0x080034AC)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[1] = 0x83 << 3;
+    rt.r[2] = abi.read32(0x080034E4);
+    abi.setRegNz(&rt.r[4], @as(u32, 0xD0) << 8);
+    abi.setRegNz(&rt.r[0], 0x18);
+    rt.r[3] = rt.r[4];
+    if (!abi.call(decls.func_0801B888, 0x080034C1)) return;
+
+    abi.fetches(9);
+    rt.r[1] = 0x85 << 3;
+    rt.r[2] = abi.read32(0x080034E8);
+    abi.setRegNz(&rt.r[0], 0x18);
+    rt.r[3] = rt.r[4];
+    if (!abi.call(decls.func_0801B888, 0x080034CF)) return;
+
+    abi.fetches(9);
+    rt.r[1] = 0x89 << 3;
+    rt.r[2] = abi.read32(0x080034EC);
+    abi.setRegNz(&rt.r[0], 0x17);
+    rt.r[3] = rt.r[4];
+    if (!abi.call(decls.func_0801B888, 0x080034DD)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+pub fn func_08004594() callconv(.c) void {
+    if (!abi.enter(0x08004594)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0x66);
+    if (!abi.call(decls.func_0803D880, 0x0800459D)) return;
+    finishWithMenu01FC(0x080045A3);
+}
+
+pub fn func_080045AC() callconv(.c) void {
+    if (!abi.enter(0x080045AC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, 0x080045B3)) return;
+    finishWithMenu01FC(0x080045B9);
+}
+
+pub fn func_080045BC() callconv(.c) void {
+    if (!abi.enter(0x080045BC)) return;
+    callMenu19608Then45CC(0x080045C3, 0x080045C7);
+}
+
+pub fn func_080045CC() callconv(.c) void {
+    if (!abi.enter(0x080045CC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019A6C, 0x080045D3)) return;
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 0x66);
+    if (!abi.call(decls.func_0803D880, 0x080045D9)) return;
+    abi.fetches(8);
+    rt.r[0] = abi.read32(abi.read32(0x080045E8));
+    abi.setRegNz(&rt.r[1], 3);
+    abi.write16(rt.r[0] +% 4, 3);
+    if (!abi.call(decls.func_08004994, 0x080045E5)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_08004608() callconv(.c) void {
+    if (!abi.enter(0x08004608)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0800FC58, 0x0800460F)) return;
+    abi.fetches(8);
+    rt.r[0] = abi.read32(abi.read32(0x08004620)) +% 0x9C;
+    abi.setRegNz(&rt.r[1], 8);
+    if (!abi.call(decls.func_08048AE8, 0x0800461B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_08004624() callconv(.c) void {
+    if (!abi.enter(0x08004624)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0xD8);
+    if (!abi.call(decls.func_0803D8C8, 0x0800462D)) return;
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 1);
+    if (!abi.call(decls.func_080001FC, 0x08004633)) return;
+    abi.fetches(9);
+    rt.r[0] = abi.read32(abi.read32(0x08004640)) +% 0xAE;
+    abi.setRegNz(&rt.r[1], 0);
+    abi.write8(rt.r[0], 0);
+    abi.popReturn();
+}
+
+pub fn func_08004650() callconv(.c) void {
+    if (!abi.enter(0x08004650)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, 0x08004657)) return;
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x08004664);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x0800465F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_0800472C() callconv(.c) void {
+    if (!abi.enter(0x0800472C)) return;
+    callMenu19608Then45CC(0x08004733, 0x08004737);
+}
+
+pub fn func_080047AC() callconv(.c) void {
+    if (!abi.enter(0x080047AC)) return;
+    callMenu19608Spawn02E4(0x080047C4, 0x080047B3, 0x080047BB, 0x080047BF);
+}
+
+pub fn func_080047C8() callconv(.c) void {
+    if (!abi.enter(0x080047C8)) return;
+    callMenu19608Spawn02E4(0x080047E0, 0x080047CF, 0x080047D7, 0x080047DB);
+}
+
+pub fn func_080047E4() callconv(.c) void {
+    if (!abi.enter(0x080047E4)) return;
+    callMenu19608Spawn02E4(0x080047FC, 0x080047EB, 0x080047F3, 0x080047F7);
+}
+
+pub fn func_08004800() callconv(.c) void {
+    if (!abi.enter(0x08004800)) return;
+    callMenu19608Spawn02E4(0x08004818, 0x08004807, 0x0800480F, 0x08004813);
+}
+
+pub fn func_0800481C() callconv(.c) void {
+    if (!abi.enter(0x0800481C)) return;
+    callMenu19608Spawn02E4(0x08004834, 0x08004823, 0x0800482B, 0x0800482F);
+}
+
+pub fn func_08004930() callconv(.c) void {
+    if (!abi.enter(0x08004930)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    if (!abi.call(decls.func_08003580, 0x08004937)) return;
+
+    abi.fetches(11);
+    rt.r[4] = abi.read32(0x08004960);
+    abi.write16(abi.read32(rt.r[4]) +% 2, 2);
+    rt.r[0] = abi.read32(0x08004964);
+    rt.r[1] = abi.read32(0x08004968);
+    abi.setRegNz(&rt.r[2], 0x80);
+    if (!abi.call(decls.func_0800FFA8, 0x08004949)) return;
+
+    abi.fetches(13);
+    rt.r[1] = abi.read32(rt.r[4]);
+    abi.write16(rt.r[1] +% 0x46, 0x15);
+    rt.r[1] +%= 0x48;
+    abi.setRegNz(&rt.r[0], 0x18);
+    abi.write16(rt.r[1], 0x18);
+    rt.r[2] = abi.read32(rt.r[4]) +% 0x46;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+pub fn func_08004B08() callconv(.c) void {
+    if (!abi.enter(0x08004B08)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0800199C, 0x08004B0F)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08002E64, 0x08004B13)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x08004B1C);
+    if (!abi.call(decls.func_08018400, 0x08004B19)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_08004F0C() callconv(.c) void {
+    if (!abi.enter(0x08004F0C)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, 0x08004F13)) return;
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x08004F2C);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08004F1B)) return;
+    abi.fetches(8);
+    rt.r[0] = abi.read32(abi.read32(0x08004F30));
+    abi.setRegNz(&rt.r[1], 7);
+    abi.write16(rt.r[0] +% 2, 7);
+    if (!abi.call(decls.func_08021DF8, 0x08004F27)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_080052C8() callconv(.c) void {
+    if (!abi.enter(0x080052C8)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0x70);
+    if (!abi.call(decls.func_0801B8D4, 0x080052D1)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08019A6C, 0x080052D5)) return;
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 0x66);
+    if (!abi.call(decls.func_0803D880, 0x080052DB)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+pub fn func_0800E738() callconv(.c) void {
+    if (!abi.enter(0x0800E738)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[13] -%= 8;
+    abi.write32(rt.r[13], rt.r[4]);
+    abi.write32(rt.r[13] +% 4, rt.r[5]);
+    rt.r[4] = rt.r[0];
+    rt.r[5] = rt.r[1];
+    if (!abi.call(decls.func_08000D68, 0x0800E743)) return;
+    abi.fetches(6);
+    rt.r[0] = rt.r[4];
+    rt.r[1] = rt.r[5];
+    if (!abi.call(func_080012D0, 0x0800E74B)) return;
+    abi.fetches(7);
+    rt.r[2] = rt.r[0];
+    rt.r[0] = rt.r[4];
+    rt.r[1] = rt.r[5];
+    if (!abi.call(decls.func_08000D68, 0x0800E755)) return;
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[5] = abi.read32(rt.r[13] +% 4);
+    rt.r[13] +%= 8;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08000280, .{ .name = "func_08000280", .linkage = .strong });
@@ -527,6 +818,26 @@ comptime {
         @export(&func_0800F6DC, .{ .name = "func_0800F6DC", .linkage = .strong });
         @export(&func_0800F71C, .{ .name = "func_0800F71C", .linkage = .strong });
         @export(&func_0800F738, .{ .name = "func_0800F738", .linkage = .strong });
+        @export(&func_08002CC0, .{ .name = "func_08002CC0", .linkage = .strong });
+        @export(&func_080034AC, .{ .name = "func_080034AC", .linkage = .strong });
+        @export(&func_08004594, .{ .name = "func_08004594", .linkage = .strong });
+        @export(&func_080045AC, .{ .name = "func_080045AC", .linkage = .strong });
+        @export(&func_080045BC, .{ .name = "func_080045BC", .linkage = .strong });
+        @export(&func_080045CC, .{ .name = "func_080045CC", .linkage = .strong });
+        @export(&func_08004608, .{ .name = "func_08004608", .linkage = .strong });
+        @export(&func_08004624, .{ .name = "func_08004624", .linkage = .strong });
+        @export(&func_08004650, .{ .name = "func_08004650", .linkage = .strong });
+        @export(&func_0800472C, .{ .name = "func_0800472C", .linkage = .strong });
+        @export(&func_080047AC, .{ .name = "func_080047AC", .linkage = .strong });
+        @export(&func_080047C8, .{ .name = "func_080047C8", .linkage = .strong });
+        @export(&func_080047E4, .{ .name = "func_080047E4", .linkage = .strong });
+        @export(&func_08004800, .{ .name = "func_08004800", .linkage = .strong });
+        @export(&func_0800481C, .{ .name = "func_0800481C", .linkage = .strong });
+        @export(&func_08004930, .{ .name = "func_08004930", .linkage = .strong });
+        @export(&func_08004B08, .{ .name = "func_08004B08", .linkage = .strong });
+        @export(&func_08004F0C, .{ .name = "func_08004F0C", .linkage = .strong });
+        @export(&func_080052C8, .{ .name = "func_080052C8", .linkage = .strong });
+        @export(&func_0800E738, .{ .name = "func_0800E738", .linkage = .strong });
     }
 }
 

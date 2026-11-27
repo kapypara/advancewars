@@ -220,9 +220,46 @@ pub fn func_0803D4F0() callconv(.c) void {
     rt.recompReturn(lr_val);
 }
 
+/// Return uniform-like pseudo-random integer in `[r1, r0)` using `advanceRng` and BIOS `mod` (`0x08003918`).
+pub fn func_08003918() callconv(.c) void {
+    if (!abi.enter(0x08003918)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.cpuAdd(&rt.r[4], rt.r[0], 0, true);
+    rt.cpuAdd(&rt.r[5], rt.r[1], 0, true);
+    if (!abi.call(decls.func_08010A84, 0x08003923)) return;
+
+    abi.fetches(7);
+    rt.cpuSub(&rt.r[4], rt.r[4], rt.r[5], true);
+    rt.r[4] = rt.r[4] << 5;
+    rt.updateNz(rt.r[4]);
+    rt.cpuAdd(&rt.r[1], rt.r[4], 0, true);
+    if (!abi.call(decls.func_080796CC, 0x0800392D)) return;
+
+    abi.fetches(7);
+    rt.r[0] = rt.asrConst(rt.r[0], 5);
+    rt.updateNz(rt.r[0]);
+    rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[5], true);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010A84, .{ .name = "func_08010A84", .linkage = .strong });
+        @export(&func_08003918, .{ .name = "func_08003918", .linkage = .strong });
         @export(&func_0806CF50, .{ .name = "func_0806CF50", .linkage = .strong });
         @export(&func_0806D23C, .{ .name = "func_0806D23C", .linkage = .strong });
         @export(&func_0806D260, .{ .name = "func_0806D260", .linkage = .strong });
