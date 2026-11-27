@@ -7,6 +7,10 @@ const rt_options = @import("rt_options");
 
 const embedded_rom_bytes: []const u8 = if (rt_options.has_embedded_rom) @embedFile("embedded_rom") else &.{};
 
+pub fn hasEmbeddedRom() bool {
+    return embedded_rom_bytes.len > 0;
+}
+
 const flash_mod = core.flash;
 const timers_mod = core.timers;
 const dma_mod = core.dma;
@@ -127,6 +131,10 @@ var rom_ptr: ?[*]const u8 = null;
 var rom_size: u32 = 0;
 var rom_owned: bool = false;
 var bios_mem_ptr: ?[*]u8 = null;
+
+const wasm_rom_max: usize = 16 * 1024 * 1024;
+var wasm_rom_buf: if (!has_posix) [wasm_rom_max]u8 else [0]u8 = @splat(0);
+var wasm_stop_requested: bool = false;
 
 var exe_path_buf: [512]u8 = @splat(0);
 var sram_path_buf: [512]u8 = @splat(0);
@@ -434,6 +442,7 @@ fn checkInterrupts() void {
 
 // ---- Scanline Scheduler ----
 fn advanceCycles(cycles: u32) void {
+    if (soft_reset_pending) return;
     cycle_counter +%= cycles;
     scanline_cycles +%= cycles;
 
@@ -500,7 +509,7 @@ fn advanceCycles(cycles: u32) void {
                 const dispcnt = ioRead16(0x000);
                 const pal0 = @as(u16, palette_buf[0]) | (@as(u16, palette_buf[1]) << 8);
                 const pal1 = @as(u16, palette_buf[2]) | (@as(u16, palette_buf[3]) << 8);
-                std.debug.print(
+                core.gba.logPrint(
                     "[frame {d}] DISPCNT=0x{X:0>4} mode={d} BG={d}{d}{d}{d} OBJ={d} BLDCNT=0x{X:0>4} BLDY={d} pal0=0x{X:0>4} pal1=0x{X:0>4}\n",
                     .{
                         frame_count,
@@ -531,8 +540,15 @@ fn advanceCycles(cycles: u32) void {
     if (cycle_counter -% last_poll_cycle > poll_interval) {
         last_poll_cycle = cycle_counter;
         if (disp.display_poll_events() != 0) {
-            gba_shutdown();
-            if (has_posix) c_host.exit(0);
+            if (!wasm_stop_requested) gba_shutdown();
+            if (has_posix) {
+                c_host.exit(0);
+            } else {
+                wasm_stop_requested = true;
+                soft_reset_pending = true;
+                g_ret = 0xFFFF_FFFF;
+                return;
+            }
         }
     }
 }
@@ -595,7 +611,7 @@ fn watchCheck(addr: u32, value: u32, size_bytes: u32) void {
     }
     if (watch_addr == 0 or (addr & ~@as(u32, 3)) != watch_addr) return;
     const tag: []const u8 = if (in_irq) " [irq]" else "";
-    std.debug.print(
+    core.gba.logPrint(
         "[watch] frame {d}: write{d} [{X:0>8}] = {X:0>8} in func_{X:0>8} (r14={X:0>8}){s}\n",
         .{
             frame_count,
@@ -1023,7 +1039,7 @@ const BiosCtx = struct {
         }
         const fc: i64 = @intCast(frame_count);
         if (swi_log_from >= 0 and fc >= swi_log_from and fc <= swi_log_to) {
-            std.debug.print("SWI {X:0>2} f={d} v={d} c={d} r0={X:0>8} r1={X:0>8} r2={X:0>8} lr={X:0>8}\n", .{
+            core.gba.logPrint("SWI {X:0>2} f={d} v={d} c={d} r0={X:0>8} r1={X:0>8} r2={X:0>8} lr={X:0>8}\n", .{
                 number,
                 frame_count,
                 scanline,
@@ -1037,9 +1053,9 @@ const BiosCtx = struct {
     }
     pub fn warnUnhandledSwi(_: *@This(), number: u32) void {
         if (number == 0x13) {
-            std.debug.print("[swi] HuffUnComp not implemented\n", .{});
+            core.gba.logPrint("[swi] HuffUnComp not implemented\n", .{});
         } else {
-            std.debug.print("[swi] Unhandled SWI 0x{X:0>2} at PC=0x{X:0>8}\n", .{ number, r[15] });
+            core.gba.logPrint("[swi] Unhandled SWI 0x{X:0>2} at PC=0x{X:0>8}\n", .{ number, r[15] });
         }
     }
     pub fn busRead8(_: *@This(), addr: u32) u8 {
@@ -1067,6 +1083,10 @@ const BiosCtx = struct {
 var bios_ctx: BiosCtx = .{};
 
 pub export fn gba_swi(number: u32) void {
+    if (soft_reset_pending) {
+        g_ret = 0xFFFF_FFFF;
+        return;
+    }
     bios_mod.swi(&bios_ctx, number);
 }
 
@@ -1218,7 +1238,7 @@ const InterpCtx = struct {
     pub fn warnUnmappedArmBx(_: *@This(), addr: u32, rm: u32, insn_pc: u32) void {
         if (unmapped_bx_warns < 5) {
             unmapped_bx_warns += 1;
-            std.debug.print("[interp] ARM BX to unmapped 0x{X:0>8} (rm=r{d}, pc=0x{X:0>8}) - bailing\n", .{
+            core.gba.logPrint("[interp] ARM BX to unmapped 0x{X:0>8} (rm=r{d}, pc=0x{X:0>8}) - bailing\n", .{
                 addr,
                 rm,
                 insn_pc,
@@ -1226,15 +1246,15 @@ const InterpCtx = struct {
         }
     }
     pub fn warnUnknownArm(_: *@This(), insn: u32, insn_pc: u32) void {
-        std.debug.print("[interp] Unknown ARM insn 0x{X:0>8} at 0x{X:0>8}\n", .{ insn, insn_pc });
+        core.gba.logPrint("[interp] Unknown ARM insn 0x{X:0>8} at 0x{X:0>8}\n", .{ insn, insn_pc });
     }
     pub fn warnUnknownThumb(_: *@This(), insn: u16, insn_pc: u32) void {
-        std.debug.print("[interp] Unknown Thumb insn 0x{X:0>4} at 0x{X:0>8}\n", .{ insn, insn_pc });
+        core.gba.logPrint("[interp] Unknown Thumb insn 0x{X:0>4} at 0x{X:0>8}\n", .{ insn, insn_pc });
     }
     pub fn warnStepLimit(_: *@This(), target: u32, steps: usize, pc: u32) void {
         if (interp_limit_warns < 3) {
             interp_limit_warns += 1;
-            std.debug.print("[interp] step limit hit at 0x{X:0>8} ({d} steps), pc=0x{X:0>8}\n", .{
+            core.gba.logPrint("[interp] step limit hit at 0x{X:0>8} ({d} steps), pc=0x{X:0>8}\n", .{
                 target,
                 steps,
                 pc,
@@ -1245,6 +1265,10 @@ const InterpCtx = struct {
 var interp_ctx: InterpCtx = .{};
 
 pub fn run_iwram_function(target: u32) void {
+    if (soft_reset_pending) {
+        g_ret = 0xFFFF_FFFF;
+        return;
+    }
     interp_mod.runFunction(&interp_ctx, target);
 }
 
@@ -1252,13 +1276,13 @@ pub fn run_iwram_function(target: u32) void {
 pub fn cpu_bx_trace(target: u32) void {
     bx_trace_count +%= 1;
     if (target != bx_trace_last and bx_trace_count <= 100) {
-        std.debug.print("[bx #{d}] -> 0x{X:0>8}\n", .{ bx_trace_count, target });
+        core.gba.logPrint("[bx #{d}] -> 0x{X:0>8}\n", .{ bx_trace_count, target });
     }
     bx_trace_last = target;
 }
 
 pub export fn cpu_undefined(insn: u32) void {
-    std.debug.print("[runtime] Undefined instruction 0x{X:0>8} at PC=0x{X:0>8}\n", .{ insn, r[15] });
+    core.gba.logPrint("[runtime] Undefined instruction 0x{X:0>8} at PC=0x{X:0>8}\n", .{ insn, r[15] });
 }
 
 pub fn ppu_render_scanline() void {}
@@ -1299,10 +1323,10 @@ pub fn gba_run(entry_func: *const fn () void) void {
         in_irq = false;
         g_ret = 0;
         entry_func();
-        if (!soft_reset_pending) break;
+        if (wasm_stop_requested or !soft_reset_pending) break;
         soft_reset_count +%= 1;
         if (soft_reset_count <= 5) {
-            std.debug.print("[runtime] SoftReset #{d}\n", .{soft_reset_count});
+            core.gba.logPrint("[runtime] SoftReset #{d}\n", .{soft_reset_count});
         }
     }
 }
@@ -1391,17 +1415,24 @@ fn sramLoad() void {
     const f = c_host.fopen(path, "rb") orelse return;
     defer _ = c_host.fclose(f);
     _ = c_host.fread(&sram_buf, 1, flash_state.backup_size, f);
-    std.debug.print("[runtime] Loaded SRAM from {s}\n", .{sram_path_buf[0..sram_path_len]});
+    core.gba.logPrint("[runtime] Loaded SRAM from {s}\n", .{sram_path_buf[0..sram_path_len]});
 }
 
 fn sramSave() void {
-    if (!has_posix or !sram_active or sram_path_len == 0 or !flash_state.dirty) return;
+    if (!sram_active or !flash_state.dirty) return;
+    if (!has_posix) {
+        core.platform.WasmBackend.saveSram(&sram_buf, flash_state.backup_size);
+        flash_state.dirty = false;
+        sram_dirty_frames = 0;
+        return;
+    }
+    if (sram_path_len == 0) return;
     const path_slice = sram_path_buf[0..sram_path_len];
     const path: [*:0]const u8 = @ptrCast(&sram_path_buf);
     if (writeAtomicFile(path, path_slice, sram_buf[0..flash_state.backup_size])) {
         flash_state.dirty = false;
         sram_dirty_frames = 0;
-        std.debug.print("[runtime] Saved Flash to {s}\n", .{path_slice});
+        core.gba.logPrint("[runtime] Saved Flash to {s}\n", .{path_slice});
     }
 }
 
@@ -1411,7 +1442,7 @@ fn eepromLoad() void {
     const f = c_host.fopen(path, "rb") orelse return;
     defer _ = c_host.fclose(f);
     _ = c_host.fread(&eeprom_state.storage, 1, eeprom_state.storage.len, f);
-    std.debug.print("[runtime] Loaded EEPROM from {s}\n", .{eeprom_path_buf[0..eeprom_path_len]});
+    core.gba.logPrint("[runtime] Loaded EEPROM from {s}\n", .{eeprom_path_buf[0..eeprom_path_len]});
 }
 
 fn eepromSave() void {
@@ -1421,7 +1452,7 @@ fn eepromSave() void {
     if (writeAtomicFile(path, path_slice, &eeprom_state.storage)) {
         eeprom_state.dirty = false;
         eeprom_dirty_frames = 0;
-        std.debug.print("[runtime] Saved EEPROM to {s}\n", .{path_slice});
+        core.gba.logPrint("[runtime] Saved EEPROM to {s}\n", .{path_slice});
     }
 }
 
@@ -1472,15 +1503,15 @@ fn histDump() void {
         }
     }
     std.mem.sort(HistEntry, hist_out[0..n], {}, histLessThan);
-    std.debug.print("[trace] frame {d}: {d} functions, in first-call order (count):", .{
+    core.gba.logPrint("[trace] frame {d}: {d} functions, in first-call order (count):", .{
         frame_count -% 1,
         n,
     });
     for (hist_out[0..n], 0..) |entry, k| {
         const sep: []const u8 = if (k % 6 != 0) " " else "\n  ";
-        std.debug.print("{s}{X:0>8}({d})", .{ sep, entry.addr, entry.count });
+        core.gba.logPrint("{s}{X:0>8}({d})", .{ sep, entry.addr, entry.count });
     }
-    std.debug.print("\n", .{});
+    core.gba.logPrint("\n", .{});
     @memset(&hist, .{});
     hist_n = 0;
     hist_seq = 0;
@@ -1501,12 +1532,12 @@ fn funcRingDump() void {
         }
         ring_count[k] += 1;
     }
-    std.debug.print("[runtime] frame {d}: last 4096 function entries, distinct (count):", .{frame_count});
+    core.gba.logPrint("[runtime] frame {d}: last 4096 function entries, distinct (count):", .{frame_count});
     for (0..n) |k| {
         const sep: []const u8 = if (k % 6 != 0) " " else "\n  ";
-        std.debug.print("{s}{X:0>8}({d})", .{ sep, ring_seen[k], ring_count[k] });
+        core.gba.logPrint("{s}{X:0>8}({d})", .{ sep, ring_seen[k], ring_count[k] });
     }
-    std.debug.print("\n", .{});
+    core.gba.logPrint("\n", .{});
 }
 
 pub export fn recomp_enter(addr: u32) bool {
@@ -1518,6 +1549,10 @@ pub export fn recomp_enter(addr: u32) bool {
 }
 
 pub export fn recomp_called_slow(retaddr: u32) bool {
+    if (soft_reset_pending) {
+        g_ret = 0xFFFF_FFFF;
+        return false;
+    }
     if (((g_ret ^ retaddr) & ~@as(u32, 1)) != 0) {
         if (g_unwind_trace != 0) recomp_unwind_note(retaddr);
         return false;
@@ -1527,7 +1562,7 @@ pub export fn recomp_called_slow(retaddr: u32) bool {
 }
 
 pub export fn recomp_unwind_note(retaddr: u32) void {
-    std.debug.print(
+    core.gba.logPrint(
         "[unwind] frame {d}: call site expecting {X:0>8} saw a return to {X:0>8} (last entered func_{X:0>8})\n",
         .{
             frame_count,
@@ -1538,7 +1573,7 @@ pub export fn recomp_unwind_note(retaddr: u32) void {
     );
     g_unwind_trace -= 1;
     if (g_unwind_trace == 0) {
-        std.debug.print("[unwind] (further unwinds not logged)\n", .{});
+        core.gba.logPrint("[unwind] (further unwinds not logged)\n", .{});
     }
 }
 
@@ -1687,6 +1722,60 @@ fn resetCommonState() void {
     sram_last_seq = 0;
     eeprom_dirty_frames = 0;
     eeprom_last_seq = 0;
+    wasm_stop_requested = false;
+}
+
+pub fn wasmRomBufPtr() [*]u8 {
+    return if (!has_posix) &wasm_rom_buf else sram_buf[0..1].ptr;
+}
+
+pub fn wasmRomBufCap() u32 {
+    return wasm_rom_max;
+}
+
+pub fn wasmSramBufPtr() [*]u8 {
+    return &sram_buf;
+}
+
+pub fn wasmSramSize() u32 {
+    return flash_state.backup_size;
+}
+
+pub fn wasmMarkSramClean() void {
+    flash_state.dirty = false;
+    flash_state.write_seq = 0;
+    sram_last_seq = 0;
+    sram_dirty_frames = 0;
+}
+
+pub fn gba_init_memory(rom_len: u32) bool {
+    if (rom_len > wasm_rom_max) return false;
+    resetCommonState();
+
+    const rom_slice: []const u8 = if (rom_len > 0)
+        (if (!has_posix) wasm_rom_buf[0..rom_len] else &.{})
+    else
+        embedded_rom_bytes;
+    if (rom_slice.len == 0) return false;
+
+    rom_ptr = rom_slice.ptr;
+    rom_size = @intCast(rom_slice.len);
+    rom_owned = false;
+
+    if (flash_state.detect(rom_slice) != null) {
+        @memset(sram_buf[0..flash_state.backup_size], 0xFF);
+    }
+    flash_state.dirty = false;
+    flash_state.write_seq = 0;
+    sram_last_seq = 0;
+
+    _ = eeprom_state.detect(rom_slice);
+    eeprom_state.dirty = false;
+    eeprom_state.write_seq = 0;
+    eeprom_last_seq = 0;
+
+    initPostRomRegs();
+    return disp.display_init() == 0;
 }
 
 fn initPostRomRegs() void {
@@ -1718,26 +1807,26 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
 
     if (rom_path_opt) |rom_path_c| {
         const f = c_host.fopen(rom_path_c, "rb") orelse {
-            std.debug.print("[runtime] Cannot open ROM: {s}\n", .{std.mem.span(rom_path_c)});
+            core.gba.logPrint("[runtime] Cannot open ROM: {s}\n", .{std.mem.span(rom_path_c)});
             c_host.exit(1);
         };
         _ = c_host.fseek(f, 0, 2); // SEEK_END
         const raw_len = c_host.ftell(f);
         if (raw_len <= 0) {
             _ = c_host.fclose(f);
-            std.debug.print("[runtime] Empty or unreadable ROM: {s}\n", .{std.mem.span(rom_path_c)});
+            core.gba.logPrint("[runtime] Empty or unreadable ROM: {s}\n", .{std.mem.span(rom_path_c)});
             c_host.exit(1);
         }
         rom_size = @intCast(raw_len);
         _ = c_host.fseek(f, 0, 0); // SEEK_SET
         const mem = c_host.malloc(rom_size) orelse {
             _ = c_host.fclose(f);
-            std.debug.print("[runtime] Failed to allocate ROM buffer ({d} bytes)\n", .{rom_size});
+            core.gba.logPrint("[runtime] Failed to allocate ROM buffer ({d} bytes)\n", .{rom_size});
             c_host.exit(1);
         };
         if (c_host.fread(mem, 1, rom_size, f) != rom_size) {
             _ = c_host.fclose(f);
-            std.debug.print("[runtime] Failed to read ROM\n", .{});
+            core.gba.logPrint("[runtime] Failed to read ROM\n", .{});
             c_host.exit(1);
         }
         _ = c_host.fclose(f);
@@ -1754,7 +1843,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
         default_base = resolveSelfExePath(exe_arg0, &exe_path_buf);
         rom_label = "embedded";
     } else {
-        std.debug.print("[runtime] No ROM embedded and no ROM path given. Usage: awre <rom.gba> [options]\n", .{});
+        core.gba.logPrint("[runtime] No ROM embedded and no ROM path given. Usage: awre <rom.gba> [options]\n", .{});
         c_host.exit(1);
     }
 
@@ -1767,7 +1856,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
     }
     if (flash_state.detect(rom_slice)) |tag| {
         const size_label: []const u8 = if (flash_state.large) "128KB" else "64KB";
-        std.debug.print("[runtime] Flash {s} detected ({s})\n", .{ size_label, tag });
+        core.gba.logPrint("[runtime] Flash {s} detected ({s})\n", .{ size_label, tag });
         @memset(sram_buf[0..flash_state.backup_size], 0xFF);
     }
     sramLoad();
@@ -1776,7 +1865,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
     sram_last_seq = 0;
 
     if (eeprom_state.detect(rom_slice)) |ee_addr| {
-        std.debug.print("[runtime] EEPROM detected at ROM 0x{X:0>8} (assuming 8KB)\n", .{ee_addr});
+        core.gba.logPrint("[runtime] EEPROM detected at ROM 0x{X:0>8} (assuming 8KB)\n", .{ee_addr});
         const ee_base = if (save_path_opt) |sp| std.mem.span(sp) else default_base;
         eeprom_path_len = buildSidecarPath(ee_base, ".eep", &eeprom_path_buf);
         eepromLoad();
@@ -1787,14 +1876,14 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
 
     initPostRomRegs();
 
-    std.debug.print("[runtime] GBA static recomp runtime initialized (Zig)\n", .{});
-    std.debug.print("[runtime] ROM: {d} bytes ({s})\n", .{ rom_size, rom_label });
+    core.gba.logPrint("[runtime] GBA static recomp runtime initialized (Zig)\n", .{});
+    core.gba.logPrint("[runtime] ROM: {d} bytes ({s})\n", .{ rom_size, rom_label });
     if (sram_path_len > 0) {
-        std.debug.print("[runtime] Save path: {s}\n", .{sram_path_buf[0..sram_path_len]});
+        core.gba.logPrint("[runtime] Save path: {s}\n", .{sram_path_buf[0..sram_path_len]});
     }
 
     if (disp.display_init() != 0) {
-        std.debug.print("[runtime] Failed to initialize display\n", .{});
+        core.gba.logPrint("[runtime] Failed to initialize display\n", .{});
         c_host.exit(1);
     }
 }
@@ -1827,5 +1916,5 @@ pub fn gba_shutdown() void {
         rom_owned = false;
     }
     rom_size = 0;
-    std.debug.print("[runtime] Shutdown\n", .{});
+    core.gba.logPrint("[runtime] Shutdown\n", .{});
 }

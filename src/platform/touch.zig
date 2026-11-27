@@ -82,11 +82,13 @@ const swipe_step_px: f32 = 16.0;
 const nav_pulse_frames: u8 = 3;
 const nav_gap_frames: u8 = 3;
 const nav_stall_limit: u16 = 24;
+const min_button_frames: u8 = 3;
 
 const PointerSlot = struct {
     active: bool = false,
     id: i64 = 0,
     hud_button: ?HudButton = null,
+    held_frames: u8 = 0,
     start_x: f32 = 0,
     start_y: f32 = 0,
     anchor_x: f32 = 0,
@@ -106,6 +108,8 @@ pub const TouchController = struct {
     hud_visible: bool = true,
     pointers: [max_pointers]PointerSlot = @splat(.{}),
     hud_held_mask: u16 = 0,
+    right_held: bool = false,
+    right_held_frames: u8 = 0,
 
     pulse_queue: [max_pulse_queue]Pulse = @splat(.{}),
     pulse_head: usize = 0,
@@ -141,7 +145,10 @@ pub const TouchController = struct {
     }
 
     pub fn activeKeys(self: *const TouchController) u16 {
-        return self.hud_held_mask | self.pulse_active_mask | self.nav_key_mask;
+        return self.hud_held_mask |
+            self.pulse_active_mask |
+            self.nav_key_mask |
+            (if (self.right_held) gba.Key.b.mask() else 0);
     }
 
     pub fn hitTestHud(lx: f32, ly: f32) ?HudButton {
@@ -216,6 +223,7 @@ pub const TouchController = struct {
                     .active = true,
                     .id = ev.id,
                     .hud_button = hud_hit,
+                    .held_frames = 0,
                     .start_x = ev.logical_x,
                     .start_y = ev.logical_y,
                     .anchor_x = ev.logical_x,
@@ -232,6 +240,7 @@ pub const TouchController = struct {
                     const now_btn = if (self.hud_visible) hitTestHud(ev.logical_x, ev.logical_y) else null;
                     if (now_btn != old_btn) {
                         slot.hud_button = now_btn;
+                        slot.held_frames = 0;
                         self.recomputeHudMask();
                     }
                     return;
@@ -266,17 +275,45 @@ pub const TouchController = struct {
             },
             .up => {
                 const slot = self.findSlot(ev.id) orelse return;
-                const was_hud = slot.hud_button != null;
+                const hud_btn = slot.hud_button;
+                const held = slot.held_frames;
                 const was_dragged = slot.dragged;
                 slot.active = false;
                 slot.hud_button = null;
-                if (was_hud) {
+                slot.held_frames = 0;
+                if (hud_btn) |btn| {
+                    if (held < min_button_frames) {
+                        self.enqueuePulse(btn.keyMask(), min_button_frames - held, 1);
+                    }
                     self.recomputeHudMask();
                     return;
                 }
                 if (was_dragged) return;
 
                 self.handleCanvasTap(ev.logical_x, ev.logical_y, state);
+            },
+            .right_down => {
+                self.nav_target = null;
+                self.nav_key_mask = 0;
+                self.right_held = true;
+                self.right_held_frames = 0;
+            },
+            .right_up => {
+                if (self.right_held and self.right_held_frames < min_button_frames) {
+                    self.enqueuePulse(gba.Key.b.mask(), min_button_frames - self.right_held_frames, 1);
+                }
+                self.right_held = false;
+                self.right_held_frames = 0;
+            },
+            .scroll_up => {
+                self.nav_target = null;
+                self.nav_key_mask = 0;
+                self.enqueuePulse(gba.Key.up.mask(), 3, 2);
+            },
+            .scroll_down => {
+                self.nav_target = null;
+                self.nav_key_mask = 0;
+                self.enqueuePulse(gba.Key.down.mask(), 3, 2);
             },
         }
     }
@@ -325,6 +362,15 @@ pub const TouchController = struct {
         }
         self.reticle_scroll_x = state.scroll_x;
         self.reticle_scroll_y = state.scroll_y;
+
+        for (&self.pointers) |*slot| {
+            if (slot.active and slot.hud_button != null) {
+                slot.held_frames = slot.held_frames +| 1;
+            }
+        }
+        if (self.right_held) {
+            self.right_held_frames = self.right_held_frames +| 1;
+        }
 
         self.stepPulseQueue();
         self.stepNavigation(state);
@@ -561,6 +607,7 @@ test "HUD buttons hit-test and hold/release keys cleanly" {
         const cy: f32 = @as(f32, @floatFromInt(spec.rect.y)) + @as(f32, @floatFromInt(spec.rect.h)) * 0.5;
         tc.handlePointer(.{ .id = 1, .phase = .down, .x = cx, .y = cy, .logical_x = cx, .logical_y = cy }, .{});
         try std.testing.expectEqual(spec.button.keyMask(), tc.activeKeys());
+        for (0..min_button_frames) |_| tc.stepFrame(.{});
         tc.handlePointer(.{ .id = 1, .phase = .up, .x = cx, .y = cy, .logical_x = cx, .logical_y = cy }, .{});
         try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
     }
@@ -671,4 +718,93 @@ test "renderOverlay draws HUD pixels into dst without altering src" {
     try std.testing.expect(dst[149 * gba.width + 225] != 0xFF406080);
     // src remains untouched.
     try std.testing.expectEqual(@as(u32, 0xFF406080), src[149 * gba.width + 225]);
+}
+
+test "Mouse right-click holds B and scroll wheel emits Up/Down while cancelling map nav" {
+    var tc = TouchController{};
+    const map_state = GameState{
+        .map_active = true,
+        .cursor_x = 2,
+        .cursor_y = 2,
+    };
+
+    // Start map navigation to tile (6, 2)
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 96, .y = 32, .logical_x = 96, .logical_y = 32 }, map_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 96, .y = 32, .logical_x = 96, .logical_y = 32 }, map_state);
+    try std.testing.expect(tc.nav_target != null);
+
+    // Right click cancels nav and holds B until released
+    tc.handlePointer(.{ .id = -2, .phase = .right_down, .x = 96, .y = 32, .logical_x = 96, .logical_y = 32 }, map_state);
+    try std.testing.expect(tc.nav_target == null);
+    try std.testing.expectEqual(@as(u16, 0), tc.nav_key_mask);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+
+    for (0..min_button_frames) |_| tc.stepFrame(map_state);
+    tc.handlePointer(.{ .id = -2, .phase = .right_up, .x = 96, .y = 32, .logical_x = 96, .logical_y = 32 }, map_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Start nav again then scroll up -> cancels nav and pulses Up
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 96, .y = 32, .logical_x = 96, .logical_y = 32 }, map_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 96, .y = 32, .logical_x = 96, .logical_y = 32 }, map_state);
+    try std.testing.expect(tc.nav_target != null);
+    tc.handlePointer(.{ .id = -3, .phase = .scroll_up, .x = 0, .y = 0, .logical_x = 0, .logical_y = 0 }, map_state);
+    try std.testing.expect(tc.nav_target == null);
+    tc.stepFrame(map_state);
+    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
+    for (0..6) |_| tc.stepFrame(map_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Scroll down -> pulses Down
+    tc.handlePointer(.{ .id = -3, .phase = .scroll_down, .x = 0, .y = 0, .logical_x = 0, .logical_y = 0 }, map_state);
+    tc.stepFrame(map_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+}
+
+test "Same-frame HUD B click and mouse right-click latch for minimum frames" {
+    var tc = TouchController{};
+    const b_x: f32 = 205;
+    const b_y: f32 = 149;
+
+    // Fast left click on HUD B within one poll batch
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = b_x, .y = b_y, .logical_x = b_x, .logical_y = b_y }, .{});
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = b_x, .y = b_y, .logical_x = b_x, .logical_y = b_y }, .{});
+    for (0..min_button_frames) |_| {
+        tc.stepFrame(.{});
+        try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+    }
+    tc.stepFrame(.{});
+    tc.stepFrame(.{});
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Fast right click within one poll batch
+    tc.handlePointer(.{ .id = -2, .phase = .right_down, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, .{});
+    tc.handlePointer(.{ .id = -2, .phase = .right_up, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, .{});
+    for (0..min_button_frames) |_| {
+        tc.stepFrame(.{});
+        try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+    }
+    tc.stepFrame(.{});
+    tc.stepFrame(.{});
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Short hold (1 frame) extends remaining latch frames, then releases cleanly
+    tc.handlePointer(.{ .id = -2, .phase = .right_down, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, .{});
+    tc.stepFrame(.{});
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = -2, .phase = .right_up, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, .{});
+    for (0..(min_button_frames - 1)) |_| {
+        tc.stepFrame(.{});
+        try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+    }
+    tc.stepFrame(.{});
+    tc.stepFrame(.{});
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Held >= min_button_frames releases immediately on right_up
+    tc.handlePointer(.{ .id = -2, .phase = .right_down, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, .{});
+    for (0..min_button_frames) |_| tc.stepFrame(.{});
+    tc.handlePointer(.{ .id = -2, .phase = .right_up, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, .{});
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+    tc.stepFrame(.{});
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 }

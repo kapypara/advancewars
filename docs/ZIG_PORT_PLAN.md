@@ -64,9 +64,16 @@ Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: 
   - Pixel-exact BMP parity (`0 bytes diff`) against `ref_title.bmp` (1,550 frames), `ref_ft.bmp` (8,000 frames, both `Debug` and `ReleaseFast`), and `ref_win.bmp` (26,320 frames), plus full 54,600-frame `tools/field_training_m2.txt` Mission 2 replay and 64 KB Flash `.sav` round-trip.
   - Re-verified frame `931` (`--dump-dir` + `BG1CNT=0x5E02`, `BG2X=0x00000000`, `WIN0H=0x00F0` and matching `frames.log`) and clean `F1211`/`F2511` `m4a` PCM buffers (max step `<= 31`).
 
-## Phase 5 — WebAssembly Browser Port (`wasm32-freestanding`) (Next)
-- Compile the pure Zig core (`src/gba/`) + `src/runtime.zig` + `gen/` shards + `src/platform/wasm.zig` to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten), serving desktop and mobile browsers (with pure touch controls).
-- Minimal browser JS shell (~150 lines) presenting the `240x160` framebuffer via Canvas2D / WebGL2, AudioWorklet audio, browser Pointer/Touch events wired into `src/platform/touch.zig`, local ROM file drop (never uploaded), and 64 KB Flash persistence in `IndexedDB`.
+## Phase 5 — WebAssembly Browser Port (`wasm32-freestanding`) (Done)
+- Built 100% pure-Zig `wasm32-freestanding` target (`zig build wasm` -> `zig-out/web/awre.wasm`: `17,805,156` bytes raw / `4,659,002` bytes gzipped with `game/aw.gba` embedded, `0` C files, `0` libc; `1.584s` incremental build; `-Dembed-rom=false` omits the embedded ROM) running inside a Web Worker (`src/wasm_main.zig`, `src/platform/wasm.zig`, `.rdynamic = false`, `10` exported WASM symbols: `memory` + 9 `awre_*` entrypoints including `awre_has_embedded_rom`).
+- Minimal browser shell under `web/` (`index.html`, `style.css`, `main.js`, `worker.js`, `audio-worklet.js`) plus COOP/COEP dev server (`scripts/serve_web.py`):
+  - Zero-click auto-boot of the embedded ROM via `gba_init_memory(0)` (falling back to the ROM overlay on `-Dembed-rom=false` while keeping manual `.gba` file load/drag-drop, `.sav` import/export, and `IndexedDB` Flash persistence on `flash_state.dirty` flush).
+  - Exact `3:2` `ResizeObserver`-driven Canvas2D (`fitCanvas()`) + 48 kHz stereo `AudioWorklet` unlocked on user gesture and fed over `SharedArrayBuffer` (with initial HUD/Mute toggle sync in `web/worker.js`).
+  - Browser Pointer/Touch + keyboard + mouse right-click (`B`) + scroll wheel (`Up`/`Down`) wired into `src/platform/touch.zig` (and matched across SDL2 native desktop in `src/platform/sdl2.zig`), with a `3`-frame minimum latch (`min_button_frames = 3`) so same-frame HUD clicks and fast right-clicks never drop, right-click pointer capture + stage/conditional context-menu suppression + `window`-level release/blur failsafes preventing stuck `B`, and `soft_reset_pending` unwind guards in `src/runtime.zig` for clean WASM stop exit.
+- Verified via Node.js (`v26.13.1`) instantiating `zig-out/web/awre.wasm`:
+  - `awre_has_embedded_rom() === 1`, `awre_init_wasm(0) === 0`; `replays/title.txt` (`1,550`-frame **`0` pixel diff** vs `scratch/ref_title.bmp`; `1,620` frames in `2.53s`), `1` save event (`65,536` bytes), `1,570` audio chunks (`1,343` non-zero).
+  - Interactive menu check (`1,560` frames in `2.47s`): same-frame HUD `B` click `(205, 149)` backs out cleanly, subsequent `A` re-enters (proving `B` does not stick), same-frame right-click backs out again, and `awre_run_wasm()` unwinds cleanly at frame `1,560`.
+  - `-Dembed-rom=false`: `awre_has_embedded_rom() === 0` and `awre_init_wasm(0) === -1`.
 
 ## Phase 6 — Full Zig Recompiler (`ext/gbarecomp` -> Zig) & Pure-Zig Build (Done)
 Executed before Phase 5 to eliminate generated C sources and CMake/Clang compiler workarounds first:

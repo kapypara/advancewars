@@ -1,4 +1,11 @@
 const std = @import("std");
+const builtin = @import("builtin");
+
+/// Print formatted diagnostics on hosted builds; compiled out on freestanding WASM.
+pub fn logPrint(comptime fmt: []const u8, args: anytype) void {
+    if (builtin.os.tag == .freestanding) return;
+    std.debug.print(fmt, args);
+}
 
 /// GBA native display width in pixels.
 pub const width: usize = 240;

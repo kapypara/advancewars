@@ -1,10 +1,15 @@
+const builtin = @import("builtin");
 const build_options = @import("build_options");
 const gba = @import("../gba/defs.zig");
 
-pub const PointerPhase = enum {
-    down,
-    move,
-    up,
+pub const PointerPhase = enum(u8) {
+    down = 0,
+    move = 1,
+    up = 2,
+    right_down = 3,
+    right_up = 4,
+    scroll_up = 5,
+    scroll_down = 6,
 };
 
 pub const PointerEvent = struct {
@@ -49,7 +54,11 @@ const NoopBackend = struct {
     pub fn shutdown(_: *NoopBackend) void {}
 };
 
-pub const Backend = if (build_options.headless)
+pub const WasmBackend = @import("wasm.zig").WasmBackend;
+
+pub const Backend = if (builtin.os.tag == .freestanding)
+    WasmBackend
+else if (build_options.headless)
     NoopBackend
 else
     @import("sdl2.zig").Sdl2Backend;

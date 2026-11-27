@@ -288,6 +288,38 @@ pub const Sdl2Backend = struct {
                             .logical_x = log.x,
                             .logical_y = log.y,
                         });
+                    } else if (ev.button.button == sdl.SDL_BUTTON_RIGHT) {
+                        const fx: f32 = @floatFromInt(ev.button.x);
+                        const fy: f32 = @floatFromInt(ev.button.y);
+                        const log = self.windowToLogical(fx, fy);
+                        self.pushPointer(.{
+                            .id = -2,
+                            .phase = if (ev.type == sdl.SDL_MOUSEBUTTONDOWN) .right_down else .right_up,
+                            .x = fx,
+                            .y = fy,
+                            .logical_x = log.x,
+                            .logical_y = log.y,
+                        });
+                    }
+                },
+                sdl.SDL_MOUSEWHEEL => {
+                    var dy: i32 = ev.wheel.y;
+                    if (ev.wheel.direction == sdl.SDL_MOUSEWHEEL_FLIPPED) {
+                        dy = -dy;
+                    }
+                    if (dy != 0) {
+                        const steps: usize = @min(@as(usize, @abs(dy)), 4);
+                        const phase: platform.PointerPhase = if (dy > 0) .scroll_up else .scroll_down;
+                        for (0..steps) |_| {
+                            self.pushPointer(.{
+                                .id = -3,
+                                .phase = phase,
+                                .x = 0,
+                                .y = 0,
+                                .logical_x = 0,
+                                .logical_y = 0,
+                            });
+                        }
                     }
                 },
                 sdl.SDL_MOUSEMOTION => {

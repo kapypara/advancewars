@@ -12,6 +12,7 @@
         "entries.txt",
         "conformance_baseline.txt",
         "replays",
+        "web",
         "docs",
         "README.md",
     },

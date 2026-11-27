@@ -11,6 +11,38 @@ fn resolvePath(b: *std.Build, p: []const u8) std.Build.LazyPath {
     return b.path(p);
 }
 
+fn addGeneratedShards(
+    b: *std.Build,
+    parent_mod: *std.Build.Module,
+    shard_files: []const []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    strip: bool,
+    rt_shard_mod: *std.Build.Module,
+    decls_mod: *std.Build.Module,
+) void {
+    for (shard_files) |fname| {
+        const rel_path = b.pathJoin(&.{ "gen", fname });
+        const shard_mod = b.createModule(.{
+            .root_source_file = b.path(rel_path),
+            .target = target,
+            .optimize = optimize,
+            .strip = strip,
+            .unwind_tables = .none,
+        });
+        if (!std.mem.eql(u8, fname, "unresolved.zig")) {
+            shard_mod.addImport("runtime", rt_shard_mod);
+            shard_mod.addImport("decls", decls_mod);
+        }
+        const stem = fname[0 .. fname.len - 4];
+        const shard_obj = b.addObject(.{
+            .name = stem,
+            .root_module = shard_mod,
+        });
+        parent_mod.addObject(shard_obj);
+    }
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -230,26 +262,16 @@ pub fn build(b: *std.Build) void {
         awre_mod.linkSystemLibrary("SDL2", .{});
     }
 
-    for (shard_files.items) |fname| {
-        const rel_path = b.pathJoin(&.{ "gen", fname });
-        const shard_mod = b.createModule(.{
-            .root_source_file = b.path(rel_path),
-            .target = target,
-            .optimize = shard_optimize,
-            .strip = strip_shards,
-            .unwind_tables = .none,
-        });
-        if (!std.mem.eql(u8, fname, "unresolved.zig")) {
-            shard_mod.addImport("runtime", rt_shard_mod);
-            shard_mod.addImport("decls", decls_mod);
-        }
-        const stem = fname[0 .. fname.len - 4];
-        const shard_obj = b.addObject(.{
-            .name = stem,
-            .root_module = shard_mod,
-        });
-        awre_mod.addObject(shard_obj);
-    }
+    addGeneratedShards(
+        b,
+        awre_mod,
+        shard_files.items,
+        target,
+        shard_optimize,
+        strip_shards,
+        rt_shard_mod,
+        decls_mod,
+    );
 
     const awre_exe = b.addExecutable(.{
         .name = "awre",
@@ -257,6 +279,125 @@ pub fn build(b: *std.Build) void {
     });
     awre_exe.stack_size = 16 * 1024 * 1024;
     b.installArtifact(awre_exe);
+
+    // ---- Pure-Zig WebAssembly browser target (`zig build wasm`) ----
+    const wasm_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+    });
+
+    const wasm_core_opts = b.addOptions();
+    wasm_core_opts.addOption(bool, "headless", false);
+
+    const wasm_core_mod = b.createModule(.{
+        .root_source_file = b.path("src/root.zig"),
+        .target = wasm_target,
+        .optimize = .fast,
+        .link_libc = false,
+        .strip = true,
+    });
+    wasm_core_mod.addOptions("build_options", wasm_core_opts);
+
+    const wasm_rt_opts = b.addOptions();
+    wasm_rt_opts.addOption(bool, "has_embedded_rom", embed_rom);
+
+    const wasm_rt_mod = b.createModule(.{
+        .root_source_file = b.path("src/runtime.zig"),
+        .target = wasm_target,
+        .optimize = .fast,
+        .link_libc = false,
+        .strip = true,
+    });
+    wasm_rt_mod.addOptions("rt_options", wasm_rt_opts);
+    if (embed_rom) {
+        wasm_rt_mod.addAnonymousImport("embedded_rom", .{
+            .root_source_file = rom_lazy,
+        });
+    }
+    wasm_rt_mod.addImport("awre_core", wasm_core_mod);
+
+    const wasm_shard_opts = b.addOptions();
+    wasm_shard_opts.addOption(bool, "enable_trace", false);
+
+    const wasm_rt_shard_mod = b.createModule(.{
+        .root_source_file = b.path("src/shard.zig"),
+        .target = wasm_target,
+        .optimize = .small,
+        .strip = true,
+    });
+    wasm_rt_shard_mod.addOptions("build_options", wasm_shard_opts);
+
+    const wasm_decls_mod = b.createModule(.{
+        .root_source_file = b.path("gen/decls.zig"),
+        .target = wasm_target,
+        .optimize = .small,
+        .strip = true,
+    });
+
+    const wasm_game_mod = b.createModule(.{
+        .root_source_file = b.path("gen/game.zig"),
+        .target = wasm_target,
+        .optimize = .small,
+        .strip = true,
+    });
+    wasm_game_mod.addImport("runtime", wasm_rt_mod);
+    wasm_game_mod.addImport("decls", wasm_decls_mod);
+
+    const wasm_mod = b.createModule(.{
+        .root_source_file = b.path("src/wasm_main.zig"),
+        .target = wasm_target,
+        .optimize = .fast,
+        .link_libc = false,
+        .strip = true,
+        .unwind_tables = .none,
+    });
+    wasm_mod.export_symbol_names = &.{
+        "awre_has_embedded_rom",
+        "awre_rom_buf_ptr",
+        "awre_rom_buf_cap",
+        "awre_sram_buf_ptr",
+        "awre_sram_size",
+        "awre_init_wasm",
+        "awre_mark_sram_clean",
+        "awre_run_wasm",
+        "awre_push_pointer",
+    };
+    wasm_mod.addImport("awre_core", wasm_core_mod);
+    wasm_mod.addImport("runtime", wasm_rt_mod);
+    wasm_mod.addImport("game", wasm_game_mod);
+
+    addGeneratedShards(
+        b,
+        wasm_mod,
+        shard_files.items,
+        wasm_target,
+        .small,
+        true,
+        wasm_rt_shard_mod,
+        wasm_decls_mod,
+    );
+
+    const wasm_exe = b.addExecutable(.{
+        .name = "awre",
+        .root_module = wasm_mod,
+    });
+    wasm_exe.entry = .disabled;
+    wasm_exe.export_memory = true;
+    wasm_exe.stack_size = 4 * 1024 * 1024;
+    wasm_exe.initial_memory = 64 * 1024 * 1024;
+    wasm_exe.max_memory = 128 * 1024 * 1024;
+
+    const install_wasm = b.addInstallArtifact(wasm_exe, .{
+        .dest_dir = .{ .override = .{ .custom = "web" } },
+    });
+    const install_web_assets = b.addInstallDirectory(.{
+        .source_dir = b.path("web"),
+        .install_dir = .{ .custom = "web" },
+        .install_subdir = "",
+    });
+    const wasm_step = b.step("wasm", "Build pure-Zig WebAssembly browser bundle in zig-out/web/");
+    wasm_step.dependOn(&install_wasm.step);
+    wasm_step.dependOn(&install_web_assets.step);
 
     // ---- Run, conformance & headless smoke steps ----
     const run_cmd = b.addRunArtifact(awre_exe);

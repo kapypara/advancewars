@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Advance Wars (Zig WASM)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand">Advance Wars <span class="badge">Zig WASM</span></div>
+    <div class="actions">
+      <label class="btn primary">
+        Load ROM
+        <input id="rom-input" type="file" accept=".gba" hidden />
+      </label>
+      <button id="btn-hud" class="btn" type="button" title="Toggle Touch HUD (F2)">HUD</button>
+      <button id="btn-mute" class="btn" type="button" title="Mute / Unmute Audio (F3 / M)">Mute</button>
+      <button id="btn-full" class="btn" type="button" title="Fullscreen (F11)">Full</button>
+      <button id="btn-export-sav" class="btn" type="button" title="Download .sav">Export .sav</button>
+      <label class="btn" title="Load external .sav into IndexedDB">
+        Import .sav
+        <input id="sav-input" type="file" accept=".sav,.srm" hidden />
+      </label>
+      <button id="btn-stop" class="btn danger" type="button" disabled>Stop</button>
+    </div>
+  </header>
+
+  <div id="coep-banner" class="banner" hidden>
+    <strong>Cross-Origin Isolation required:</strong> <code>SharedArrayBuffer</code> is unavailable.
+    Serve <code>zig-out/web/</code> via <code>python3 scripts/serve_web.py</code> (COOP + COEP headers enabled).
+  </div>
+
+  <main id="stage" class="stage">
+    <canvas id="screen" width="240" height="160"></canvas>
+    <div id="drop-overlay" class="overlay" hidden>
+      <div class="card">
+        <h1>Advance Wars (Pure Zig WebAssembly)</h1>
+        <p>Select or drop your own <strong>Advance Wars (USA) (Rev 1)</strong> <code>.gba</code> ROM.</p>
+        <p class="muted">Runs 100% locally inside your browser — ROM and Flash saves never leave your device.</p>
+        <label class="btn primary large">
+          Choose .gba ROM
+          <input id="rom-input-hero" type="file" accept=".gba" hidden />
+        </label>
+        <p class="controls-hint">
+          Mouse: Left click/drag = Move &amp; A · Right click = B · Scroll = Up/Down · Keys: Arrows, Z=A, X=B, Enter=Start, Backspace=Select, A/S=L/R
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="statusbar">
+    <span id="status-text">Waiting for ROM</span>
+    <span id="fps-text"></span>
+  </footer>
+
+  <script src="main.js" type="module"></script>
+</body>
+</html>

@@ -91,7 +91,7 @@ pub inline fn checkDeadline(cycle_counter: u32) void {
 
 pub fn printSummary(enabled: bool) void {
     if (!has_host_validate or !enabled) return;
-    std.debug.print("validate: {d}/{d} functions agree (native vs interpreter)\n", .{
+    core.gba.logPrint("validate: {d}/{d} functions agree (native vs interpreter)\n", .{
         v_funcs - v_fail,
         v_funcs,
     });
@@ -240,7 +240,7 @@ pub fn runValidate(
     if (why.len > 0) {
         v_seen[h].failed = true;
         v_fail += 1;
-        std.debug.print("VALIDATE {X:0>8} FAIL {s} (sp={X:0>8} lr={X:0>8} frame={d})\n", .{
+        core.gba.logPrint("VALIDATE {X:0>8} FAIL {s} (sp={X:0>8} lr={X:0>8} frame={d})\n", .{
             addr,
             why,
             sp0,

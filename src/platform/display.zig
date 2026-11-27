@@ -239,7 +239,7 @@ pub fn display_init() c_int {
     if (s_runner.headless) return 0;
 
     if (core.is_headless) {
-        std.debug.print("[display] built without SDL2: run with --headless\n", .{});
+        gba.logPrint("[display] built without SDL2: run with --headless\n", .{});
         return -1;
     }
 

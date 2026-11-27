@@ -151,13 +151,13 @@ pub const Runner = struct {
                 if (has_posix_stdio) {
                     self.input_file = c_stdio.fopen(argv[i], "r");
                     if (self.input_file == null) {
-                        std.debug.print("[display] cannot open input script {s}\n", .{std.mem.span(argv[i])});
+                        gba.logPrint("[display] cannot open input script {s}\n", .{std.mem.span(argv[i])});
                     }
                 }
             } else if (arg.len > 0 and arg[0] != '-' and self.rom_path == null) {
                 self.rom_path = argv[i];
             } else {
-                std.debug.print("[display] unknown option {s}\n", .{arg});
+                gba.logPrint("[display] unknown option {s}\n", .{arg});
             }
         }
         return self.rom_path;
@@ -206,10 +206,10 @@ pub const Runner = struct {
         ) catch return false;
         self.dump_log = c_stdio.fopen(log_path.ptr, "wb");
         if (self.dump_log == null) {
-            std.debug.print("[dump-dir] cannot open {s}\n", .{std.mem.span(log_path.ptr)});
+            gba.logPrint("[dump-dir] cannot open {s}\n", .{std.mem.span(log_path.ptr)});
             return false;
         }
-        std.debug.print("[dump-dir] continuous frame+state dump -> {s}\n", .{std.mem.span(dir)});
+        gba.logPrint("[dump-dir] continuous frame+state dump -> {s}\n", .{std.mem.span(dir)});
         return true;
     }
 
@@ -228,7 +228,7 @@ pub const Runner = struct {
         _ = writeBmp(bmp_path.ptr, framebuf);
 
         if (self.frame_no == 1 or @mod(self.frame_no, 60) == 0) {
-            std.debug.print("[dump-dir] frame {d}\n", .{self.frame_no});
+            gba.logPrint("[dump-dir] frame {d}\n", .{self.frame_no});
         }
     }
 
@@ -255,7 +255,7 @@ pub const Runner = struct {
 
         self.record_pipe = c_stdio.popen(cmd.ptr, "wb");
         if (self.record_pipe == null) {
-            std.debug.print("[display] cannot start ffmpeg\n", .{});
+            gba.logPrint("[display] cannot start ffmpeg\n", .{});
             return false;
         }
         return true;
@@ -332,7 +332,7 @@ pub const Runner = struct {
                 _ = c_stdio.fclose(f);
                 self.dump_log = null;
                 if (self.dump_dir) |dir| {
-                    std.debug.print("[dump-dir] saved {d} frames in {s}\n", .{ self.frame_no, std.mem.span(dir) });
+                    gba.logPrint("[dump-dir] saved {d} frames in {s}\n", .{ self.frame_no, std.mem.span(dir) });
                 }
             }
         }
