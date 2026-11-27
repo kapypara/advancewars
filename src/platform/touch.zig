@@ -205,6 +205,8 @@ const Pulse = struct {
 pub const TouchController = struct {
     hud_visible: bool = true,
     hud_width: u16 = gba.width,
+    view_width: u16 = gba.width,
+    view_height: u16 = gba.height,
     pointers: [max_pointers]PointerSlot = @splat(.{}),
     hud_held_mask: u16 = 0,
     right_held: bool = false,
@@ -287,6 +289,17 @@ pub const TouchController = struct {
         self.hud_width = clamped - @mod(clamped, 2);
     }
 
+    pub fn setViewportSize(self: *TouchController, width: u16, height: u16) void {
+        const cw: u16 = std.math.clamp(width, @as(u16, @intCast(gba.width)), @as(u16, @intCast(gba.max_wide_width)));
+        const ch: u16 = std.math.clamp(height, @as(u16, @intCast(gba.height)), @as(u16, @intCast(gba.max_wide_height)));
+        self.view_width = cw - @mod(cw, 2);
+        self.view_height = ch - @mod(ch, 2);
+    }
+
+    fn hitTestHudScaled(self: *const TouchController, lx: f32, ly: f32) ?HudButton {
+        return hitTestHudWidth(lx, ly, self.hud_width);
+    }
+
     pub fn activeKeys(self: *const TouchController) u16 {
         return self.hud_held_mask |
             self.pulse_active_mask |
@@ -308,8 +321,6 @@ pub const TouchController = struct {
     }
 
     pub fn screenToTile(lx: f32, ly: f32, state: GameState) TileCoord {
-        const clamped_y = std.math.clamp(@as(i32, @intFromFloat(@floor(ly))), 0, @as(i32, @intCast(gba.height)) - 1);
-        const wy = @max(clamped_y + @as(i32, state.cam_y), 0);
         var tx: i32 = undefined;
         if (state.map_width > 0) {
             const wx = @as(i32, @intFromFloat(@floor(lx))) + @as(i32, state.cam_x);
@@ -319,9 +330,14 @@ pub const TouchController = struct {
             const wx = @max(clamped_x + @as(i32, state.cam_x), 0);
             tx = @divTrunc(wx, 16);
         }
-        var ty: i32 = @divTrunc(wy, 16);
+        var ty: i32 = undefined;
         if (state.map_height > 0) {
-            ty = std.math.clamp(ty, @as(i32, 0), @as(i32, state.map_height) - 1);
+            const wy = @as(i32, @intFromFloat(@floor(ly))) + @as(i32, state.cam_y);
+            ty = std.math.clamp(@divFloor(wy, 16), @as(i32, 0), @as(i32, state.map_height) - 1);
+        } else {
+            const clamped_y = std.math.clamp(@as(i32, @intFromFloat(@floor(ly))), 0, @as(i32, @intCast(gba.height)) - 1);
+            const wy = @max(clamped_y + @as(i32, state.cam_y), 0);
+            ty = @divTrunc(wy, 16);
         }
         return .{
             .x = @intCast(tx),
@@ -330,7 +346,6 @@ pub const TouchController = struct {
     }
 
     fn isInWideMapBounds(lx: f32, ly: f32, state: GameState) bool {
-        if (ly < 0 or ly >= @as(f32, @floatFromInt(gba.height))) return false;
         if (state.map_width == 0 or state.map_height == 0) return false;
         const wx = @as(i32, @intFromFloat(@floor(lx))) + @as(i32, state.cam_x);
         const wy = @as(i32, @intFromFloat(@floor(ly))) + @as(i32, state.cam_y);
@@ -535,7 +550,7 @@ pub const TouchController = struct {
         switch (ev.phase) {
             .down => {
                 const slot = self.findSlot(ev.id) orelse self.allocSlot() orelse return;
-                const hud_hit = if (self.hud_visible) hitTestHudWidth(ev.logical_x, ev.logical_y, self.hud_width) else null;
+                const hud_hit = if (self.hud_visible) self.hitTestHudScaled(ev.logical_x, ev.logical_y) else null;
                 slot.* = .{
                     .active = true,
                     .id = ev.id,
@@ -558,7 +573,7 @@ pub const TouchController = struct {
             .move => {
                 const slot = self.findSlot(ev.id) orelse return;
                 if (slot.hud_button) |old_btn| {
-                    const now_btn = if (self.hud_visible) hitTestHudWidth(ev.logical_x, ev.logical_y, self.hud_width) else null;
+                    const now_btn = if (self.hud_visible) self.hitTestHudScaled(ev.logical_x, ev.logical_y) else null;
                     if (now_btn != old_btn) {
                         slot.hud_button = now_btn;
                         slot.held_frames = 0;
@@ -1405,15 +1420,28 @@ pub const TouchController = struct {
         dst: []u32,
         view_w: usize,
     ) void {
+        self.renderGameWithReticleViewport(src, dst, view_w, gba.height);
+    }
+
+    /// Composite the in-game target reticle into a `view_w x view_h` framebuffer centered around the `240x160` GBA screen.
+    pub fn renderGameWithReticleViewport(
+        self: *const TouchController,
+        src: []const u32,
+        dst: []u32,
+        view_w: usize,
+        view_h: usize,
+    ) void {
         const safe_w = @max(view_w, gba.width);
-        const total = safe_w * gba.height;
+        const safe_h = @max(view_h, gba.height);
+        const total = safe_w * safe_h;
         if (src.len < total or dst.len < total) return;
         @memcpy(dst[0..total], src[0..total]);
 
         if (self.nav_target != null or self.reticle_timer > 0) {
             if (self.reticle_tile) |tile| {
                 const pad_l: i32 = @intCast((safe_w - gba.width) / 2);
-                drawTargetReticleWide(dst[0..total], safe_w, pad_l, tile, self.reticle_cam_x, self.reticle_cam_y);
+                const pad_t: i32 = @intCast((safe_h - gba.height) / 2);
+                drawTargetReticleViewport(dst[0..total], safe_w, safe_h, pad_l, pad_t, tile, self.reticle_cam_x, self.reticle_cam_y);
             }
         }
     }
@@ -1483,21 +1511,23 @@ fn blendPixel(dst: *u32, r: u32, g: u32, b: u32, alpha: u32, rgba_order: bool) v
         (out_a << 24) | (nr << 16) | (ng << 8) | nb;
 }
 
-fn drawTargetReticleWide(
+fn drawTargetReticleViewport(
     dst: []u32,
     buf_w: usize,
+    buf_h: usize,
     pad_l: i32,
+    pad_t: i32,
     tile: TileCoord,
     cam_x: i16,
     cam_y: i16,
 ) void {
     const x0: i32 = @as(i32, tile.x) * 16 - @as(i32, cam_x) + pad_l;
-    const y0: i32 = @as(i32, tile.y) * 16 - @as(i32, cam_y);
+    const y0: i32 = @as(i32, tile.y) * 16 - @as(i32, cam_y) + pad_t;
 
     var dy: i32 = 0;
     while (dy < 16) : (dy += 1) {
         const py = y0 + dy;
-        if (py < 0 or py >= @as(i32, @intCast(gba.height))) continue;
+        if (py < 0 or py >= @as(i32, @intCast(buf_h))) continue;
         var dx: i32 = 0;
         while (dx < 16) : (dx += 1) {
             const px = x0 + dx;
@@ -2751,4 +2781,43 @@ test "Wide advance taps, map select margin B, and overlay-to-map pulse flush" {
     tc.handlePointer(.{ .id = 4, .phase = .up, .x = -30, .y = 80, .logical_x = -30, .logical_y = 80 }, war_room_state);
     tc.stepFrame(war_room_state);
     try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+}
+
+test "Vertical widescreen top/bottom map taps and center-band HUD hit testing work seamlessly" {
+    var tc = TouchController{};
+    tc.setHudWidth(240);
+    tc.setViewportSize(240, 240); // pad_l = 0, pad_t = 40
+    const tall_state = GameState{
+        .mode = .battle_free_map,
+        .map_width = 20,
+        .map_height = 20,
+        .cursor_x = 5,
+        .cursor_y = 6,
+        .cam_x = 0,
+        .cam_y = 64, // row 4 at native y=0 -> row 2..3 visible in extended top margin [-40, 0)
+    };
+
+    // 1. Tap top-left L corner pill in center-band HUD coordinates -> holds Key.l!
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 8, .y = 6, .logical_x = 8, .logical_y = 6 }, tall_state);
+    try std.testing.expectEqual(gba.Key.l.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 8, .y = 6, .logical_x = 8, .logical_y = 6 }, tall_state);
+    for (0..6) |_| tc.stepFrame(tall_state);
+
+    // 2. Tap top vertical margin (lx = 40, ly = -24 -> wy = 40 -> ty = 2, tx = 2) -> jumps cursor to native top (cy=4) and pans up to ty=2!
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 40, .y = -24, .logical_x = 40, .logical_y = -24 }, tall_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 40, .y = -24, .logical_x = 40, .logical_y = -24 }, tall_state);
+    const jump_top = tc.takeCursorJump() orelse return error.TestUnexpectedNull;
+    try std.testing.expectEqual(@as(u16, 2), jump_top.x);
+    try std.testing.expectEqual(@as(u16, 4), jump_top.y);
+    try std.testing.expect(tc.nav_target != null);
+    try std.testing.expectEqual(@as(u16, 2), tc.nav_target.?.y);
+
+    // 3. Tap bottom vertical margin (lx = 40, ly = 180 -> wy = 244 -> ty = 15) -> jumps cursor to native bottom (cy=13) and pans down to ty=15!
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 40, .y = 180, .logical_x = 40, .logical_y = 180 }, tall_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 40, .y = 180, .logical_x = 40, .logical_y = 180 }, tall_state);
+    const jump_bot = tc.takeCursorJump() orelse return error.TestUnexpectedNull;
+    try std.testing.expectEqual(@as(u16, 2), jump_bot.x);
+    try std.testing.expectEqual(@as(u16, 13), jump_bot.y);
+    try std.testing.expect(tc.nav_target != null);
+    try std.testing.expectEqual(@as(u16, 15), tc.nav_target.?.y);
 }

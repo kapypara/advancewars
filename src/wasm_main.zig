@@ -48,3 +48,7 @@ pub export fn awre_push_pointer(id: i32, phase: u32, lx: f32, ly: f32) void {
 pub export fn awre_cam_delta() u32 {
     return core.platform.WasmBackend.lastCamDelta();
 }
+
+pub export fn awre_set_wide_height(h: u32) void {
+    core.platform.WasmBackend.setWideHeight(h);
+}

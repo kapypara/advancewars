@@ -27,11 +27,34 @@ fn winContains(range: u16, v: i32, limit_in: i32) bool {
     return v >= a and v < b;
 }
 
-/// Software per-scanline GBA PPU renderer producing a `240x160` (or toggleable widescreen up to `512x160`) ARGB8888 framebuffer.
+fn hudWinShiftX(h: u16, ws: renderer.WideScene) i32 {
+    const wx0: usize = h >> 8;
+    const wx1: usize = h & 0xFF;
+    if (ws.hud_shift_l > 0 and wx0 <= 12 and wx1 > wx0 and wx1 <= 112) {
+        return -@as(i32, @intCast(ws.hud_shift_l));
+    }
+    if (ws.hud_shift_r > 0 and wx0 >= 128 and wx0 < gba.width and ((wx1 > wx0 and wx1 <= gba.width) or wx1 == 0)) {
+        return @as(i32, @intCast(ws.hud_shift_r));
+    }
+    return 0;
+}
+
+fn isTerrainInfoWin0(win0h: u16, win0v: u16) bool {
+    const wx0: usize = win0h >> 8;
+    const wx1: usize = win0h & 0xFF;
+    const wy0: usize = win0v >> 8;
+    const wy1: usize = win0v & 0xFF;
+    const left_side = wx0 <= 12 and wx1 > wx0 and wx1 <= 112;
+    const right_side = wx0 >= 128 and wx0 < gba.width and ((wx1 > wx0 and wx1 <= gba.width) or wx1 == 0);
+    return (left_side or right_side) and wy0 >= 64 and wy1 > wy0 and wy1 <= gba.height;
+}
+
+/// Software per-scanline GBA PPU renderer producing a `240x160` (or toggleable widescreen up to `512x320`) ARGB8888 framebuffer.
 pub const Ppu = struct {
     framebuf: [gba.width * gba.height]u32 = @splat(0),
-    wide_framebuf: [gba.max_wide_width * gba.height]u32 = @splat(0),
+    wide_framebuf: [gba.max_wide_width * gba.max_wide_height]u32 = @splat(0),
     view_width: usize = gba.width,
+    view_height: usize = gba.height,
     wide_bg_mask: u4 = 0,
     wide_obj: bool = false,
     wide_scene: ?renderer.WideScene = null,
@@ -56,19 +79,29 @@ pub const Ppu = struct {
         self.wide_obj = wide_obj;
     }
 
+    /// Configure output viewport height (clamped to even `[160, 320]`; active only when wide scene is set).
+    pub fn setViewportHeight(self: *Ppu, height: usize) void {
+        const clamped = std.math.clamp(height, gba.height, gba.max_wide_height);
+        self.view_height = clamped - (clamped & 1);
+    }
+
     /// Configure optional scene compositor sources for extended widescreen composition (null disables).
     pub fn setWideScene(self: *Ppu, scene: ?renderer.WideScene) void {
         self.wide_scene = scene;
     }
 
-    /// Return the active framebuffer slice (`240x160` in native mode, `view_width x 160` in widescreen mode).
+    /// Return the active framebuffer slice (`240x160` in native mode, `view_width x view_height` in widescreen/zoom mode).
     pub fn activeFrameSlice(self: *const Ppu) []const u32 {
-        if (self.view_width <= gba.width) return &self.framebuf;
-        return self.wide_framebuf[0 .. self.view_width * gba.height];
+        if (self.view_width <= gba.width and self.view_height <= gba.height) return &self.framebuf;
+        return self.wide_framebuf[0 .. self.view_width * self.view_height];
     }
 
     inline fn padLeft(self: *const Ppu) usize {
         return (self.view_width - gba.width) / 2;
+    }
+
+    inline fn padTop(self: *const Ppu) usize {
+        return (self.view_height - gba.height) / 2;
     }
 
     pub inline fn plot(self: *Ppu, x: usize, color: u16, layer: u8, semi: u8) void {
@@ -166,12 +199,12 @@ pub const Ppu = struct {
         const extend_wide = vw > gba.width and ((self.wide_bg_mask & (@as(u4, 1) << @intCast(bg))) != 0);
         if (bg == 3 and vw > gba.width and !extend_wide) {
             if (self.wide_scene) |scene| {
-                renderer.renderTerrainFull(self, mem, scene, vw, pad_l, char_base, bpp8, bg_mos, bg_h, eff_y);
+                renderer.renderTerrainFull(self, mem, scene, vw, pad_l, char_base, bpp8, bg_mos, bg_h, @intCast(eff_y));
                 return;
             }
         } else if (bg == 1 and vw > gba.width and !extend_wide and char_base == 0 and screen_base == 30 * 0x800) {
             if (self.wide_scene) |scene| {
-                renderer.renderUnitsFull(self, mem, scene, vw, pad_l, vofs, char_base, bpp8, bg_mos, bg_h, eff_y);
+                renderer.renderUnitsFull(self, mem, scene, vw, pad_l, vofs, char_base, bpp8, bg_mos, bg_h, @intCast(eff_y));
                 return;
             }
         }
@@ -201,7 +234,7 @@ pub const Ppu = struct {
 
         if (bg == 2 and vw > gba.width and !extend_wide) {
             if (self.wide_scene) |scene| {
-                renderer.renderReachabilityFull(self, scene, vw, pad_l, eff_y);
+                renderer.renderReachabilityFull(self, scene, vw, pad_l, @intCast(eff_y));
             }
         }
     }
@@ -267,16 +300,16 @@ pub const Ppu = struct {
         self.aff_y[i] +%= pd;
     }
 
-    fn lineObjs(self: *Ppu, mem: gba.PpuMemory, y: usize, dispcnt: u16, prio: i32, vw: usize, pad_l: usize, obj_h: usize, obj_v: usize) void {
+    fn lineObjs(self: *Ppu, mem: gba.PpuMemory, y_i32: i32, dispcnt: u16, prio: i32, vw: usize, pad_l: usize, obj_h: usize, obj_v: usize, hud_only: bool) void {
         if ((dispcnt & 0x1000) == 0) return;
         const mapping_1d = ((dispcnt >> 6) & 1) != 0;
         const bitmap_mode = (dispcnt & 7) >= 3;
         const objwin_ctl: u8 = @truncate(mem.ioRead16(gba.io_reg.winout) >> 8);
-        const y_i32: i32 = @intCast(y);
         const clip_wide = prio >= 0 and vw > gba.width and self.wide_obj;
         const max_sx: i32 = @intCast(if (clip_wide) vw else gba.width);
         const pad_i: i32 = @intCast(pad_l);
         const obj_h_i: i32 = @intCast(obj_h);
+        const obj_v_i: i32 = @intCast(obj_v);
 
         var idx_rev: usize = 128;
         while (idx_rev > 0) {
@@ -297,6 +330,9 @@ pub const Ppu = struct {
             if (shape > 2) continue;
             if (prio == 3 and vw > gba.width and self.wide_scene != null and shape == 2 and size == 2) continue;
 
+            const tile_idx: u32 = a2 & 0x3FF;
+            if (bitmap_mode and tile_idx < 512) continue;
+
             const w = obj_width[shape][size];
             const h = obj_height[shape][size];
             const obj_mos = (a0 & 0x1000) != 0;
@@ -304,14 +340,41 @@ pub const Ppu = struct {
             var ox: i32 = @intCast(a1 & 0x1FF);
             if (ox >= 240) ox -= 512;
 
+            if (hud_only and (prio != 0 or !renderer.isBattleHudSprite(tile_idx, ox))) continue;
+
             var bw = w;
             var bh = h;
             if (affine and (a0 & 0x200) != 0) {
                 bw *= 2;
                 bh *= 2;
             }
-            const eff_y: i32 = if (obj_mos and obj_v > 1) @intCast(y - (y % obj_v)) else y_i32;
-            const py: i32 = (eff_y - oy) & 0xFF;
+
+            var hud_dx: i32 = 0;
+            var hud_dy: i32 = 0;
+            if (!clip_wide and prio == 0 and (vw > gba.width or self.view_height > gba.height)) {
+                if (self.wide_scene) |ws| {
+                    if ((ws.hud_shift_l > 0 or ws.hud_shift_r > 0 or ws.hud_shift_t > 0 or ws.hud_shift_b > 0) and
+                        renderer.isBattleHudSprite(tile_idx, ox))
+                    {
+                        if (vw > gba.width) {
+                            hud_dx = if (ox < 120) -@as(i32, @intCast(ws.hud_shift_l)) else @as(i32, @intCast(ws.hud_shift_r));
+                        }
+                        if (self.view_height > gba.height and (oy < @as(i32, @intCast(gba.height)) or oy + bh > 256)) {
+                            const oy_s: i32 = if (oy >= 192) oy - 256 else oy;
+                            hud_dy = if (oy_s < 80) -@as(i32, @intCast(ws.hud_shift_t)) else @as(i32, @intCast(ws.hud_shift_b));
+                        }
+                    }
+                }
+            }
+            if (hud_only and hud_dy == 0) continue;
+
+            const eff_y: i32 = if (obj_mos and obj_v > 1) y_i32 - @mod(y_i32, obj_v_i) else y_i32;
+            const py: i32 = if (hud_dy != 0) blk: {
+                const oy_s: i32 = if (oy >= 192) oy - 256 else oy;
+                const rel = eff_y - (oy_s + hud_dy);
+                if (rel < 0 or rel >= bh) continue;
+                break :blk rel;
+            } else (eff_y - oy) & 0xFF;
             if (py >= bh) continue;
 
             var pa: i32 = 256;
@@ -327,21 +390,11 @@ pub const Ppu = struct {
             }
 
             const iy: i32 = py - @divTrunc(bh, 2);
-            const tile_idx: u32 = a2 & 0x3FF;
-            if (bitmap_mode and tile_idx < 512) continue;
 
             const bpp8 = ((a0 >> 13) & 1) != 0;
             const pal: u32 = a2 >> 12;
             const tile_step: u32 = if (bpp8) 2 else 1;
             const tiles_per_row: u32 = @intCast(@divTrunc(w, 8));
-            const hud_dx: i32 = if (!clip_wide and prio == 0 and vw > gba.width) blk: {
-                if (self.wide_scene) |ws| {
-                    if ((ws.hud_shift_l > 0 or ws.hud_shift_r > 0) and renderer.isBattleHudSprite(tile_idx, ox)) {
-                        break :blk if (ox < 120) -@as(i32, @intCast(ws.hud_shift_l)) else @as(i32, @intCast(ws.hud_shift_r));
-                    }
-                }
-                break :blk 0;
-            } else 0;
 
             var px: i32 = 0;
             while (px < bw) : (px += 1) {
@@ -400,9 +453,9 @@ pub const Ppu = struct {
             }
         }
 
-        if (prio == 3 and vw > gba.width) {
+        if (!hud_only and prio == 3 and vw > gba.width) {
             if (self.wide_scene) |scene| {
-                renderer.renderPropertiesFull(self, mem, scene, y, vw, pad_l);
+                renderer.renderPropertiesFull(self, mem, scene, y_i32, vw, pad_l);
             }
         }
     }
@@ -415,35 +468,37 @@ pub const Ppu = struct {
         const winin = mem.ioRead16(gba.io_reg.winin);
         const winout = mem.ioRead16(gba.io_reg.winout);
         @memset(self.win[0..vw], @truncate(winout & 0x3F));
+        const y_i32: i32 = @intCast(y);
         if ((dispcnt & 0x8000) != 0) {
-            self.lineObjs(mem, y, dispcnt, -1, vw, pad_l, obj_h, obj_v);
+            self.lineObjs(mem, y_i32, dispcnt, -1, vw, pad_l, obj_h, obj_v, false);
         }
 
-        const y_i32: i32 = @intCast(y);
         var win0_shifted = false;
         var w_rev: u32 = 2;
         while (w_rev > 0) {
             w_rev -= 1;
             const win_enable_shift: u4 = @intCast(w_rev);
             if ((dispcnt & (@as(u16, 0x2000) << win_enable_shift)) == 0) continue;
-            if (!winContains(mem.ioRead16(gba.io_reg.win0v + w_rev * 2), y_i32, @intCast(gba.height))) continue;
+            const v = mem.ioRead16(gba.io_reg.win0v + w_rev * 2);
             const h = mem.ioRead16(gba.io_reg.win0h + w_rev * 2);
-            const ctl: u8 = @truncate((winin >> @intCast(w_rev * 8)) & 0x3F);
-
+            var y_in_win = winContains(v, y_i32, @intCast(gba.height));
             var shift_dir: i32 = 0;
-            if (w_rev == 0 and vw > gba.width) {
+            if (w_rev == 0 and (vw > gba.width or self.view_height > gba.height)) {
                 if (self.wide_scene) |ws| {
-                    const wx0: usize = h >> 8;
-                    const wx1: usize = h & 0xFF;
-                    if (ws.hud_shift_l > 0 and wx0 <= 12 and wx1 > wx0 and wx1 <= 112) {
-                        shift_dir = -@as(i32, @intCast(ws.hud_shift_l));
-                        win0_shifted = true;
-                    } else if (ws.hud_shift_r > 0 and wx0 >= 128 and wx0 < gba.width and ((wx1 > wx0 and wx1 <= gba.width) or wx1 == 0)) {
-                        shift_dir = @as(i32, @intCast(ws.hud_shift_r));
-                        win0_shifted = true;
+                    if (vw > gba.width) {
+                        shift_dir = hudWinShiftX(h, ws);
+                        if (shift_dir != 0) win0_shifted = true;
+                    }
+                    if (self.view_height > gba.height and ws.hud_shift_b > 0 and isTerrainInfoWin0(h, v)) {
+                        const wy0: i32 = @intCast(v >> 8);
+                        const wy1: i32 = @intCast(v & 0xFF);
+                        const shift_b: i32 = @intCast(ws.hud_shift_b);
+                        y_in_win = y_i32 >= wy0 + shift_b and y_i32 < wy1 + shift_b;
                     }
                 }
             }
+            if (!y_in_win) continue;
+            const ctl: u8 = @truncate((winin >> @intCast(w_rev * 8)) & 0x3F);
 
             if (shift_dir != 0) {
                 for (0..gba.width) |x| {
@@ -472,12 +527,14 @@ pub const Ppu = struct {
         }
     }
 
-    /// Compose scanline `y` (`0 <= y < 160`) from live PPU memory into `framebuf` (and `wide_framebuf` when `view_width > 240`).
+    /// Compose scanline `y` (`0 <= y < 160`) from live PPU memory into `framebuf` (and `wide_framebuf` when wider/taller).
     pub fn renderLine(self: *Ppu, mem: gba.PpuMemory, y: usize) void {
         if (y >= gba.height) return;
 
         const vw = self.view_width;
         const pad_l = self.padLeft();
+        const pad_t = self.padTop();
+        const use_wide = (vw > gba.width or self.view_height > gba.height);
         const dispcnt = mem.ioRead16(gba.io_reg.dispcnt);
         const mode: u32 = dispcnt & 7;
         const mosaic = mem.ioRead16(gba.io_reg.mosaic);
@@ -485,8 +542,8 @@ pub const Ppu = struct {
         const bg_v: usize = @as(usize, (mosaic >> 4) & 0xF) + 1;
         const obj_h: usize = @as(usize, (mosaic >> 8) & 0xF) + 1;
         const obj_v: usize = @as(usize, (mosaic >> 12) & 0xF) + 1;
-        const out = if (vw > gba.width)
-            self.wide_framebuf[y * vw .. (y + 1) * vw]
+        const out = if (use_wide)
+            self.wide_framebuf[(pad_t + y) * vw .. (pad_t + y + 1) * vw]
         else
             self.framebuf[y * gba.width .. (y + 1) * gba.width];
 
@@ -498,7 +555,7 @@ pub const Ppu = struct {
         }
         if ((dispcnt & 0x80) != 0) {
             @memset(out, 0xFFFFFFFF);
-            if (vw > gba.width) {
+            if (use_wide) {
                 @memset(self.framebuf[y * gba.width .. (y + 1) * gba.width], 0xFFFFFFFF);
             }
             return;
@@ -533,7 +590,7 @@ pub const Ppu = struct {
                     self.lineMode4(mem, y, dispcnt, pad_l, bg_h, bg_v);
                 }
             }
-            self.lineObjs(mem, y, dispcnt, @intCast(prio_rev), vw, pad_l, obj_h, obj_v);
+            self.lineObjs(mem, @intCast(y), dispcnt, @intCast(prio_rev), vw, pad_l, obj_h, obj_v, false);
         }
 
         for (0..2) |i| {
@@ -549,6 +606,13 @@ pub const Ppu = struct {
             }
         }
 
+        self.blendScanline(mem, vw, out);
+        if (use_wide) {
+            @memcpy(self.framebuf[y * gba.width .. (y + 1) * gba.width], out[pad_l .. pad_l + gba.width]);
+        }
+    }
+
+    fn blendScanline(self: *const Ppu, mem: gba.PpuMemory, vw: usize, out: []u32) void {
         const bldcnt = mem.ioRead16(gba.io_reg.bldcnt);
         const bldalpha = mem.ioRead16(gba.io_reg.bldalpha);
         const effect = (bldcnt >> 6) & 3;
@@ -589,8 +653,109 @@ pub const Ppu = struct {
             const blended: u16 = @intCast(r | (g << 5) | (b << 10));
             out[x] = gba.rgb555ToArgb8888(blended);
         }
-        if (vw > gba.width) {
-            @memcpy(self.framebuf[y * gba.width .. (y + 1) * gba.width], out[pad_l .. pad_l + gba.width]);
+    }
+
+    /// Render extended top/bottom vertical widescreen scanlines beyond `160px` using the active WideScene.
+    pub fn renderVerticalMargins(self: *Ppu, mem: gba.PpuMemory) void {
+        if (self.view_height <= gba.height) return;
+        const vw = self.view_width;
+        const vh = self.view_height;
+        const pad_l = self.padLeft();
+        const pad_t = self.padTop();
+        const dispcnt = mem.ioRead16(gba.io_reg.dispcnt);
+        if ((dispcnt & 0x80) != 0) {
+            for (0..pad_t) |sy| {
+                @memset(self.wide_framebuf[sy * vw .. (sy + 1) * vw], 0xFFFFFFFF);
+            }
+            for (pad_t + gba.height .. vh) |sy| {
+                @memset(self.wide_framebuf[sy * vw .. (sy + 1) * vw], 0xFFFFFFFF);
+            }
+            return;
+        }
+        const scene = self.wide_scene orelse {
+            for (0..pad_t) |sy| {
+                @memset(self.wide_framebuf[sy * vw .. (sy + 1) * vw], 0xFF000000);
+            }
+            for (pad_t + gba.height .. vh) |sy| {
+                @memset(self.wide_framebuf[sy * vw .. (sy + 1) * vw], 0xFF000000);
+            }
+            return;
+        };
+
+        const backdrop = mem.palRead16(0);
+        const mosaic = mem.ioRead16(gba.io_reg.mosaic);
+        const bg_h: usize = @as(usize, mosaic & 0xF) + 1;
+        const obj_h: usize = @as(usize, (mosaic >> 8) & 0xF) + 1;
+        const obj_v: usize = @as(usize, (mosaic >> 12) & 0xF) + 1;
+        const bg3cnt = mem.ioRead16(gba.io_reg.bg3cnt);
+        const bg3_cb: u32 = @as(u32, (bg3cnt >> 2) & 3) * 0x4000;
+        const bg3_bpp8 = ((bg3cnt >> 7) & 1) != 0;
+        const bg3_mos = ((bg3cnt >> 6) & 1) != 0;
+
+        const bg1cnt = mem.ioRead16(gba.io_reg.bg1cnt);
+        const bg1_cb: u32 = @as(u32, (bg1cnt >> 2) & 3) * 0x4000;
+        const bg1_sb: u32 = @as(u32, (bg1cnt >> 8) & 0x1F) * 0x800;
+        const bg1_bpp8 = ((bg1cnt >> 7) & 1) != 0;
+        const bg1_mos = ((bg1cnt >> 6) & 1) != 0;
+        const bg1_vofs: u32 = mem.ioRead16(gba.io_reg.bg1vofs) & 0x1FF;
+        const draw_units = (dispcnt & 0x0200) != 0 and bg1_cb == 0 and bg1_sb == 30 * 0x800;
+
+        const win_en = (dispcnt & 0xE000) != 0;
+        const winout_ctl: u8 = if (win_en) @truncate(mem.ioRead16(gba.io_reg.winout) & 0x3F) else 0x3F;
+        const win0h = mem.ioRead16(gba.io_reg.win0h);
+        const win0v = mem.ioRead16(gba.io_reg.win0v);
+        const win0_ctl: u8 = @truncate(mem.ioRead16(gba.io_reg.winin) & 0x3F);
+        const win0_shift_b_active = win_en and (dispcnt & 0x2000) != 0 and
+            scene.hud_shift_b > 0 and isTerrainInfoWin0(win0h, win0v);
+        const win0_y0: i32 = @intCast(win0v >> 8);
+        const win0_y1: i32 = @intCast(win0v & 0xFF);
+        const shift_b: i32 = @intCast(scene.hud_shift_b);
+        const win0_shift_x: i32 = if (vw > gba.width) hudWinShiftX(win0h, scene) else 0;
+        const draw_hud_objs = (dispcnt & 0x1000) != 0 and (scene.hud_shift_t > 0 or scene.hud_shift_b > 0);
+
+        const bands = [2][2]usize{
+            .{ 0, pad_t },
+            .{ pad_t + gba.height, vh },
+        };
+        for (bands) |band| {
+            for (band[0]..band[1]) |sy| {
+                const gy: i32 = @as(i32, @intCast(sy)) - @as(i32, @intCast(pad_t));
+                const out = self.wide_framebuf[sy * vw .. (sy + 1) * vw];
+                @memset(self.top_c[0..vw], backdrop);
+                @memset(self.bot_c[0..vw], backdrop);
+                @memset(self.top_l[0..vw], 5);
+                @memset(self.bot_l[0..vw], 5);
+                @memset(self.top_semi[0..vw], 0);
+                @memset(self.win[0..vw], winout_ctl);
+                if (win0_shift_b_active and gy >= win0_y0 + shift_b and gy < win0_y1 + shift_b) {
+                    for (0..gba.width) |x| {
+                        if (winContains(win0h, @intCast(x), @intCast(gba.width))) {
+                            const dst_x_i: i32 = @as(i32, @intCast(pad_l + x)) + win0_shift_x;
+                            if (dst_x_i >= 0 and dst_x_i < @as(i32, @intCast(vw))) {
+                                self.win[@intCast(dst_x_i)] = win0_ctl;
+                            }
+                        }
+                    }
+                }
+
+                if ((dispcnt & 0x0800) != 0) {
+                    renderer.renderTerrainFull(self, mem, scene, vw, pad_l, bg3_cb, bg3_bpp8, bg3_mos, bg_h, gy);
+                }
+                if ((dispcnt & 0x1000) != 0) {
+                    renderer.renderPropertiesFull(self, mem, scene, gy, vw, pad_l);
+                }
+                if ((dispcnt & 0x0400) != 0) {
+                    renderer.renderReachabilityFull(self, scene, vw, pad_l, gy);
+                }
+                if (draw_units) {
+                    renderer.renderUnitsFull(self, mem, scene, vw, pad_l, bg1_vofs, bg1_cb, bg1_bpp8, bg1_mos, bg_h, gy);
+                }
+                if (draw_hud_objs) {
+                    self.lineObjs(mem, gy, dispcnt, 0, vw, pad_l, obj_h, obj_v, true);
+                }
+
+                self.blendScanline(mem, vw, out);
+            }
         }
     }
 };
@@ -827,4 +992,81 @@ test "Ppu OBJ horizontal and vertical mosaic snaps sprites with attr0 bit 12 set
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[0]);
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[1]);
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[gba.width + 0]);
+}
+
+test "Ppu vertical margins honor WINOUT no-darken and shift battle HUD/WIN0 into top/bottom bands" {
+    var mem = TestMem{};
+    var ewram: [0x40000]u8 = @splat(0);
+    const rom: [0x100]u8 = @splat(0);
+    // WIN0 enabled (bit 13), OBJ enabled (bit 12)
+    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x3000);
+    // WIN0 spans x=[4, 64), y=[104, 156); WININ enables blend (0x3F), WINOUT disables blend (0x1F)
+    TestMem.write16(&mem.io_regs, gba.io_reg.win0h, (4 << 8) | 64);
+    TestMem.write16(&mem.io_regs, gba.io_reg.win0v, (104 << 8) | 156);
+    TestMem.write16(&mem.io_regs, gba.io_reg.winin, 0x003F);
+    TestMem.write16(&mem.io_regs, gba.io_reg.winout, 0x001F);
+    // BLDCNT: darken (mode 3) on backdrop (bit 5); BLDY = 8 (50% darken)
+    TestMem.write16(&mem.io_regs, gba.io_reg.bldcnt, (3 << 6) | (1 << 5));
+    TestMem.write16(&mem.io_regs, gba.io_reg.bldy, 8);
+    // Backdrop = pure green (0x03E0 -> full 0xFF00FF00, darkened by 8/16 -> ~0xFF008000), OBJ red = 0x001F
+    TestMem.write16(&mem.palette, 0, 0x03E0);
+    TestMem.write16(&mem.palette, 0x200 + 1 * 2, 0x001F);
+
+    // OAM 0: top HUD sprite (tile 0x010, prio=0, oy=4, ox=8)
+    TestMem.write16(&mem.oam, 0, 4);
+    TestMem.write16(&mem.oam, 2, 8);
+    TestMem.write16(&mem.oam, 4, 0x0010);
+    // OAM 1: bottom HUD sprite (tile 0x010, prio=0, oy=128, ox=8) -> shifts by +40 into gy=168 (sy=208)
+    TestMem.write16(&mem.oam, 8, 128);
+    TestMem.write16(&mem.oam, 10, 8);
+    TestMem.write16(&mem.oam, 12, 0x0010);
+    // OAM 2: offscreen-parked OAM sprite (oy=160, ox=150, tile=0x010) must NOT leak into bottom margin
+    TestMem.write16(&mem.oam, 16, 160);
+    TestMem.write16(&mem.oam, 18, 150);
+    TestMem.write16(&mem.oam, 20, 0x0010);
+    mem.vram[0x10000 + 0x10 * 32] = 0x01; // tile 0x10 px (0,0) = color 1 (red)
+
+    var ppu = Ppu{};
+    ppu.setViewport(240, 0, false);
+    ppu.setViewportHeight(240); // pad_t = 40
+    ppu.setWideScene(.{
+        .ewram = &ewram,
+        .rom = &rom,
+        .rom_len = rom.len,
+        .map_width = 20,
+        .map_height = 20,
+        .view_wx = 0,
+        .view_wy = 40,
+        .hud_shift_t = 40,
+        .hud_shift_b = 40,
+    });
+    for (0..gba.height) |y| {
+        ppu.renderLine(mem.view(), y);
+    }
+    ppu.renderVerticalMargins(mem.view());
+
+    // 1. Extended top/bottom outside shifted WIN0 stay un-darkened (0xFF00FF00), no dim bars!
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), ppu.wide_framebuf[0 * 240 + 100]);
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), ppu.wide_framebuf[239 * 240 + 100]);
+    // 2. Top HUD sprite shifted by -40 moves from gy=4 into gy=-36 (sy = pad_t - 36 = 4) at x=8!
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.wide_framebuf[4 * 240 + 8]);
+    // 3. Bottom HUD sprite shifted by +40 moves from gy=128 into gy=168 (sy=208), and shifted WIN0 darkens x=[4,64) at gy=170 (sy=210)!
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.wide_framebuf[208 * 240 + 8]);
+    try std.testing.expect(ppu.wide_framebuf[210 * 240 + 20] != 0xFF00FF00);
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), ppu.wide_framebuf[210 * 240 + 100]);
+
+    // 4. Offscreen-parked OAM (oy=160) does not appear at gy=180 (sy=220) even when hud_shift_b = 20
+    ppu.setWideScene(.{
+        .ewram = &ewram,
+        .rom = &rom,
+        .rom_len = rom.len,
+        .map_width = 20,
+        .map_height = 20,
+        .view_wx = 0,
+        .view_wy = 40,
+        .hud_shift_t = 40,
+        .hud_shift_b = 20,
+    });
+    ppu.renderVerticalMargins(mem.view());
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), ppu.wide_framebuf[220 * 240 + 150]);
 }

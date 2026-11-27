@@ -91,6 +91,9 @@ self.onmessage = async (ev) => {
           if (Atomics.load(sabI32, 8) !== 0) mask |= 1 << 20;
           mask |= (Atomics.load(sabI32, 9) & 0x03ff) << 21;
           if (Atomics.load(sabI32, 10) !== 0) mask = (mask | (1 << 31)) >>> 0;
+          if (typeof wasm.awre_set_wide_height === "function") {
+            wasm.awre_set_wide_height(Atomics.load(sabI32, 11) >>> 0);
+          }
           return mask >>> 0;
         },
         host_pace() {

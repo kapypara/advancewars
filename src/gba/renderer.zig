@@ -27,6 +27,8 @@ pub const WideScene = struct {
     show_reachability: bool = false,
     hud_shift_l: usize = 0,
     hud_shift_r: usize = 0,
+    hud_shift_t: usize = 0,
+    hud_shift_b: usize = 0,
 };
 
 /// Identify in-battle OAM prio=0 HUD elements (CO Funds badge, Terrain Info box, and HUD numerals)
@@ -66,9 +68,9 @@ pub fn renderTerrainFull(
     bpp8: bool,
     bg_mos: bool,
     bg_h: usize,
-    eff_y: usize,
+    eff_y: i32,
 ) void {
-    const wy: i32 = scene.view_wy + @as(i32, @intCast(eff_y));
+    const wy: i32 = scene.view_wy + eff_y;
     if (wy < 0 or wy >= @as(i32, scene.map_height) * 16) return;
 
     const my: usize = @intCast(wy >> 4);
@@ -105,11 +107,11 @@ pub fn renderReachabilityFull(
     scene: WideScene,
     vw: usize,
     pad_l: usize,
-    eff_y: usize,
+    eff_y: i32,
 ) void {
     if (!scene.show_reachability) return;
     const iwram = scene.iwram orelse return;
-    const wy: i32 = scene.view_wy + @as(i32, @intCast(eff_y));
+    const wy: i32 = scene.view_wy + eff_y;
     if (wy < 0 or wy >= @as(i32, scene.map_height) * 16) return;
 
     const my: usize = @intCast(wy >> 4);
@@ -145,13 +147,13 @@ pub fn renderUnitsFull(
     bpp8: bool,
     bg_mos: bool,
     bg_h: usize,
-    eff_y: usize,
+    eff_y: i32,
 ) void {
     const bg3_vofs: u32 = mem.ioRead16(gba.io_reg.bg3vofs) & 0x1FF;
     var dv: i32 = @as(i32, @intCast(vofs)) - @as(i32, @intCast(bg3_vofs));
     if (dv >= 256) dv -= 512 else if (dv < -256) dv += 512;
 
-    const wy: i32 = scene.view_wy + dv + @as(i32, @intCast(eff_y));
+    const wy: i32 = scene.view_wy + dv + eff_y;
     if (wy < 0 or wy >= @as(i32, scene.map_height) * 16) return;
 
     const my: usize = @intCast(wy >> 4);
@@ -237,12 +239,12 @@ pub fn renderPropertiesFull(
     ppu: *Ppu,
     mem: gba.PpuMemory,
     scene: WideScene,
-    y: usize,
+    y: i32,
     vw: usize,
     pad_l: usize,
 ) void {
     const iwram = scene.iwram orelse return;
-    const wy: i32 = scene.view_wy + @as(i32, @intCast(y));
+    const wy: i32 = scene.view_wy + y;
 
     const prop_base: usize = 0x3400;
     var count: usize = 0;
@@ -654,4 +656,62 @@ test "WideScene preserves BG2 arrow in center and anchors battle HUD sprites and
     try std.testing.expectEqual(@as(u32, 0xFFFFFF00), wide[120]);
     try std.testing.expectEqual(@as(u8, 0x3F), ppu.win[249]);
     try std.testing.expectEqual(@as(u8, 0x1F), ppu.win[250]);
+}
+
+test "Ppu vertical widescreen renders extended top/bottom terrain rows while keeping 240x160 intact" {
+    const allocator = std.testing.allocator;
+    const ewram = try allocator.alloc(u8, 0x40000);
+    defer allocator.free(ewram);
+    @memset(ewram, 0);
+    const iwram = try allocator.alloc(u8, 0x8000);
+    defer allocator.free(iwram);
+    @memset(iwram, 0);
+    const rom = try allocator.alloc(u8, 0x0D2020);
+    defer allocator.free(rom);
+    @memset(rom, 0);
+
+    const map_base: usize = 0x157F8;
+    for (0..20) |my| {
+        const ro: u16 = @intCast(my * 20);
+        ewram[map_base + 0x4682 + my * 2] = @truncate(ro);
+        ewram[map_base + 0x4682 + my * 2 + 1] = @truncate(ro >> 8);
+        // Mark row 0 (my=0) and bottom row 15 (my=15) visible with tile 1
+        const cell = ro + 0;
+        ewram[map_base + 0x234A + cell] = 1;
+        ewram[map_base + 0x0A22 + cell * 2] = 1;
+    }
+    rom[0x0D1FC0 + 1 * 8 + 0] = 1;
+    rom[0x0D1FC0 + 1 * 8 + 2] = 1;
+
+    var mem = TestMem{};
+    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x0800);
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg3cnt, 0x1F0B);
+    TestMem.write16(&mem.palette, 0, 0x0000);
+    TestMem.write16(&mem.palette, 1 * 2, 0x001F); // Red terrain
+    @memset(mem.vram[0x8000 + 32 .. 0x8000 + 64], 0x11);
+
+    var ppu = Ppu{};
+    ppu.setViewport(320, 0, false);
+    ppu.setViewportHeight(240); // pad_l = 40, pad_t = 40
+    // view_wy = 4 * 16 = 64 -> sy=0 has gy=-40 -> wy=24 (my=1), sy=220 has gy=180 -> wy=244 (my=15)
+    ppu.setWideScene(.{
+        .ewram = ewram.ptr,
+        .iwram = iwram.ptr,
+        .rom = rom.ptr,
+        .rom_len = rom.len,
+        .map_width = 20,
+        .map_height = 20,
+        .view_wx = 0,
+        .view_wy = 64,
+    });
+    for (0..gba.height) |y| ppu.renderLine(mem.view(), y);
+    ppu.renderVerticalMargins(mem.view());
+
+    const wide = ppu.activeFrameSlice();
+    try std.testing.expectEqual(@as(usize, 320 * 240), wide.len);
+    // Top extended row sy=0 (wy=24, wx=0 -> sx=40) and bottom extended row sy=220 (wy=244, sx=40) draw red terrain!
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[0 * 320 + 40]);
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[220 * 320 + 40]);
+    // 240x160 reference framebuffer also holds exact center row 0 cleanly.
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[0]);
 }

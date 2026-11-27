@@ -362,6 +362,7 @@ pub fn build(b: *std.Build) void {
         "awre_run_wasm",
         "awre_push_pointer",
         "awre_cam_delta",
+        "awre_set_wide_height",
     };
     wasm_mod.addImport("awre_core", wasm_core_mod);
     wasm_mod.addImport("runtime", wasm_rt_mod);

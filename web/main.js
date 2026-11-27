@@ -97,11 +97,13 @@ let effectiveRotated = false;
 let muted = false;
 let widescreen = true;
 let currentFrameW = GBA_W;
+let currentFrameH = GBA_H;
 let hudVisible = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
 let hudUserToggled = false;
 let inFrameHud = false;
 let hudWidth = GBA_W;
 let stageWideWidth = GBA_W;
+let stageWideHeight = GBA_H;
 let audioCtx = null;
 let audioNode = null;
 let audioInitPromise = null;
@@ -299,10 +301,17 @@ function clearExternalPadState() {
   recomputeExtKeys();
 }
 
-function computeHudWidthPx(availW, gameH) {
+function computeHudWidthPx(availW, gameH, targetLogH = GBA_H) {
   if (availW <= 0 || gameH <= 0) return GBA_W;
-  const raw = Math.floor((availW * GBA_H) / gameH);
+  const raw = Math.floor((availW * targetLogH) / gameH);
   const clamped = Math.max(GBA_W, Math.min(512, raw));
+  return clamped - (clamped % 2);
+}
+
+function computeWideHeightPx(availW, availH) {
+  if (availW <= 0 || availH <= 0) return GBA_H;
+  const raw = Math.floor((availH * GBA_W) / availW);
+  const clamped = Math.max(GBA_H, Math.min(320, raw));
   return clamped - (clamped % 2);
 }
 
@@ -357,16 +366,27 @@ function fitCanvas() {
     inFrameHud = hudVisible;
   }
 
-  const dispW =
-    widescreen && !isPortraitHud && targetH > 0
-      ? computeHudWidthPx(targetW, Math.floor(targetH))
-      : GBA_W;
+  if (widescreen && targetW > 0 && targetH > 0) {
+    if (targetW * GBA_H >= targetH * GBA_W) {
+      stageWideWidth = computeHudWidthPx(targetW, Math.floor(targetH), GBA_H);
+      stageWideHeight = GBA_H;
+    } else {
+      stageWideWidth = GBA_W;
+      stageWideHeight = computeWideHeightPx(targetW, targetH);
+    }
+  } else {
+    stageWideWidth = GBA_W;
+    stageWideHeight = GBA_H;
+  }
+
+  const dispW = currentFrameW;
+  const dispH = currentFrameH;
 
   let w = targetW;
-  let h = (w * GBA_H) / dispW;
+  let h = (w * dispH) / dispW;
   if (h > targetH) {
     h = targetH;
-    w = (h * dispW) / GBA_H;
+    w = (h * dispW) / dispH;
   }
   const cw = Math.floor(Math.max(0, w));
   const ch = Math.floor(Math.max(0, h));
@@ -378,21 +398,23 @@ function fitCanvas() {
     schedulePresent();
   }
 
-  stageWideWidth = !isPortraitHud && ch > 0 ? computeHudWidthPx(effW, ch) : GBA_W;
-  hudWidth = inFrameHud && ch > 0 ? stageWideWidth : GBA_W;
   if (inFrameHud && cw > 0 && ch > 0) {
-    const hudCssW = hudWidth === GBA_W ? cw : Math.round((hudWidth * ch) / GBA_H);
+    const hudCssH = Math.round((GBA_H * ch) / dispH);
+    hudWidth = widescreen ? stageWideWidth : computeHudWidthPx(effW, hudCssH, GBA_H);
+    const hudCssW = hudWidth === GBA_W ? cw : Math.round((hudWidth * hudCssH) / GBA_H);
     hudCanvas.hidden = false;
     hudCanvas.style.width = `${hudCssW}px`;
-    hudCanvas.style.height = `${ch}px`;
+    hudCanvas.style.height = `${hudCssH}px`;
   } else {
+    hudWidth = GBA_W;
     hudCanvas.hidden = true;
   }
 
   if (sabI32) {
     Atomics.store(sabI32, 8, inFrameHud ? 1 : 0);
-    Atomics.store(sabI32, 9, (inFrameHud ? hudWidth : stageWideWidth) | 0);
+    Atomics.store(sabI32, 9, (widescreen ? stageWideWidth : (inFrameHud ? hudWidth : GBA_W)) | 0);
     Atomics.store(sabI32, 10, widescreen ? 1 : 0);
+    Atomics.store(sabI32, 11, stageWideHeight | 0);
   }
 }
 
@@ -443,13 +465,14 @@ function clientToLogical(ev) {
   const rect = canvas.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return { lx: 0, ly: 0 };
   const padL = (currentFrameW - GBA_W) * 0.5;
+  const padT = (currentFrameH - GBA_H) * 0.5;
   const sx = (ev.clientX - rect.left) / rect.width;
   const sy = (ev.clientY - rect.top) / rect.height;
   const u = effectiveRotated ? sy : sx;
   const v = effectiveRotated ? 1 - sx : sy;
   return {
     lx: u * currentFrameW - padL,
-    ly: v * GBA_H,
+    ly: v * currentFrameH - padT,
   };
 }
 
@@ -505,11 +528,13 @@ async function startSession({ name, key, romBytes }) {
   sabF32 = new Float32Array(sab);
   if (muted) Atomics.store(sabI32, 3, 1);
   Atomics.store(sabI32, 8, inFrameHud ? 1 : 0);
-  Atomics.store(sabI32, 9, (inFrameHud ? hudWidth : stageWideWidth) | 0);
+  Atomics.store(sabI32, 9, (inFrameHud ? Math.max(hudWidth, stageWideWidth) : stageWideWidth) | 0);
   Atomics.store(sabI32, 10, widescreen ? 1 : 0);
+  Atomics.store(sabI32, 11, stageWideHeight | 0);
 
   worker = new Worker("worker.js", { type: "module" });
   currentFrameW = GBA_W;
+  currentFrameH = GBA_H;
   hasUploadedFrame = false;
   frameDirty = false;
   let hudImgData = null;
@@ -520,11 +545,17 @@ async function startSession({ name, key, romBytes }) {
     if (msg.type === "frame") {
       const fw = msg.width || GBA_W;
       const fh = msg.height || GBA_H;
+      const needRefit = !hasUploadedFrame || fw !== currentFrameW || fh !== currentFrameH;
       currentFrameW = fw;
+      currentFrameH = fh;
       presenter.upload(fw, fh, msg.pixels);
       hasUploadedFrame = true;
       frameDirty = true;
-      schedulePresent();
+      if (needRefit) {
+        fitCanvas();
+      } else {
+        schedulePresent();
+      }
       if (msg.audio && audioNode && audioCtx && audioCtx.state === "running" && !muted) {
         audioNode.port.postMessage(msg.audio, [msg.audio.buffer]);
       }

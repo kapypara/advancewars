@@ -131,8 +131,9 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
 - **Milestone 10C — Outer-Corner In-Battle HUD & Full-Width Reachability (Done):**
   - Upgraded `renderReachabilityMargins` → `renderReachabilityFull` across `0..vw` in `src/gba/renderer.zig`, preserving GBA `BG2` movement path arrows while drawing seamless reachability tiles everywhere.
   - Anchored the in-battle CO Funds badge, Terrain Info box (`OAM` prio=0 sprites + `WIN0` backdrop), and HUD numerals to outer wide corners (respecting on-screen touch pill clearances when HUD is visible) while keeping `240x160` native output bit-exact.
-- **Milestone 10D — Vertical Widescreen (`vw x vh`), Pinch/Wheel Zoom & Decoupled Camera Panning (Planned):**
-  - Extend `wide_framebuf` and `WideScene` vertically beyond `160px` height (`vw x vh`) to reveal additional map rows, add pinch-to-zoom / wheel zoom on the tactical map, and separate map scrolling from static UI overlays in the WebGL2 compositor (`web/gl_presenter.js`).
+- **Milestone 10D — Vertical Widescreen (`vw x vh`) & Aspect-Fill Viewport (Done):**
+  - Extended `Ppu` (`wide_framebuf` up to `512x320`, `setViewportHeight`, and `renderVerticalMargins`) and `src/gba/renderer.zig` (`renderTerrainFull`, `renderReachabilityFull`, `renderUnitsFull`, `renderPropertiesFull` supporting signed `y`) to render additional top/bottom map rows seamlessly while preserving bit-exact `240x160` fallback.
+  - Wired automatic `3:2` aspect-fill horizontal or vertical widescreen across both native SDL2 (`src/platform/sdl2.zig`) and WebAssembly (`web/main.js`, including tall portrait `#screen-zone` viewports), keeping HUD overlays centered over the native `160px` band alongside `TouchController.setViewportSize` and top/bottom vertical margin tap/reticle support in `src/platform/touch.zig`.
 
 ## Deferred / Optional (Skipped for Now)
 - **Android Native Port (`aarch64-linux-android` + Pure Touch APK):** Deferred indefinitely in favor of the Phase 5 WebAssembly port for mobile browser play with touch controls; can be revisited later using `zig build -Dtarget=aarch64-linux-android` + `touch.zig`.

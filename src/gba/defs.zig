@@ -13,6 +13,8 @@ pub const width: usize = 240;
 pub const max_wide_width: usize = 512;
 /// GBA native display height in pixels.
 pub const height: usize = 160;
+/// Maximum toggleable/zoomed widescreen viewport height in pixels (even, centered around 160px).
+pub const max_wide_height: usize = 320;
 /// 64 KB Flash backup size (`FLASH_V121` in Advance Wars).
 pub const flash_size_64k: usize = 64 * 1024;
 /// GBA Flash sector size (4 KB).

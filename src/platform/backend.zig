@@ -46,6 +46,7 @@ pub const PollResult = struct {
     widescreen_override: ?bool = null,
     hud_width: u16 = 0,
     wide_width: u16 = gba.width,
+    wide_height: u16 = gba.height,
 };
 
 const NoopBackend = struct {

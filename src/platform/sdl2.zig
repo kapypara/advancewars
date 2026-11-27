@@ -23,11 +23,11 @@ fn mapSdlKey(sym: sdl.SDL_Keycode) u16 {
     };
 }
 
-fn computeGameRect(area_w: i32, area_h: i32, view_w: u16) sdl.SDL_Rect {
+fn computeGameRect(area_w: i32, area_h: i32, view_w: u16, view_h: u16) sdl.SDL_Rect {
     const safe_w = @max(area_w, 1);
     const safe_h = @max(area_h, 1);
     const gba_w: i32 = @max(@as(i32, view_w), @as(i32, @intCast(gba.width)));
-    const gba_h: i32 = @intCast(gba.height);
+    const gba_h: i32 = @max(@as(i32, view_h), @as(i32, @intCast(gba.height)));
 
     var rw: i32 = undefined;
     var rh: i32 = undefined;
@@ -52,7 +52,9 @@ pub const Sdl2Backend = struct {
     renderer: ?*sdl.SDL_Renderer = null,
     texture: ?*sdl.SDL_Texture = null,
     tex_w: u16 = gba.width,
+    tex_h: u16 = gba.height,
     view_w: u16 = gba.width,
+    view_h: u16 = gba.height,
     hud_texture: ?*sdl.SDL_Texture = null,
     hud_tex_w: u16 = 0,
     audio_dev: sdl.SDL_AudioDeviceID = 0,
@@ -116,7 +118,9 @@ pub const Sdl2Backend = struct {
         self.renderer = renderer;
         self.texture = texture;
         self.tex_w = gba.width;
+        self.tex_h = gba.height;
         self.view_w = gba.width;
+        self.view_h = gba.height;
         self.audio_started = false;
 
         const perf_freq = sdl.SDL_GetPerformanceFrequency();
@@ -173,12 +177,14 @@ pub const Sdl2Backend = struct {
     pub fn present(self: *Sdl2Backend, frame: platform.VideoFrame, hud: platform.HudFrame) void {
         const renderer = self.renderer orelse return;
         const frame_w: u16 = @max(frame.width, @as(u16, @intCast(gba.width)));
-        if (frame.pixels.len < @as(usize, frame_w) * gba.height) return;
+        const frame_h: u16 = @max(frame.height, @as(u16, @intCast(gba.height)));
+        if (frame.pixels.len < @as(usize, frame_w) * @as(usize, frame_h)) return;
 
-        if (self.texture == null or self.tex_w != frame_w) {
+        if (self.texture == null or self.tex_w != frame_w or self.tex_h != frame_h) {
             if (self.texture) |old| sdl.SDL_DestroyTexture(old);
             self.texture = null;
             self.tex_w = 0;
+            self.tex_h = 0;
 
             _ = sdl.SDL_SetHint(sdl.SDL_HINT_RENDER_SCALE_QUALITY, "0");
             self.texture = sdl.SDL_CreateTexture(
@@ -186,17 +192,19 @@ pub const Sdl2Backend = struct {
                 @intCast(sdl.SDL_PIXELFORMAT_ARGB8888),
                 sdl.SDL_TEXTUREACCESS_STREAMING,
                 @intCast(frame_w),
-                @intCast(gba.height),
+                @intCast(frame_h),
             ) orelse return;
             self.tex_w = frame_w;
+            self.tex_h = frame_h;
         }
         const texture = self.texture orelse return;
         self.view_w = frame_w;
+        self.view_h = frame_h;
 
         var out_w: c_int = @intCast(gba.width);
         var out_h: c_int = @intCast(gba.height);
         _ = sdl.SDL_GetRendererOutputSize(renderer, &out_w, &out_h);
-        var dst_rect = computeGameRect(@intCast(out_w), @intCast(out_h), frame_w);
+        var dst_rect = computeGameRect(@intCast(out_w), @intCast(out_h), frame_w, frame_h);
 
         _ = sdl.SDL_UpdateTexture(
             texture,
@@ -239,12 +247,13 @@ pub const Sdl2Backend = struct {
                         @intCast(@as(usize, hud.width) * @sizeOf(u32)),
                     );
                 }
-                const hud_dst_w: i32 = @max(@divTrunc(@as(i32, hud.width) * dst_rect.h, @as(i32, @intCast(gba.height))), dst_rect.w);
+                const hud_dst_h: i32 = @max(@divTrunc(dst_rect.h * @as(i32, @intCast(gba.height)), @as(i32, frame_h)), 1);
+                const hud_dst_w: i32 = @max(@divTrunc(@as(i32, hud.width) * hud_dst_h, @as(i32, @intCast(gba.height))), dst_rect.w);
                 var hud_dst = sdl.SDL_Rect{
                     .x = @divTrunc(@as(i32, out_w) - hud_dst_w, 2),
-                    .y = dst_rect.y,
+                    .y = dst_rect.y + @divTrunc(dst_rect.h - hud_dst_h, 2),
                     .w = hud_dst_w,
-                    .h = dst_rect.h,
+                    .h = hud_dst_h,
                 };
                 _ = sdl.SDL_RenderCopy(renderer, tex, null, &hud_dst);
             }
@@ -296,15 +305,17 @@ pub const Sdl2Backend = struct {
         var win_h: c_int = @intCast(gba.height);
         sdl.SDL_GetWindowSize(window, &win_w, &win_h);
         const view_w = @max(self.view_w, @as(u16, @intCast(gba.width)));
-        const rect = computeGameRect(@intCast(win_w), @intCast(win_h), view_w);
+        const view_h = @max(self.view_h, @as(u16, @intCast(gba.height)));
+        const rect = computeGameRect(@intCast(win_w), @intCast(win_h), view_w, view_h);
         const rx: f32 = @floatFromInt(rect.x);
         const ry: f32 = @floatFromInt(rect.y);
         const rw: f32 = @floatFromInt(rect.w);
         const rh: f32 = @floatFromInt(rect.h);
         const pad_l: f32 = @floatFromInt(@divTrunc(@as(i32, view_w) - @as(i32, @intCast(gba.width)), 2));
+        const pad_t: f32 = @floatFromInt(@divTrunc(@as(i32, view_h) - @as(i32, @intCast(gba.height)), 2));
         return .{
             .x = (win_x - rx) * (@as(f32, @floatFromInt(view_w)) / rw) - pad_l,
-            .y = (win_y - ry) * (@as(f32, @floatFromInt(gba.height)) / rh),
+            .y = (win_y - ry) * (@as(f32, @floatFromInt(view_h)) / rh) - pad_t,
         };
     }
 
@@ -315,13 +326,43 @@ pub const Sdl2Backend = struct {
         _ = sdl.SDL_SetWindowFullscreen(window, if (is_fs) 0 else sdl.SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
-    fn currentHudWidth(self: *const Sdl2Backend) u16 {
-        const window = self.window orelse return @intCast(gba.width);
+    fn currentWideDims(self: *const Sdl2Backend) struct { wide_w: u16, wide_h: u16, hud_w: u16 } {
+        const window = self.window orelse return .{
+            .wide_w = @intCast(gba.width),
+            .wide_h = @intCast(gba.height),
+            .hud_w = @intCast(gba.width),
+        };
         var win_w: c_int = @intCast(gba.width);
         var win_h: c_int = @intCast(gba.height);
         sdl.SDL_GetWindowSize(window, &win_w, &win_h);
-        const r = computeGameRect(@intCast(win_w), @intCast(win_h), @intCast(gba.width));
-        return touch_mod.computeHudWidth(@intCast(win_w), r.h);
+        if (win_w <= 0 or win_h <= 0) {
+            return .{
+                .wide_w = @intCast(gba.width),
+                .wide_h = @intCast(gba.height),
+                .hud_w = @intCast(gba.width),
+            };
+        }
+        const gba_w_i: i64 = @intCast(gba.width);
+        const gba_h_i: i64 = @intCast(gba.height);
+        if (@as(i64, win_w) * gba_h_i >= @as(i64, win_h) * gba_w_i) {
+            const wide_w = touch_mod.computeHudWidth(@intCast(win_w), @intCast(win_h));
+            return .{
+                .wide_w = wide_w,
+                .wide_h = @intCast(gba.height),
+                .hud_w = wide_w,
+            };
+        }
+        const raw_h = @divTrunc(@as(i64, win_h) * gba_w_i, @as(i64, win_w));
+        const clamped_h: u16 = @intCast(std.math.clamp(
+            raw_h,
+            gba_h_i,
+            @as(i64, @intCast(gba.max_wide_height)),
+        ));
+        return .{
+            .wide_w = @intCast(gba.width),
+            .wide_h = clamped_h - @mod(clamped_h, 2),
+            .hud_w = @intCast(gba.width),
+        };
     }
 
     pub fn poll(self: *Sdl2Backend) platform.PollResult {
@@ -332,15 +373,16 @@ pub const Sdl2Backend = struct {
         while (sdl.SDL_PollEvent(&ev) != 0) {
             switch (ev.type) {
                 sdl.SDL_QUIT => {
-                    const wide_w = self.currentHudWidth();
+                    const dims = self.currentWideDims();
                     return .{
                         .quit = true,
                         .keys_pressed = self.keys_pressed,
                         .toggle_hud = toggle_hud,
                         .toggle_mute = toggle_mute,
                         .toggle_widescreen = toggle_widescreen,
-                        .hud_width = wide_w,
-                        .wide_width = wide_w,
+                        .hud_width = dims.hud_w,
+                        .wide_width = dims.wide_w,
+                        .wide_height = dims.wide_h,
                     };
                 },
                 sdl.SDL_KEYDOWN, sdl.SDL_KEYUP => {
@@ -448,15 +490,16 @@ pub const Sdl2Backend = struct {
                 else => {},
             }
         }
-        const wide_w = self.currentHudWidth();
+        const dims = self.currentWideDims();
         return .{
             .quit = false,
             .keys_pressed = self.keys_pressed,
             .toggle_hud = toggle_hud,
             .toggle_mute = toggle_mute,
             .toggle_widescreen = toggle_widescreen,
-            .hud_width = wide_w,
-            .wide_width = wide_w,
+            .hud_width = dims.hud_w,
+            .wide_width = dims.wide_w,
+            .wide_height = dims.wide_h,
         };
     }
 

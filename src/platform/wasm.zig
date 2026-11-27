@@ -31,15 +31,21 @@ const max_pointer_queue: usize = 64;
 pub const WasmBackend = struct {
     var s_ptr_buf: [max_pointer_queue]platform.PointerEvent = undefined;
     var s_ptr_count: usize = 0;
-    var rgba_buf: [gba.max_wide_width * gba.height]u32 = @splat(0);
+    var rgba_buf: [gba.max_wide_width * gba.max_wide_height]u32 = @splat(0);
     var empty_audio: [2]i16 = .{ 0, 0 };
     var s_last_cam_delta: u32 = 0;
+    var s_wide_height: u16 = gba.height;
 
     last_audio_ptr: [*]const i16 = &empty_audio,
     last_audio_len: u32 = 0,
 
     pub fn lastCamDelta() u32 {
         return s_last_cam_delta;
+    }
+
+    pub fn setWideHeight(h: u32) void {
+        const clamped: u16 = @intCast(std.math.clamp(h, gba.height, gba.max_wide_height));
+        s_wide_height = clamped - @mod(clamped, 2);
     }
 
     pub fn pushPointerRaw(id: i32, phase_raw: u32, lx: f32, ly: f32) void {
@@ -114,6 +120,7 @@ pub const WasmBackend = struct {
             .widescreen_override = if (has_overrides) ((packed_input & (@as(u32, 1) << 31)) != 0) else null,
             .hud_width = w,
             .wide_width = if (w >= gba.width) w else gba.width,
+            .wide_height = s_wide_height,
         };
     }
 
