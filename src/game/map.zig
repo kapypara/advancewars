@@ -977,6 +977,159 @@ pub fn func_08022148() callconv(.c) void {
     configMapWindowBlendRegs(0x080221B4, 0x080221B8, 0x080221BC, 0x080221C0, 0x080221C4, 0, 0, 0x080221C8, 0x080221CC, 2, 0x10, 6, 0x10, 0x08022181, 0x080221AD);
 }
 
+fn drawMapLayerEntry(
+    comptime arg4_ref: u32,
+    comptime pal_ref: u32,
+    comptime rows_ref: u32,
+    comptime ret1: u32,
+    comptime ret2: u32,
+    comptime ret2_b: ?u32,
+    comptime ret3: u32,
+    comptime ret4: u32,
+) void {
+    abi.fetches(19);
+    abi.pushLr();
+    const saved_r9 = rt.r[9];
+    const saved_r8 = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r9);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+
+    const p0 = rt.r[0];
+    const bg_id = rt.r[1];
+    const tx = rt.r[2];
+    const ty = rt.r[3];
+    const pal_bank = abi.read32(rt.r[13] +% 0x18);
+    abi.write32(abi.read32(arg4_ref), pal_bank);
+    rt.r[0] = abi.read32(pal_ref);
+    abi.setRegNz(&rt.r[1], (pal_bank << 21) >> 16);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, ret1)) return;
+
+    if (ret2_b) |r2b| {
+        abi.fetches(5);
+        rt.r[0] = p0;
+        if (!abi.call(decls.func_0801B850, ret2)) return;
+        abi.fetches(5);
+        rt.r[0] = p0;
+        if (!abi.call(decls.func_0801B860, r2b)) return;
+    } else {
+        abi.fetches(5);
+        rt.r[0] = p0;
+        if (!abi.call(decls.func_080391C8, ret2)) return;
+    }
+
+    abi.fetches(16);
+    const row_base = abi.read32(abi.read32(rows_ref) +% (bg_id << 2));
+    rt.r[0] = row_base +% (ty << 6) +% (tx << 1);
+    abi.setRegNz(&rt.r[1], pal_bank << 12);
+    if (!abi.call(decls.func_0803942C, ret3)) return;
+
+    abi.fetches(7);
+    abi.setRegNz(&rt.r[0], bg_id & 0xFF);
+    if (!abi.call(decls.func_080117EC, ret4)) return;
+
+    abi.fetches(8);
+    rt.r[3] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[9] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = rt.r[3];
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Draw map layer entry via `0x080391C8` + `0x0803942C` (`0x08039080`).
+pub fn func_08039080() callconv(.c) void {
+    if (!abi.enter(0x08039080)) return;
+    drawMapLayerEntry(0x080390DC, 0x080390E0, 0x080390E4, 0x080390A3, 0x080390A9, null, 0x080390C5, 0x080390CF);
+}
+
+/// Draw map layer entry via `0x0801B850`/`0x0801B860` + `0x0803942C` (`0x080390E8`).
+pub fn func_080390E8() callconv(.c) void {
+    if (!abi.enter(0x080390E8)) return;
+    drawMapLayerEntry(0x08039148, 0x0803914C, 0x08039150, 0x0803910B, 0x08039111, 0x08039117, 0x08039133, 0x0803913D);
+}
+
+/// Apply map layer palette `0x08022640(u16(r0+0x1E))`, init map viewport/windows, and sync `0x080226A4` (`0x08039730`).
+pub fn func_08039730() callconv(.c) void {
+    if (!abi.enter(0x08039730)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read16(rt.r[0] +% 0x1E);
+    if (!abi.call(decls.func_08022640, 0x08039739)) return;
+
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0803977C);
+    if (!abi.call(decls.func_080392A4, 0x0803973F)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_080395B4, 0x08039743)) return;
+
+    abi.fetches(28);
+    const cam = abi.read32(abi.read32(0x08039784));
+    abi.write16(abi.read32(0x08039780), @truncate((@as(u32, abi.read16(cam)) << 1) -% 0xA8));
+    abi.write16(abi.read32(0x08039788), @truncate((@as(u32, abi.read16(cam +% 2)) << 1) -% 0x60));
+    abi.write8(abi.read32(0x0803978C), 0x5D);
+    abi.write8(abi.read32(0x08039790), 0xF0);
+    abi.write8(abi.read32(0x08039794), 0);
+    abi.write8(abi.read32(0x08039798), 0xA0);
+    if (!abi.call(decls.func_080226A4, 0x08039777)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear map overlay flags `[0x0803C954]`, switch to map view mode 2, and update cursor `0x080197D8` (`0x0803C91C`).
+pub fn func_0803C91C() callconv(.c) void {
+    if (!abi.enter(0x0803C91C)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const state_ref = abi.read32(0x0803C954);
+    const state = abi.read32(state_ref);
+    abi.write8(state +% 9, 0);
+    abi.write8(state +% 0xA, 0xFF);
+    abi.setRegNz(&rt.r[0], 2);
+    if (!abi.call(func_08020D14, 0x0803C933)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x0803C958);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x0803C93B)) return;
+
+    abi.fetches(9);
+    const st = abi.read32(state_ref);
+    rt.r[0] = abi.read8(st +% 2);
+    rt.r[1] = abi.read8(st +% 3);
+    abi.setRegNz(&rt.r[2], 0x10);
+    abi.setRegNz(&rt.r[3], 0xA);
+    if (!abi.call(decls.func_080197D8, 0x0803C949)) return;
+
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 2);
+    if (!abi.call(decls.func_080117EC, 0x0803C94F)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080191E8, .{ .name = "func_080191E8", .linkage = .strong });
@@ -1017,6 +1170,10 @@ comptime {
         @export(&func_08021EEC, .{ .name = "func_08021EEC", .linkage = .strong });
         @export(&func_08022074, .{ .name = "func_08022074", .linkage = .strong });
         @export(&func_08022148, .{ .name = "func_08022148", .linkage = .strong });
+        @export(&func_08039080, .{ .name = "func_08039080", .linkage = .strong });
+        @export(&func_080390E8, .{ .name = "func_080390E8", .linkage = .strong });
+        @export(&func_08039730, .{ .name = "func_08039730", .linkage = .strong });
+        @export(&func_0803C91C, .{ .name = "func_0803C91C", .linkage = .strong });
     }
 }
 

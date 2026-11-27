@@ -1361,6 +1361,31 @@ pub fn func_080168E8() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Enable state flag 1 (`0x0803A6C8`), clear overlay state `func_0803AB5C`, update `0x0801DC38`, and run `0x0803A9B8` (`0x0803ABB8`).
+pub fn func_0803ABB8() callconv(.c) void {
+    if (!abi.enter(0x0803ABB8)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 1);
+    if (!abi.call(decls.func_0803A6C8, 0x0803ABC1)) return;
+
+    abi.fetches(4);
+    if (!abi.call(func_0803AB5C, 0x0803ABC5)) return;
+
+    abi.fetches(8);
+    const pair_ptr = abi.read32(0x0803ABD8);
+    rt.r[0] = abi.read16(pair_ptr);
+    rt.r[1] = abi.read16(pair_ptr +% 2);
+    rt.r[2] = abi.read32(0x0803ABDC);
+    if (!abi.call(decls.func_0801DC38, 0x0803ABD1)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0803A9B8, 0x0803ABD5)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08015E10, .{ .name = "func_08015E10", .linkage = .strong });
@@ -1468,6 +1493,7 @@ comptime {
         @export(&func_0804F924, .{ .name = "func_0804F924", .linkage = .strong });
         @export(&func_08015F8C, .{ .name = "func_08015F8C", .linkage = .strong });
         @export(&func_080168E8, .{ .name = "func_080168E8", .linkage = .strong });
+        @export(&func_0803ABB8, .{ .name = "func_0803ABB8", .linkage = .strong });
     }
 }
 

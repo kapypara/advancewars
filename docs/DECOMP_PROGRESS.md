@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 22 — Tier 2 Menus, Windows, Tactical Map & Battle Screens (`<=120L`)
+- **Stage:** Stage 23 — Remaining Tier 2 Tactical, Campaign & UI Flows (`<=120L`)
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 1,154 / 7,577 (15.23%)
+- **Lifted to Clean Zig (`src/game/`):** 1,214 / 7,577 (16.02%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
@@ -17,14 +17,14 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/proc.zig` (77): `0x08010F04..0x08019608`, `0x0802ABF0` (`0x0300_0E10` proc opcodes, proc-script & `0x0300_1D50` cutscene script opcodes)
 - `src/game/sprite_anim.zig` (68): `0x08011CF0..0x08015A20`, `0x0801A0EC..0x0801A1BC`, `0x08049554` (`0x0300_2320` animator pool & OAM buffers)
 - `src/game/menu.zig` (76): `0x08000280..0x0800F738` (title/menu flow, mode dispatchers, sound triggers, save/campaign checks & menu proc spawners)
-- `src/game/map.zig` (38): `0x08018E4C..0x0803B73C` (tilemap, palette, viewport, BG staging & cursor helpers)
-- `src/game/campaign.zig` (60): `0x080378C8..0x08040310` (campaign/War Room flows, save flag shadow copy, unlock bitsets `0x0201_F9A8`, mission records & flag queries)
-- `src/game/state.zig` (105): `0x08015E10..0x0804F924` (`0x0300_4310` battle/UI substate setters & counters, `0x0201_AB34` entity flags, `0x0300_3200`/`0x0300_43C8` battle flags)
-- `src/game/ui.zig` (358): `0x0801862C..0x0802C8D8`, `0x080416B8..0x08077580` (War Room, dialogue/cursor panels, BG priority layers, result summaries, overlay procs, transitions)
-- `src/game/co.zig` (25): `0x0801B8BC..0x0801CA18`, `0x08038064..0x0803808C`, `0x0806C9A0..0x0806CE84` (CO selection reset, panel triggers & portrait/palette/data ROM lookups)
+- `src/game/map.zig` (42): `0x08018E4C..0x0803C91C` (tilemap, palette, viewport, BG staging & cursor helpers)
+- `src/game/campaign.zig` (75): `0x080378C8..0x08040310` (campaign/War Room flows, save flag shadow copy, unlock bitsets `0x0201_F9A8`, mission records & flag queries)
+- `src/game/state.zig` (106): `0x08015E10..0x0804F924` (`0x0300_4310` battle/UI substate setters & counters, `0x0201_AB34` entity flags, `0x0300_3200`/`0x0300_43C8` battle flags)
+- `src/game/ui.zig` (389): `0x0801862C..0x0802C8D8`, `0x0804071C..0x08077580` (War Room, dialogue/cursor panels, BG priority layers, result summaries, overlay procs, transitions)
+- `src/game/co.zig` (26): `0x0801B8BC..0x0801CA18`, `0x08038064..0x0803BC48`, `0x0806C9A0..0x0806CE84` (CO selection reset, panel triggers & portrait/palette/data ROM lookups)
 - `src/game/unit.zig` (62): `0x08017B20`, `0x08019970..0x08043810` (unit palette upload, action flags, camera focus, marker/badge/overlay helpers & spawners)
 - `src/game/battle.zig` (81): `0x08022220..0x08030DC8`, `0x08066AC8..0x0806B118` (`computeScaledDamage`, battle previews/icons, action dispatchers & combat overlays)
-- `src/game/turn.zig` (50): `0x08031EB4..0x080378B8` (turn transitions, day/CO phase state setters, proc slot panel lifecycle & prompt centering)
+- `src/game/turn.zig` (58): `0x08031EB4..0x080378B8` (turn transitions, day/CO phase state setters, proc slot panel lifecycle & prompt centering)
 
 ## Subsystem Roadmap
 - [x] **Stage 0:** Weak-linkage generator, `src/game/` scaffold, native + WASM + test wiring, baseline verified (`bd32afd`).
@@ -49,8 +49,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 19:** Battle previews, turn transitions & mid-ROM submenus (`0x0802E7..0x0803AB`, `974 total`).
 - [x] **Stage 20:** Campaign select, War Room & summary overlays (`0x0803B3..0x0804DA`, `1,034 total`).
 - [x] **Stage 21:** Late-ROM dialogues, CO portraits, battle panels & IRQ waits (`0x0804DB..0x0807AE`, `1,094 total`).
-- [x] **Stage 22:** Tier 2 early/mid menus, map layers, OAM windows & battle panels (`0x08002A..0x080322`, `1,154 total`).
-- [ ] **Stage 23:** Remaining Tier 2 functions (`0x080323..0x0807CE`, `<=120L, <=6 calls, <=8 cases`).
+- [x] **Stage 22:** Tier 2 early/mid menus, map layers, OAM windows & battle panels (`0x08002A..0x080322`, `fa248e0`, `1,154 total`).
+- [x] **Stage 23:** Tier 2 tactical, campaign & UI flows (`0x080332..0x080539`, `1,214 total`).
+- [ ] **Stage 24:** Remaining `<=120L` Tier 2 + late Tier 1 + larger clean functions `< 0x08080000`.
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`

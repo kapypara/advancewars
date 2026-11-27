@@ -532,6 +532,55 @@ pub fn func_0801C55C() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Decompress CO panel graphics (`0x0800FE24`) and upload CO palette (`0x08011330`) (`0x0803BC48`).
+pub fn func_0803BC48() callconv(.c) void {
+    if (!abi.enter(0x0803BC48)) return;
+    abi.fetches(28);
+    abi.pushLr();
+    const saved_r8 = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+
+    const co_idx = rt.r[0] & 0xFF;
+    const pal_idx = rt.r[1] & 0xFF;
+    const tile_idx = rt.r[2] & 0xFFFF;
+    const pal_slot = rt.r[3] & 0xFFFF;
+    abi.write32(abi.read32(0x0803BCAC), 0);
+    const vram_base = abi.read32(0x0803BCB4);
+    rt.r[0] = abi.read32(abi.read32(0x0803BCB0) +% (co_idx << 2));
+    rt.r[1] = (tile_idx << 5) +% vram_base;
+    if (!abi.call(decls.func_0800FE24, 0x0803BC7D)) return;
+
+    abi.fetches(13);
+    rt.r[0] = (pal_idx << 5) +% abi.read32(0x0803BCB8);
+    abi.setRegNz(&rt.r[1], ((pal_slot +% 0x10) << 21) >> 16);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0803BC93)) return;
+
+    abi.fetches(9);
+    rt.r[0] = abi.read32(0x0803BCBC);
+    rt.r[1] = ((tile_idx +% 0x80) << 5) +% vram_base;
+    if (!abi.call(decls.func_0800FE24, 0x0803BCA1)) return;
+
+    abi.fetches(7);
+    rt.r[3] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = rt.r[3];
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_0801BDDC, .{ .name = "func_0801BDDC", .linkage = .strong });
@@ -559,6 +608,7 @@ comptime {
         @export(&func_0806CD10, .{ .name = "func_0806CD10", .linkage = .strong });
         @export(&func_0806CE84, .{ .name = "func_0806CE84", .linkage = .strong });
         @export(&func_0801C55C, .{ .name = "func_0801C55C", .linkage = .strong });
+        @export(&func_0803BC48, .{ .name = "func_0803BC48", .linkage = .strong });
     }
 }
 
