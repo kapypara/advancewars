@@ -1268,15 +1268,215 @@ pub fn func_080347A8() callconv(.c) void {
     spawnProcZero(0x080347B8, 0x080347B3);
 }
 
+fn callUI18400Pool(comptime ptr_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(ptr_ref);
+    if (!abi.call(decls.func_08018400, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn callMenuAction353A8(comptime mode: u32, comptime ret_addr: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], mode);
+    if (!abi.call(decls.func_080353A8, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Forward 5-arg `(r0, u16 r1..r3, u16 [sp+0])` UI widget draw to `0x08019424` (`0x080193C0`).
+pub fn func_080193C0() callconv(.c) void {
+    if (!abi.enter(0x080193C0)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+
+    rt.r[4] = abi.read32(rt.r[13] +% 0xC) & 0xFFFF;
+    rt.r[1] &= 0xFFFF;
+    rt.r[2] &= 0xFFFF;
+    rt.r[3] &= 0xFFFF;
+    abi.write32(rt.r[13], rt.r[4]);
+    if (!abi.call(decls.func_08019424, 0x080193DD)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 4;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Resolve UI text resource `0x0802C66C` via `0x08018400` (`0x0802C660`).
+pub fn func_0802C660() callconv(.c) void {
+    if (!abi.enter(0x0802C660)) return;
+    callUI18400Pool(0x0802C66C, 0x0802C669);
+}
+
+/// Resolve UI string `0x0802C67C` via `0x080183C0` (`0x0802C670`).
+pub fn func_0802C670() callconv(.c) void {
+    if (!abi.enter(0x0802C670)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0802C67C);
+    if (!abi.call(decls.func_080183C0, 0x0802C679)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Spawn `0x0802C6B0` proc and clear HUD flag bit `2` at `*(0x0802C6B4) + 1` (`0x0802C694`).
+pub fn func_0802C694() callconv(.c) void {
+    if (!abi.enter(0x0802C694)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0802C6B0);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x0802C69F)) return;
+    abi.fetches(10);
+    const dst = abi.read32(0x0802C6B4) +% 1;
+    abi.write8(dst, abi.read8(dst) & ~@as(u8, 2));
+    abi.popReturn();
+}
+
+/// Dispatch UI menu mode `1` via `0x080353A8` (`0x08037FC4`).
+pub fn func_08037FC4() callconv(.c) void {
+    if (!abi.enter(0x08037FC4)) return;
+    callMenuAction353A8(1, 0x08037FCD);
+}
+
+/// Close/reset active menu panel via `0x08035804` (`0x08037FD0`).
+pub fn func_08037FD0() callconv(.c) void {
+    if (!abi.enter(0x08037FD0)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08035804, 0x08037FD7)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Dispatch UI menu mode `0` via `0x080353A8` (`0x08037FDC`).
+pub fn func_08037FDC() callconv(.c) void {
+    if (!abi.enter(0x08037FDC)) return;
+    callMenuAction353A8(0, 0x08037FE5);
+}
+
+/// Dispatch UI menu mode `1` via `0x080353A8` (`0x08037FE8`).
+pub fn func_08037FE8() callconv(.c) void {
+    if (!abi.enter(0x08037FE8)) return;
+    callMenuAction353A8(1, 0x08037FF1);
+}
+
+/// Dispatch UI menu mode `2` via `0x080353A8` (`0x08037FF4`).
+pub fn func_08037FF4() callconv(.c) void {
+    if (!abi.enter(0x08037FF4)) return;
+    callMenuAction353A8(2, 0x08037FFD);
+}
+
+/// Resolve UI text resource `0x08038928` via `0x08018400` (`0x0803891C`).
+pub fn func_0803891C() callconv(.c) void {
+    if (!abi.enter(0x0803891C)) return;
+    callUI18400Pool(0x08038928, 0x08038925);
+}
+
+/// Refresh tactical HUD via `0x08019608` (`0x080389DC`).
+pub fn func_080389DC() callconv(.c) void {
+    if (!abi.enter(0x080389DC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, 0x080389E3)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Return `1` if `0x08038C40` proc is active, else `0` (`0x08038C24`).
+pub fn func_08038C24() callconv(.c) void {
+    if (!abi.enter(0x08038C24)) return;
+    checkProcActive(0x08038C40, 0x08038C2D);
+}
+
+/// Spawn `0x080397B4` overlay proc storing `u16(r0)` at `+0x1E` (`0x0803979C`).
+pub fn func_0803979C() callconv(.c) void {
+    if (!abi.enter(0x0803979C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0] & 0xFFFF;
+    rt.r[0] = abi.read32(0x080397B4);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x080397AD)) return;
+
+    abi.fetches(6);
+    abi.write16(rt.r[0] +% 0x1E, @truncate(rt.r[4]));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// End `0x08039A30` UI proc (`0x08039A24`).
+pub fn func_08039A24() callconv(.c) void {
+    if (!abi.enter(0x08039A24)) return;
+    endProcPool(0x08039A30, 0x08039A2D);
+}
+
+/// Spawn `0x08039EFC` UI proc (`0x08039EEC`).
+pub fn func_08039EEC() callconv(.c) void {
+    if (!abi.enter(0x08039EEC)) return;
+    spawnProcZero(0x08039EFC, 0x08039EF7);
+}
+
+/// Spawn `0x0803A660` UI proc (`0x0803A650`).
+pub fn func_0803A650() callconv(.c) void {
+    if (!abi.enter(0x0803A650)) return;
+    spawnProcZero(0x0803A660, 0x0803A65B);
+}
+
+/// Spawn `0x0803BC44` overlay proc storing `u8(r0)` at `+0x20` (`0x0803BC2C`).
+pub fn func_0803BC2C() callconv(.c) void {
+    if (!abi.enter(0x0803BC2C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0] & 0xFF;
+    rt.r[0] = abi.read32(0x0803BC44);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x0803BC3D)) return;
+
+    abi.fetches(6);
+    abi.write16(rt.r[0] +% 0x20, @truncate(rt.r[4]));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Return `1` if `0x0803BD70` proc is active, else `0` (`0x0803BD54`).
+pub fn func_0803BD54() callconv(.c) void {
+    if (!abi.enter(0x0803BD54)) return;
+    checkProcActive(0x0803BD70, 0x0803BD5D);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08018DE4, .{ .name = "func_08018DE4", .linkage = .strong });
         @export(&func_08018DF4, .{ .name = "func_08018DF4", .linkage = .strong });
+        @export(&func_080193C0, .{ .name = "func_080193C0", .linkage = .strong });
         @export(&func_080195E8, .{ .name = "func_080195E8", .linkage = .strong });
         @export(&func_08019F04, .{ .name = "func_08019F04", .linkage = .strong });
         @export(&func_08019F60, .{ .name = "func_08019F60", .linkage = .strong });
         @export(&func_08019F78, .{ .name = "func_08019F78", .linkage = .strong });
         @export(&func_08019F90, .{ .name = "func_08019F90", .linkage = .strong });
+        @export(&func_0802C660, .{ .name = "func_0802C660", .linkage = .strong });
+        @export(&func_0802C670, .{ .name = "func_0802C670", .linkage = .strong });
+        @export(&func_0802C694, .{ .name = "func_0802C694", .linkage = .strong });
         @export(&func_08030D90, .{ .name = "func_08030D90", .linkage = .strong });
         @export(&func_080328A0, .{ .name = "func_080328A0", .linkage = .strong });
         @export(&func_080328B8, .{ .name = "func_080328B8", .linkage = .strong });
@@ -1302,6 +1502,20 @@ comptime {
         @export(&func_08034774, .{ .name = "func_08034774", .linkage = .strong });
         @export(&func_08034788, .{ .name = "func_08034788", .linkage = .strong });
         @export(&func_080347A8, .{ .name = "func_080347A8", .linkage = .strong });
+        @export(&func_08037FC4, .{ .name = "func_08037FC4", .linkage = .strong });
+        @export(&func_08037FD0, .{ .name = "func_08037FD0", .linkage = .strong });
+        @export(&func_08037FDC, .{ .name = "func_08037FDC", .linkage = .strong });
+        @export(&func_08037FE8, .{ .name = "func_08037FE8", .linkage = .strong });
+        @export(&func_08037FF4, .{ .name = "func_08037FF4", .linkage = .strong });
+        @export(&func_0803891C, .{ .name = "func_0803891C", .linkage = .strong });
+        @export(&func_080389DC, .{ .name = "func_080389DC", .linkage = .strong });
+        @export(&func_08038C24, .{ .name = "func_08038C24", .linkage = .strong });
+        @export(&func_0803979C, .{ .name = "func_0803979C", .linkage = .strong });
+        @export(&func_08039A24, .{ .name = "func_08039A24", .linkage = .strong });
+        @export(&func_08039EEC, .{ .name = "func_08039EEC", .linkage = .strong });
+        @export(&func_0803A650, .{ .name = "func_0803A650", .linkage = .strong });
+        @export(&func_0803BC2C, .{ .name = "func_0803BC2C", .linkage = .strong });
+        @export(&func_0803BD54, .{ .name = "func_0803BD54", .linkage = .strong });
         @export(&func_0803D038, .{ .name = "func_0803D038", .linkage = .strong });
         @export(&func_0803D2C4, .{ .name = "func_0803D2C4", .linkage = .strong });
         @export(&func_0803D588, .{ .name = "func_0803D588", .linkage = .strong });

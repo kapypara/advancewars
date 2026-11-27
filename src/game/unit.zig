@@ -475,10 +475,228 @@ pub fn func_0802C5B0() callconv(.c) void {
     runScript18400FromPool(0x0802C5BC, 0x0802C5B9);
 }
 
+/// Set VRAM tile offset `r0 + 0x28`, mark state active, and upload `0x500` bytes to BG VRAM (`0x0801B8D4`).
+pub fn func_0801B8D4() callconv(.c) void {
+    if (!abi.enter(0x0801B8D4)) return;
+    abi.fetches(24);
+    abi.pushLr();
+    const state = abi.read32(0x0801B904);
+    abi.write16(state +% (0x8B << 2), @truncate(rt.r[0] +% 0x28));
+    abi.write8(state, 1);
+    const slot_bits = (abi.read32(abi.read32(0x0801B90C)) << 28) >> 30;
+    rt.r[0] = abi.read32(0x0801B908);
+    rt.r[1] = (slot_bits << 14) +% 0x0600_0000;
+    abi.setRegNz(&rt.r[2], 0x500);
+    if (!abi.call(decls.func_0800FFA8, 0x0801B901)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Advance unit/sprite cursor step via `0x0801BAE4` and accumulate progress in `+0x32` / `+0x20` (`0x0801BAB4`).
+pub fn func_0801BAB4() callconv(.c) void {
+    if (!abi.enter(0x0801BAB4)) return;
+    abi.fetches(15);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0];
+    rt.r[0] = rt.r[1];
+    rt.r[3] = rt.r[2] & 0xFFFF;
+    const sum = (abi.read16(rt.r[4] +% 0x2C) +% abi.read16(rt.r[4] +% 0x2E)) & 0xFFFF;
+    rt.r[2] = sum;
+    rt.r[1] = abi.read32(rt.r[4] +% 0x20);
+    if (!abi.call(decls.func_0801BAE4, 0x0801BACF)) return;
+
+    abi.fetches(13);
+    abi.write8(rt.r[4] +% 0x32, @truncate(abi.read8(rt.r[4] +% 0x32) +% rt.r[0]));
+    abi.write32(rt.r[4] +% 0x20, abi.read32(rt.r[4] +% 0x20) +% rt.r[0]);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Reset hardware audio/display state and enable unit highlight blend layers (`0x0801C840`).
+pub fn func_0801C840() callconv(.c) void {
+    if (!abi.enter(0x0801C840)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_080104B0, 0x0801C847)) return;
+    abi.fetches(29);
+    const reg = abi.read32(0x0801C87C);
+    abi.write8(reg, @truncate((abi.read8(reg) & 0x3F) | 0x41));
+    abi.write8(reg +% 1, @truncate(abi.read8(reg +% 1) | 0x1E));
+    abi.write16(abi.read32(0x0801C880), 0);
+    abi.write16(abi.read32(0x0801C884), 0x10);
+    abi.popReturn();
+}
+
+/// Save `[0x0801D95C] = r0`, invoke callback pointer `*[0x0801D960]` via `0x0807B45C`, then reload (`0x0801D930`).
+pub fn func_0801D930() callconv(.c) void {
+    if (!abi.enter(0x0801D930)) return;
+    abi.fetches(17);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+
+    const a2 = rt.r[3];
+    const a3 = abi.read32(rt.r[13] +% 0x14);
+    const a4 = abi.read32(rt.r[13] +% 0x18);
+    rt.r[5] = abi.read32(0x0801D95C);
+    abi.write16(rt.r[5], @truncate(rt.r[0]));
+    abi.write32(rt.r[13], a4);
+    rt.r[4] = abi.read32(abi.read32(0x0801D960));
+    rt.r[0] = rt.r[1];
+    rt.r[1] = rt.r[2];
+    rt.r[2] = a2;
+    rt.r[3] = a3;
+    if (!abi.call(decls.func_0807B45C, 0x0801D94F)) return;
+
+    abi.fetches(9);
+    abi.write16(rt.r[5], abi.read16(abi.read32(0x0801D964)));
+    rt.r[13] +%= 4;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Upload `0x1000` bytes of unit/map tileset `u8(r0)` to alternating VRAM bank (`0x0801F7B0`).
+pub fn func_0801F7B0() callconv(.c) void {
+    if (!abi.enter(0x0801F7B0)) return;
+    abi.fetches(24);
+    abi.pushLr();
+    const id = rt.r[0] & 0xFF;
+    const src = (id << 12) +% abi.read32(0x0801F7E0);
+    const bank_bits = (abi.read32(abi.read32(0x0801F7E4)) << 28) >> 30;
+    const dst = (bank_bits << 14) +% ((id & 1) << 12) +% abi.read32(0x0801F7E8);
+    rt.r[0] = src;
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[2], 0x1000);
+    if (!abi.call(decls.func_0800FDA4, 0x0801F7DD)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Update active proc's animator offset relative to camera via `0x08013550` (`0x08028D24`).
+pub fn func_08028D24() callconv(.c) void {
+    if (!abi.enter(0x08028D24)) return;
+    abi.fetches(25);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const slot: u32 = @bitCast(abi.signExtend16(abi.read16(abi.read32(0x08028D58))));
+    const proc_addr = abi.read32(0x08028D5C) +% (slot * 96);
+    const cam = abi.read32(abi.read32(0x08028D60));
+    const dx: u16 = @truncate(abi.read16(proc_addr +% 0x1E) -% abi.read16(cam +% 4));
+    const dy: u16 = @truncate(abi.read16(proc_addr +% 0x20) -% abi.read16(cam +% 6));
+    rt.r[0] = slot;
+    rt.r[1] = @bitCast(abi.signExtend16(dx));
+    rt.r[2] = @bitCast(abi.signExtend16(dy));
+    if (!abi.call(decls.func_08013550, 0x08028D53)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Dispatch unit action command packet `7` (`r0=slot, r1=x, r2=y`) via `0x08031BA0` (`0x08034904`).
+pub fn func_08034904() callconv(.c) void {
+    if (!abi.enter(0x08034904)) return;
+    abi.fetches(24);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const slot = rt.r[0] & 0xFF;
+    const entry = abi.read32(abi.read32(0x08034938)) +% (slot * 12);
+    const pkt = abi.read32(0x0803493C);
+    abi.write8(pkt, 7);
+    abi.write8(pkt +% 1, @truncate(slot));
+    abi.write8(pkt +% 6, @truncate(rt.r[1]));
+    abi.write8(pkt +% 7, @truncate(rt.r[2]));
+    abi.write8(pkt +% 0x12, abi.read8(entry +% 6) & 0x7F);
+    rt.r[0] = pkt;
+    if (!abi.call(decls.func_08031BA0, 0x08034931)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Refresh current unit/CO palette via `0x0801BE88(u16 *(0x0803BAF4))` (`0x0803BAE4`).
+pub fn func_0803BAE4() callconv(.c) void {
+    if (!abi.enter(0x0803BAE4)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read16(abi.read32(0x0803BAF4));
+    if (!abi.call(decls.func_0801BE88, 0x0803BAEF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Center map cursor on current unit via `0x080199A0(u16 *(0x0803BB08))` (`0x0803BAF8`).
+pub fn func_0803BAF8() callconv(.c) void {
+    if (!abi.enter(0x0803BAF8)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read16(abi.read32(0x0803BB08));
+    if (!abi.call(decls.func_080199A0, 0x0803BB03)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Show unit dialogue/status script `r0` for current entity faction via `0x08018C1C` (`0x0803BB0C`).
+pub fn func_0803BB0C() callconv(.c) void {
+    if (!abi.enter(0x0803BB0C)) return;
+    abi.fetches(14);
+    abi.pushLr();
+    const idx = abi.read16(abi.read32(0x0803BB28));
+    const entities = abi.read32(abi.read32(0x0803BB2C));
+    rt.r[1] = abi.read8(entities +% (@as(u32, idx) *% entity_stride) +% 0x1D);
+    abi.setRegNz(&rt.r[2], 0);
+    if (!abi.call(decls.func_08018C1C, 0x0803BB25)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08019970, .{ .name = "func_08019970", .linkage = .strong });
+        @export(&func_0801B8D4, .{ .name = "func_0801B8D4", .linkage = .strong });
+        @export(&func_0801BAB4, .{ .name = "func_0801BAB4", .linkage = .strong });
         @export(&func_0801C150, .{ .name = "func_0801C150", .linkage = .strong });
+        @export(&func_0801C840, .{ .name = "func_0801C840", .linkage = .strong });
+        @export(&func_0801D930, .{ .name = "func_0801D930", .linkage = .strong });
+        @export(&func_0801F7B0, .{ .name = "func_0801F7B0", .linkage = .strong });
+        @export(&func_08028D24, .{ .name = "func_08028D24", .linkage = .strong });
+        @export(&func_08034904, .{ .name = "func_08034904", .linkage = .strong });
+        @export(&func_0803BAE4, .{ .name = "func_0803BAE4", .linkage = .strong });
+        @export(&func_0803BAF8, .{ .name = "func_0803BAF8", .linkage = .strong });
+        @export(&func_0803BB0C, .{ .name = "func_0803BB0C", .linkage = .strong });
         @export(&func_0801C188, .{ .name = "func_0801C188", .linkage = .strong });
         @export(&func_0801C544, .{ .name = "func_0801C544", .linkage = .strong });
         @export(&func_0801C550, .{ .name = "func_0801C550", .linkage = .strong });

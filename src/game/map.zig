@@ -218,6 +218,134 @@ pub fn func_08020510() callconv(.c) void {
     abi.popReturn();
 }
 
+fn clearMapRegion0FBEC(comptime pool_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(pool_ref);
+    if (!abi.call(decls.func_0800FBEC, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear map overlay region `0x0802C64C` via `0x0800FBEC` (`0x0802C640`).
+pub fn func_0802C640() callconv(.c) void {
+    if (!abi.enter(0x0802C640)) return;
+    clearMapRegion0FBEC(0x0802C64C, 0x0802C649);
+}
+
+/// Clear map overlay region `0x0802C65C` via `0x0800FBEC` (`0x0802C650`).
+pub fn func_0802C650() callconv(.c) void {
+    if (!abi.enter(0x0802C650)) return;
+    clearMapRegion0FBEC(0x0802C65C, 0x0802C659);
+}
+
+/// Spawn `0x080380AC` map/FX proc via `0x080131E0` (`0x0803809C`).
+pub fn func_0803809C() callconv(.c) void {
+    if (!abi.enter(0x0803809C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x080380AC);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_080131E0, 0x080380A7)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear `32`-byte row `u16(r0)` of map/palette staging via `0x0800FE24` (`0x08038C70`).
+pub fn func_08038C70() callconv(.c) void {
+    if (!abi.enter(0x08038C70)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    const row_off = (rt.r[0] & 0xFFFF) << 5;
+    rt.r[0] = abi.read32(0x08038C88);
+    rt.r[1] = row_off +% abi.read32(0x08038C8C);
+    if (!abi.call(decls.func_0800FE24, 0x08038C83)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Map lookup index `u8(r0)` through `0x08038FB0` table and forward to `0x08038E10` (`0x08038F9C`).
+pub fn func_08038F9C() callconv(.c) void {
+    if (!abi.enter(0x08038F9C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    const table = abi.read32(0x08038FB0);
+    rt.r[0] = abi.read8((rt.r[0] & 0xFF) +% table);
+    if (!abi.call(decls.func_08038E10, 0x08038FAD)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Spawn `0x08039018` proc storing `r0` pointer at `proc->+0x18` (`0x08039004`).
+pub fn func_08039004() callconv(.c) void {
+    if (!abi.enter(0x08039004)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0];
+    rt.r[0] = abi.read32(0x08039018);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08039011)) return;
+
+    abi.fetches(6);
+    abi.write32(rt.r[0] +% 0x18, rt.r[4]);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// End `0x08039028` map overlay proc (`0x0803901C`).
+pub fn func_0803901C() callconv(.c) void {
+    if (!abi.enter(0x0803901C)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08039028);
+    if (!abi.call(decls.func_0801329C, 0x08039025)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear/reset tilemap buffer `0x08039190` via `0x0800FC9C` (`0x08039184`).
+pub fn func_08039184() callconv(.c) void {
+    if (!abi.enter(0x08039184)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08039190);
+    if (!abi.call(decls.func_0800FC9C, 0x0803918D)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload 2-byte scroll/cursor icon into BG VRAM slot via `0x08011398` (`0x08039194`).
+pub fn func_08039194() callconv(.c) void {
+    if (!abi.enter(0x08039194)) return;
+    abi.fetches(19);
+    abi.pushLr();
+    const src_off = (abi.read32(abi.read32(0x080391BC)) & 0x3C) >> 1;
+    rt.r[0] = src_off +% abi.read32(0x080391C0);
+    rt.r[1] = ((abi.read32(abi.read32(0x080391C4)) << 5) +% 0x1C) & 0xFFFF;
+    abi.setRegNz(&rt.r[2], 2);
+    if (!abi.call(decls.func_08011398, 0x080391B7)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Store map cursor `(r0+0x20, r0+0x22)` into `(0x0803B3C4, 0x0803B3C8)` and enqueue `0x08015824` (`0x0803B3A8`).
+pub fn func_0803B3A8() callconv(.c) void {
+    if (!abi.enter(0x0803B3A8)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    abi.write16(abi.read32(0x0803B3C4), abi.read16(rt.r[0] +% 0x20));
+    abi.write16(abi.read32(0x0803B3C8), abi.read16(rt.r[0] +% 0x22));
+    rt.r[0] = abi.read32(0x0803B3CC);
+    abi.setRegNz(&rt.r[1], 1);
+    if (!abi.call(decls.func_08015824, 0x0803B3BF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080191E8, .{ .name = "func_080191E8", .linkage = .strong });
@@ -226,8 +354,18 @@ comptime {
         @export(&func_08020510, .{ .name = "func_08020510", .linkage = .strong });
         @export(&func_0802055C, .{ .name = "func_0802055C", .linkage = .strong });
         @export(&func_08020568, .{ .name = "func_08020568", .linkage = .strong });
+        @export(&func_0802C640, .{ .name = "func_0802C640", .linkage = .strong });
+        @export(&func_0802C650, .{ .name = "func_0802C650", .linkage = .strong });
         @export(&func_08033108, .{ .name = "func_08033108", .linkage = .strong });
         @export(&func_08033E28, .{ .name = "func_08033E28", .linkage = .strong });
+        @export(&func_0803809C, .{ .name = "func_0803809C", .linkage = .strong });
+        @export(&func_08038C70, .{ .name = "func_08038C70", .linkage = .strong });
+        @export(&func_08038F9C, .{ .name = "func_08038F9C", .linkage = .strong });
+        @export(&func_08039004, .{ .name = "func_08039004", .linkage = .strong });
+        @export(&func_0803901C, .{ .name = "func_0803901C", .linkage = .strong });
+        @export(&func_08039184, .{ .name = "func_08039184", .linkage = .strong });
+        @export(&func_08039194, .{ .name = "func_08039194", .linkage = .strong });
+        @export(&func_0803B3A8, .{ .name = "func_0803B3A8", .linkage = .strong });
         @export(&func_0803B73C, .{ .name = "func_0803B73C", .linkage = .strong });
     }
 }

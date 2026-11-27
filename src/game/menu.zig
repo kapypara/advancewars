@@ -433,8 +433,62 @@ pub fn func_0800F738() callconv(.c) void {
     spawnMenuProc320CSet1E(0x0800F750, 0x0800F749);
 }
 
+/// Start top-level game state `1` via `0x080001FC` (`0x08000280`).
+pub fn func_08000280() callconv(.c) void {
+    if (!abi.enter(0x08000280)) return;
+    callSingleU32(decls.func_080001FC, 1, 6, 0x08000289, false);
+}
+
+/// Set flag `[0x08000C70] = 1`, spawn `0x08000C74` proc storing `u16(r0)` at `+0x1E` (`0x08000C54`).
+pub fn func_08000C54() callconv(.c) void {
+    if (!abi.enter(0x08000C54)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0];
+    abi.write32(abi.read32(0x08000C70), 1);
+    rt.r[0] = abi.read32(0x08000C74);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08000C67)) return;
+
+    abi.fetches(6);
+    abi.write16(rt.r[0] +% 0x1E, @truncate(rt.r[4]));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Look up 16-bit table entry at `(col=r0, row=r1)` and dispatch `0x08001304` (`0x080012D0`).
+pub fn func_080012D0() callconv(.c) void {
+    if (!abi.enter(0x080012D0)) return;
+    abi.fetches(18);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const base = abi.read32(abi.read32(0x080012F8));
+    const row_off = abi.read16(base +% abi.read32(0x080012FC) +% (rt.r[1] << 1));
+    const idx = (row_off +% rt.r[0]) << 1;
+    rt.r[2] = abi.read16(base +% abi.read32(0x08001300) +% idx);
+    if (!abi.call(decls.func_08001304, 0x080012F1)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_08000280, .{ .name = "func_08000280", .linkage = .strong });
+        @export(&func_08000C54, .{ .name = "func_08000C54", .linkage = .strong });
+        @export(&func_080012D0, .{ .name = "func_080012D0", .linkage = .strong });
         @export(&func_080036A4, .{ .name = "func_080036A4", .linkage = .strong });
         @export(&func_080036C8, .{ .name = "func_080036C8", .linkage = .strong });
         @export(&func_08003708, .{ .name = "func_08003708", .linkage = .strong });

@@ -195,8 +195,59 @@ pub fn func_080795B4() callconv(.c) void {
     rt.recompReturn(lr_val);
 }
 
+fn callSoundCue(comptime target: fn () callconv(.c) void, comptime id: u32, comptime ret_addr: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], id);
+    if (!abi.call(target, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Play sound effect `0x68` via `0x0803D880` (`0x08038028`).
+pub fn func_08038028() callconv(.c) void {
+    if (!abi.enter(0x08038028)) return;
+    callSoundCue(decls.func_0803D880, 0x68, 0x08038031);
+}
+
+/// Play music track `0xD7` via `0x0803D8C8` (`0x08038034`).
+pub fn func_08038034() callconv(.c) void {
+    if (!abi.enter(0x08038034)) return;
+    callSoundCue(decls.func_0803D8C8, 0xD7, 0x0803803D);
+}
+
+/// Play music track `0xDC` via `0x0803D8C8` (`0x08038040`).
+pub fn func_08038040() callconv(.c) void {
+    if (!abi.enter(0x08038040)) return;
+    callSoundCue(decls.func_0803D8C8, 0xDC, 0x08038049);
+}
+
+/// Play music track `0xDD` via `0x0803D8C8` (`0x0803804C`).
+pub fn func_0803804C() callconv(.c) void {
+    if (!abi.enter(0x0803804C)) return;
+    callSoundCue(decls.func_0803D8C8, 0xDD, 0x08038055);
+}
+
+/// Play music track `0xDE` via `0x0803D8C8` (`0x08038058`).
+pub fn func_08038058() callconv(.c) void {
+    if (!abi.enter(0x08038058)) return;
+    callSoundCue(decls.func_0803D8C8, 0xDE, 0x08038061);
+}
+
+/// Fade out audio volume using rate `0xFE` via `0x080796F0` (`0x080386D8`).
+pub fn func_080386D8() callconv(.c) void {
+    if (!abi.enter(0x080386D8)) return;
+    callSoundCue(decls.func_080796F0, 0xFE, 0x080386E1);
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
+        @export(&func_08038034, .{ .name = "func_08038034", .linkage = .strong });
+        @export(&func_08038040, .{ .name = "func_08038040", .linkage = .strong });
+        @export(&func_0803804C, .{ .name = "func_0803804C", .linkage = .strong });
+        @export(&func_08038058, .{ .name = "func_08038058", .linkage = .strong });
+        @export(&func_080386D8, .{ .name = "func_080386D8", .linkage = .strong });
         @export(&func_0803D710, .{ .name = "func_0803D710", .linkage = .strong });
         @export(&func_0803D714, .{ .name = "func_0803D714", .linkage = .strong });
         @export(&func_0803D720, .{ .name = "func_0803D720", .linkage = .strong });

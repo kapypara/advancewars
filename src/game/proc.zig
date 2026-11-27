@@ -628,6 +628,8 @@ const CutsceneStepPrep = enum {
     set_byte8_read_u16,
     read_u16,
     zero_r0,
+    one_r0,
+    read_ptr_r0,
 };
 
 fn runCutsceneStep10(
@@ -636,6 +638,7 @@ fn runCutsceneStep10(
     comptime extra_b: u32,
     comptime target: fn () callconv(.c) void,
     comptime script_pool_ref: u32,
+    comptime ret_val: u32,
     comptime ret_addr: u32,
 ) void {
     const fetches_before: u32 = switch (prep) {
@@ -643,7 +646,7 @@ fn runCutsceneStep10(
         .set_flag5_zero_call, .set_flag5_one_call => 11,
         .set_byte8_read_u16 => 13,
         .read_u16 => 10,
-        .zero_r0 => 9,
+        .zero_r0, .one_r0, .read_ptr_r0 => 9,
     };
     abi.fetches(fetches_before);
     abi.pushLr();
@@ -661,12 +664,37 @@ fn runCutsceneStep10(
         },
         .read_u16 => rt.r[0] = abi.read16(abi.read32(extra_a)),
         .zero_r0 => abi.setRegNz(&rt.r[0], 0),
+        .one_r0 => abi.setRegNz(&rt.r[0], 1),
+        .read_ptr_r0 => rt.r[0] = abi.read32(extra_a),
     }
     if (!abi.call(target, ret_addr)) return;
 
     abi.fetches(17);
     const slot: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[4])));
     const entry_ptr = abi.read32(script_pool_ref) +% 4 +% (slot * 24);
+    abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
+    abi.setRegNz(&rt.r[0], ret_val);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+fn callCutscene18B28(comptime mode: u32, comptime pool_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(17);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const slot: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    const entry_ptr = abi.read32(pool_ref) +% 4 +% (slot * 24);
+    rt.r[4] = entry_ptr;
+    const script = abi.read32(entry_ptr);
+    rt.r[1] = abi.read32(script +% 4);
+    abi.setRegNz(&rt.r[0], mode);
+    abi.setRegNz(&rt.r[2], 0);
+    if (!abi.call(decls.func_08018B28, ret_addr)) return;
+
+    abi.fetches(9);
     abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
     abi.setRegNz(&rt.r[0], 1);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -865,37 +893,37 @@ pub fn func_08017254() callconv(.c) void {
 /// Cutscene script opcode: dispatch `0x080172F0(slot)` and advance cursor `+0x10` (`0x080172FC`).
 pub fn func_080172FC() callconv(.c) void {
     if (!abi.enter(0x080172FC)) return;
-    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172F0, 0x08017328, 0x08017309);
+    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172F0, 0x08017328, 1, 0x08017309);
 }
 
 /// Cutscene script opcode: dispatch `0x080172E4(slot)` and advance cursor `+0x10` (`0x0801732C`).
 pub fn func_0801732C() callconv(.c) void {
     if (!abi.enter(0x0801732C)) return;
-    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172E4, 0x08017358, 0x08017339);
+    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172E4, 0x08017358, 1, 0x08017339);
 }
 
 /// Cutscene script opcode: set flag `[state+5] = 1`, call `0x0802EFD8`, advance `+0x10` (`0x08017AB0`).
 pub fn func_08017AB0() callconv(.c) void {
     if (!abi.enter(0x08017AB0)) return;
-    runCutsceneStep10(.set_flag5_one_call, 0x08017AE0, 0, decls.func_0802EFD8, 0x08017AE4, 0x08017AC3);
+    runCutsceneStep10(.set_flag5_one_call, 0x08017AE0, 0, decls.func_0802EFD8, 0x08017AE4, 1, 0x08017AC3);
 }
 
 /// Cutscene script opcode: clear `[state+5] = 0`, call `0x0802EFD8`, advance `+0x10` (`0x08017AE8`).
 pub fn func_08017AE8() callconv(.c) void {
     if (!abi.enter(0x08017AE8)) return;
-    runCutsceneStep10(.set_flag5_zero_call, 0x08017B18, 0, decls.func_0802EFD8, 0x08017B1C, 0x08017AFB);
+    runCutsceneStep10(.set_flag5_zero_call, 0x08017B18, 0, decls.func_0802EFD8, 0x08017B1C, 1, 0x08017AFB);
 }
 
 /// Cutscene script opcode: mark byte `8`, focus cursor via `0x08019970`, advance `+0x10` (`0x08017B80`).
 pub fn func_08017B80() callconv(.c) void {
     if (!abi.enter(0x08017B80)) return;
-    runCutsceneStep10(.set_byte8_read_u16, 0x08017BB4, 0x08017BB8, decls.func_08019970, 0x08017BBC, 0x08017B97);
+    runCutsceneStep10(.set_byte8_read_u16, 0x08017BB4, 0x08017BB8, decls.func_08019970, 0x08017BBC, 1, 0x08017B97);
 }
 
 /// Cutscene script opcode: focus cursor via `0x0801990C`, advance `+0x10` (`0x08017C3C`).
 pub fn func_08017C3C() callconv(.c) void {
     if (!abi.enter(0x08017C3C)) return;
-    runCutsceneStep10(.read_u16, 0x08017C6C, 0, decls.func_0801990C, 0x08017C70, 0x08017C4D);
+    runCutsceneStep10(.read_u16, 0x08017C6C, 0, decls.func_0801990C, 0x08017C70, 1, 0x08017C4D);
 }
 
 /// Cutscene script opcode: arm wait callback `0x08017D90` storing `(half8, halfA)` (`0x08017D50`).
@@ -913,7 +941,54 @@ pub fn func_08017DC8() callconv(.c) void {
 /// Cutscene script opcode: reset state via `0x08018AAC(0)` and advance `+0x10` (`0x08017FD0`).
 pub fn func_08017FD0() callconv(.c) void {
     if (!abi.enter(0x08017FD0)) return;
-    runCutsceneStep10(.zero_r0, 0, 0, decls.func_08018AAC, 0x08017FFC, 0x08017FDF);
+    runCutsceneStep10(.zero_r0, 0, 0, decls.func_08018AAC, 0x08017FFC, 1, 0x08017FDF);
+}
+
+/// Cutscene script opcode: enable state via `0x08018AAC(1)` and advance `+0x10` (`0x08018000`).
+pub fn func_08018000() callconv(.c) void {
+    if (!abi.enter(0x08018000)) return;
+    runCutsceneStep10(.one_r0, 0, 0, decls.func_08018AAC, 0x0801802C, 1, 0x0801800F);
+}
+
+/// Cutscene script opcode: hide script dialogue (`0`) via `0x08018B28` and advance `+0x10` (`0x08018030`).
+pub fn func_08018030() callconv(.c) void {
+    if (!abi.enter(0x08018030)) return;
+    callCutscene18B28(0, 0x0801805C, 0x0801804F);
+}
+
+/// Cutscene script opcode: show script dialogue (`1`) via `0x08018B28` and advance `+0x10` (`0x08018060`).
+pub fn func_08018060() callconv(.c) void {
+    if (!abi.enter(0x08018060)) return;
+    callCutscene18B28(1, 0x0801808C, 0x0801807F);
+}
+
+/// Center cutscene/cursor sprite `arg->+0x14` relative to camera via `0x08020868` (`0x08018154`).
+pub fn func_08018154() callconv(.c) void {
+    if (!abi.enter(0x08018154)) return;
+    abi.fetches(20);
+    abi.pushLr();
+    const s = abi.read32(rt.r[0] +% 0x14);
+    const cam = abi.read32(abi.read32(0x08018180));
+    const dx: u16 = @truncate(abi.read16(s +% 8) -% abi.read16(cam +% 4));
+    const dy: u16 = @truncate(abi.read16(s +% 0xA) -% abi.read16(cam +% 6));
+    rt.r[0] = @bitCast(abi.signExtend16(dx));
+    rt.r[1] = @bitCast(abi.signExtend16(dy));
+    rt.r[2] = @bitCast(abi.signExtend16(abi.read16(s +% 0xC)));
+    if (!abi.call(decls.func_08020868, 0x08018179)) return;
+    abi.fetches(5);
+    abi.popReturn();
+}
+
+/// Cutscene script opcode: load resource string `0x08018204` via `0x080183C0`, advance `+0x10` (`0x080181D8`).
+pub fn func_080181D8() callconv(.c) void {
+    if (!abi.enter(0x080181D8)) return;
+    runCutsceneStep10(.read_ptr_r0, 0x08018204, 0, decls.func_080183C0, 0x08018208, 1, 0x080181E7);
+}
+
+/// Cutscene script opcode: refresh tactical markers via `0x08026750`, advance `+0x10`, return `0` (`0x08018260`).
+pub fn func_08018260() callconv(.c) void {
+    if (!abi.enter(0x08018260)) return;
+    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_08026750, 0x0801828C, 0, 0x0801826D);
 }
 
 comptime {
@@ -967,10 +1042,16 @@ comptime {
         @export(&func_08017E2C, .{ .name = "func_08017E2C", .linkage = .strong });
         @export(&func_08017EF8, .{ .name = "func_08017EF8", .linkage = .strong });
         @export(&func_08017F68, .{ .name = "func_08017F68", .linkage = .strong });
+        @export(&func_08018000, .{ .name = "func_08018000", .linkage = .strong });
+        @export(&func_08018030, .{ .name = "func_08018030", .linkage = .strong });
+        @export(&func_08018060, .{ .name = "func_08018060", .linkage = .strong });
         @export(&func_08018094, .{ .name = "func_08018094", .linkage = .strong });
         @export(&func_080180EC, .{ .name = "func_080180EC", .linkage = .strong });
         @export(&func_0801811C, .{ .name = "func_0801811C", .linkage = .strong });
+        @export(&func_08018154, .{ .name = "func_08018154", .linkage = .strong });
+        @export(&func_080181D8, .{ .name = "func_080181D8", .linkage = .strong });
         @export(&func_08018240, .{ .name = "func_08018240", .linkage = .strong });
+        @export(&func_08018260, .{ .name = "func_08018260", .linkage = .strong });
         @export(&func_08018C40, .{ .name = "func_08018C40", .linkage = .strong });
         @export(&func_08019120, .{ .name = "func_08019120", .linkage = .strong });
         @export(&func_08019254, .{ .name = "func_08019254", .linkage = .strong });

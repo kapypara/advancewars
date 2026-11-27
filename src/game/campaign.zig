@@ -342,6 +342,24 @@ pub fn func_08037CA8() callconv(.c) void {
     querySaveFlagBit(14, true, 0x08037CB3);
 }
 
+/// Query campaign progression flag `15` (`0x08037CD8`).
+pub fn func_08037CD8() callconv(.c) void {
+    if (!abi.enter(0x08037CD8)) return;
+    querySaveFlagBit(15, true, 0x08037CE3);
+}
+
+/// Query campaign progression flag `16` (`0x08037CE8`).
+pub fn func_08037CE8() callconv(.c) void {
+    if (!abi.enter(0x08037CE8)) return;
+    querySaveFlagBit(16, true, 0x08037CF3);
+}
+
+/// Query campaign progression flag `17` (`0x08037CF8`).
+pub fn func_08037CF8() callconv(.c) void {
+    if (!abi.enter(0x08037CF8)) return;
+    querySaveFlagBit(17, true, 0x08037D03);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080378C8, .{ .name = "func_080378C8", .linkage = .strong });
@@ -361,6 +379,9 @@ comptime {
         @export(&func_08037C78, .{ .name = "func_08037C78", .linkage = .strong });
         @export(&func_08037C88, .{ .name = "func_08037C88", .linkage = .strong });
         @export(&func_08037CA8, .{ .name = "func_08037CA8", .linkage = .strong });
+        @export(&func_08037CD8, .{ .name = "func_08037CD8", .linkage = .strong });
+        @export(&func_08037CE8, .{ .name = "func_08037CE8", .linkage = .strong });
+        @export(&func_08037CF8, .{ .name = "func_08037CF8", .linkage = .strong });
         @export(&func_0803E37C, .{ .name = "func_0803E37C", .linkage = .strong });
         @export(&func_0803E39C, .{ .name = "func_0803E39C", .linkage = .strong });
         @export(&func_0803E538, .{ .name = "func_0803E538", .linkage = .strong });
