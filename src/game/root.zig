@@ -14,6 +14,7 @@ pub const sprite_anim = @import("sprite_anim.zig");
 pub const campaign = @import("campaign.zig");
 pub const state = @import("state.zig");
 pub const map = @import("map.zig");
+pub const ui = @import("ui.zig");
 
 comptime {
     _ = abi;
@@ -28,6 +29,7 @@ comptime {
     _ = campaign;
     _ = state;
     _ = map;
+    _ = ui;
 }
 
 test {
@@ -43,4 +45,5 @@ test {
     _ = campaign;
     _ = state;
     _ = map;
+    _ = ui;
 }

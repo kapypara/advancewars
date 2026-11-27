@@ -110,14 +110,119 @@ pub fn func_0803F148() callconv(.c) void {
     abi.retLr();
 }
 
+fn copySaveFlagsBlock(comptime dst_pool_ref: u32, comptime src_pool_ref: u32) void {
+    abi.fetches(14);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    var src = abi.read32(src_pool_ref);
+    var dst = abi.read32(dst_pool_ref);
+    var last_w0: u32 = 0;
+    var last_w1: u32 = 0;
+    var i: u32 = 0;
+    while (i < 9) : (i += 3) {
+        const w0 = abi.read32(src);
+        const w1 = abi.read32(src +% 4);
+        const w2 = abi.read32(src +% 8);
+        abi.write32(dst, w0);
+        abi.write32(dst +% 4, w1);
+        abi.write32(dst +% 8, w2);
+        src +%= 12;
+        dst +%= 12;
+        last_w0 = w0;
+        last_w1 = w1;
+    }
+
+    rt.r[1] = dst;
+    rt.r[2] = last_w0;
+    rt.r[3] = last_w1;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Snapshot 36 bytes of `save_flags (0x0201_F9A8)` into shadow buffer `0x0201_F9CC` (`0x0803E37C`).
+pub fn func_0803E37C() callconv(.c) void {
+    if (!abi.enter(0x0803E37C)) return;
+    copySaveFlagsBlock(0x0803E394, 0x0803E398);
+}
+
+/// Restore 36 bytes into `save_flags (0x0201_F9A8)` from shadow buffer `0x0201_F9CC` (`0x0803E39C`).
+pub fn func_0803E39C() callconv(.c) void {
+    if (!abi.enter(0x0803E39C)) return;
+    copySaveFlagsBlock(0x0803E3B4, 0x0803E3B8);
+}
+
+/// Campaign/save no-op callback (`0x0803E538`).
+pub fn func_0803E538() callconv(.c) void {
+    if (!abi.enter(0x0803E538)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Clear byte `+0x01` in save work struct `*(0x082E_7B9C)` (`0x0803E53C`).
+pub fn func_0803E53C() callconv(.c) void {
+    if (!abi.enter(0x0803E53C)) return;
+    abi.fetches(7);
+    const work_ptr = abi.read32(abi.read32(0x0803E548));
+    abi.write8(work_ptr +% 1, 0);
+    rt.r[1] = work_ptr;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Write `*(0x082E_7B9C)[1] + 1` into UI cursor byte `0x0201_FD1D` (`0x0803E5F0`).
+pub fn func_0803E5F0() callconv(.c) void {
+    if (!abi.enter(0x0803E5F0)) return;
+    abi.fetches(9);
+    const dst = abi.read32(0x0803E600);
+    const work_ptr = abi.read32(abi.read32(0x0803E604));
+    const next: u32 = @as(u32, abi.read8(work_ptr +% 1)) +% 1;
+    abi.write8(dst, @truncate(next));
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], next);
+    abi.retLr();
+}
+
+/// Test bit `r0` in `save_flags + 0x1D` (`0x0803F048`).
+pub fn func_0803F048() callconv(.c) void {
+    if (!abi.enter(0x0803F048)) return;
+    readSaveUnlockBit(13, 0x1D, 0x0803F060);
+}
+
+/// Read `u16` field `+0x08` of mission entry `u16(r0)` (stride `36`) at `*(0x082E_AE84)` (`0x08040310`).
+pub fn func_08040310() callconv(.c) void {
+    if (!abi.enter(0x08040310)) return;
+    abi.fetches(11);
+    const idx: u16 = @truncate(rt.r[0]);
+    const table = abi.read32(0x08040324);
+    const entry = table +% (@as(u32, idx) *% 36);
+    rt.r[2] = table;
+    rt.r[1] = entry;
+    rt.r[0] = abi.read16(entry +% 8);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_0803E37C, .{ .name = "func_0803E37C", .linkage = .strong });
+        @export(&func_0803E39C, .{ .name = "func_0803E39C", .linkage = .strong });
+        @export(&func_0803E538, .{ .name = "func_0803E538", .linkage = .strong });
+        @export(&func_0803E53C, .{ .name = "func_0803E53C", .linkage = .strong });
+        @export(&func_0803E5F0, .{ .name = "func_0803E5F0", .linkage = .strong });
         @export(&func_0803EEBC, .{ .name = "func_0803EEBC", .linkage = .strong });
         @export(&func_0803EF1C, .{ .name = "func_0803EF1C", .linkage = .strong });
         @export(&func_0803EF48, .{ .name = "func_0803EF48", .linkage = .strong });
         @export(&func_0803F014, .{ .name = "func_0803F014", .linkage = .strong });
+        @export(&func_0803F048, .{ .name = "func_0803F048", .linkage = .strong });
         @export(&func_0803F064, .{ .name = "func_0803F064", .linkage = .strong });
         @export(&func_0803F148, .{ .name = "func_0803F148", .linkage = .strong });
+        @export(&func_08040310, .{ .name = "func_08040310", .linkage = .strong });
     }
 }
 

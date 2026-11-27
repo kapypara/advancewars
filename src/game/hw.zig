@@ -202,6 +202,220 @@ pub fn func_08012BAC() callconv(.c) void {
     abi.retLr();
 }
 
+/// Reset SIO registers (`RCNT`, `SIOCNT=0x2003`, `SIODATA8=0`) and link-state fields on `[r0]` (`0x08069B1C`).
+pub fn func_08069B1C() callconv(.c) void {
+    if (!abi.enter(0x08069B1C)) return;
+    abi.fetches(24);
+    const link = rt.r[0];
+    abi.write8(link +% 0x1E, 0);
+    abi.write8(link +% 0x18, 0);
+    abi.write8(link +% 0x1D, 0);
+    abi.write8(link +% 0x4A, 0xF);
+    abi.write8(link +% 0x48, 0);
+    abi.write16(link +% 0x16, 0);
+
+    const rcnt = abi.read32(0x08069B48);
+    abi.write16(rcnt, 0);
+    const siocnt = abi.read32(0x08069B4C);
+    const siocnt_val = abi.read32(0x08069B50);
+    abi.write16(siocnt, @truncate(siocnt_val));
+    const siodata = abi.read32(0x08069B54);
+    abi.write16(siodata, 0);
+
+    rt.r[2] = siocnt;
+    rt.r[3] = siocnt_val;
+    rt.r[1] = 0;
+    rt.r[0] = siodata;
+    abi.retLr();
+}
+
+/// Arm hardware timer `u8(r0)` IRQ and configure reload/control registers (`0x08079958`).
+pub fn func_08079958() callconv(.c) void {
+    if (!abi.enter(0x08079958)) return;
+    abi.fetches(69);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 8;
+    const frame = rt.r[13];
+
+    const slot_idx: u8 = @truncate(rt.r[0]);
+    abi.write8(frame, slot_idx);
+    const slot_ptr = abi.read32(abi.read32(0x080799E0)) +% (@as(u32, slot_idx) *% 6);
+    abi.write32(frame +% 4, slot_ptr);
+
+    const ime_addr = abi.read32(0x080799E8);
+    abi.write16(abi.read32(0x080799E4), abi.read16(ime_addr));
+    abi.write16(ime_addr, 1);
+
+    const ie_addr = abi.read32(0x080799EC);
+    const timer_shift: u5 = @truncate(abi.read8(abi.read32(0x080799F0)));
+    const irq_mask: u32 = @as(u32, 8) << timer_shift;
+    abi.write16(ie_addr, @truncate(abi.read16(ie_addr) | irq_mask));
+    abi.write8(abi.read32(0x080799F4), 0);
+
+    var cur = slot_ptr;
+    const reload_val = abi.read16(cur);
+    abi.write16(abi.read32(0x080799F8), reload_val);
+    cur +%= 2;
+
+    const timer_reg_ptr = abi.read32(0x080799FC);
+    const mmio_base = abi.read32(timer_reg_ptr);
+    abi.write16(mmio_base, abi.read16(cur));
+    cur +%= 2;
+    const last_val = abi.read16(cur);
+    abi.write16(mmio_base +% 2, last_val);
+    cur +%= 2;
+    abi.write32(frame +% 4, cur);
+    abi.write32(timer_reg_ptr, mmio_base);
+
+    rt.r[1] = mmio_base;
+    rt.r[2] = frame +% 4;
+    rt.r[3] = cur;
+    rt.updateNz(mmio_base);
+
+    rt.r[13] +%= 8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Disarm hardware timer IRQ and restore `IME` (`0x08079A00`).
+pub fn func_08079A00() callconv(.c) void {
+    if (!abi.enter(0x08079A00)) return;
+    abi.fetches(37);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const timer_reg_ptr = abi.read32(0x08079A48);
+    const mmio_base = abi.read32(timer_reg_ptr);
+    abi.write16(mmio_base, 0);
+    abi.write16(mmio_base +% 2, 0);
+    abi.write32(timer_reg_ptr, mmio_base);
+
+    const ie_addr = abi.read32(0x08079A4C);
+    const timer_shift: u5 = @truncate(abi.read8(abi.read32(0x08079A50)));
+    const inv_mask: u32 = ~(@as(u32, 8) << timer_shift);
+    abi.write16(ie_addr, @truncate(abi.read16(ie_addr) & inv_mask));
+
+    const ime_addr = abi.read32(0x08079A54);
+    const saved_ime_addr = abi.read32(0x08079A58);
+    const saved_ime = abi.read16(saved_ime_addr);
+    abi.write16(ime_addr, saved_ime);
+
+    rt.r[1] = saved_ime_addr;
+    rt.r[2] = saved_ime;
+    rt.r[3] = inv_mask;
+
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Hardware runtime no-op stub (`0x0807AE10`).
+pub fn func_0807AE10() callconv(.c) void {
+    if (!abi.enter(0x0807AE10)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Register IRQ handler `r1` at vector index `r0` (`0x0300_6630[r0]`) (`0x0807AE50`).
+pub fn func_0807AE50() callconv(.c) void {
+    if (!abi.enter(0x0807AE50)) return;
+    abi.fetches(7);
+    const table = abi.read32(0x0807AE5C);
+    const slot = (rt.r[0] << 2) +% table;
+    abi.write32(slot, rt.r[1]);
+    rt.r[2] = table;
+    rt.r[0] = slot;
+    abi.retLr();
+}
+
+/// Trigger immediate DMA3 copy `(src=r0, dst=r1, count=u16(r2))` (`0x0807B2DC`).
+pub fn func_0807B2DC() callconv(.c) void {
+    if (!abi.enter(0x0807B2DC)) return;
+    abi.fetches(22);
+    const sad: u32 = abi.read32(0x0807B304);
+    abi.write16(sad, @truncate(rt.r[0]));
+    abi.write16(sad +% 2, @truncate(rt.asrConst(rt.r[0], 16)));
+    const dad = abi.read32(0x0807B308);
+    abi.write16(dad, @truncate(rt.r[1]));
+    abi.write16(dad +% 2, @truncate(rt.asrConst(rt.r[1], 16)));
+    abi.write16(dad +% 4, @truncate(rt.r[2]));
+    const cnt_hi = abi.read32(0x0807B30C);
+    abi.write16(cnt_hi, 0x8000);
+
+    rt.r[3] = sad +% 2;
+    rt.r[2] = 0x8000;
+    rt.r[1] = cnt_hi;
+    abi.setRegNz(&rt.r[0], 0x8000);
+    abi.retLr();
+}
+
+/// Configure arbitrary GBA DMA channel `r0` (`sad=r2, dad=r1, cnt_lo=r3, cnt_hi=sp[0]`) (`0x0807B310`).
+pub fn func_0807B310() callconv(.c) void {
+    if (!abi.enter(0x0807B310)) return;
+    abi.fetches(20);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const cnt_hi_arg: u16 = @truncate(abi.read32(rt.r[13] +% 0x10));
+    const ch_off = rt.r[0] *% 12;
+    const sad_base = abi.read32(0x0807B334);
+    abi.write32(ch_off +% sad_base, rt.r[2]);
+    const dad_base = abi.read32(0x0807B338);
+    abi.write32(ch_off +% dad_base, rt.r[1]);
+    abi.write16(ch_off +% (sad_base +% 8), @truncate(rt.r[3]));
+    const cnt_hi_base = abi.read32(0x0807B33C);
+    const dst_hi = ch_off +% cnt_hi_base;
+    abi.write16(dst_hi, cnt_hi_arg);
+
+    rt.r[0] = dst_hi;
+    rt.r[1] = cnt_hi_base;
+    rt.r[2] = dad_base;
+    rt.r[3] = sad_base +% 8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Runtime library no-op stub (`0x0807B51C`).
+pub fn func_0807B51C() callconv(.c) void {
+    if (!abi.enter(0x0807B51C)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -219,6 +433,14 @@ comptime {
         @export(&func_08015A08, .{ .name = "func_08015A08", .linkage = .strong });
         @export(&func_08015A38, .{ .name = "func_08015A38", .linkage = .strong });
         @export(&func_08015A54, .{ .name = "func_08015A54", .linkage = .strong });
+        @export(&func_08069B1C, .{ .name = "func_08069B1C", .linkage = .strong });
+        @export(&func_08079958, .{ .name = "func_08079958", .linkage = .strong });
+        @export(&func_08079A00, .{ .name = "func_08079A00", .linkage = .strong });
+        @export(&func_0807AE10, .{ .name = "func_0807AE10", .linkage = .strong });
+        @export(&func_0807AE50, .{ .name = "func_0807AE50", .linkage = .strong });
+        @export(&func_0807B2DC, .{ .name = "func_0807B2DC", .linkage = .strong });
+        @export(&func_0807B310, .{ .name = "func_0807B310", .linkage = .strong });
+        @export(&func_0807B51C, .{ .name = "func_0807B51C", .linkage = .strong });
     }
 }
 

@@ -45,8 +45,14 @@ pub const addr = struct {
     pub const battle_lock_a: u32 = 0x0300_43C8;
     pub const battle_lock_b: u32 = 0x0300_4470;
     pub const battle_turn_counter: u32 = 0x0300_4474;
-    pub const main_scene_fn: u32 = 0x0300_4478;
-    pub const ui_scroll_state: u32 = 0x0300_47E4;
+    pub const irq_handler_table: u32 = 0x0300_6630;
+    pub const dispcnt_shadow: u32 = 0x0300_337C;
+    pub const bldcnt_shadow: u32 = 0x0300_3354;
+    pub const bldalpha_shadow: u32 = 0x0300_3384;
+    pub const ui_blend_ctrl: u32 = 0x0300_3388;
+    pub const ui_panel_mgr_ptr: u32 = 0x083B_918C;
+    pub const save_flags_shadow: u32 = 0x0201_F9CC;
+    pub const result_summary_buf: u32 = 0x0201_226C;
 };
 
 /// Map workspace header at `addr.map_workspace` (`0x0201_57F8`).

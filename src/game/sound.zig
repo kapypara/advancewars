@@ -104,8 +104,107 @@ pub fn func_0803D7AC() callconv(.c) void {
     abi.popReturn();
 }
 
+/// m4a no-op stub (`0x0803D710`).
+pub fn func_0803D710() callconv(.c) void {
+    if (!abi.enter(0x0803D710)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Write audio status halfword at `0x0300_00E8` (`0x0803D714`).
+pub fn func_0803D714() callconv(.c) void {
+    if (!abi.enter(0x0803D714)) return;
+    abi.fetches(5);
+    const dst = abi.read32(0x0803D71C);
+    abi.write16(dst, @truncate(rt.r[0]));
+    rt.r[1] = dst;
+    abi.retLr();
+}
+
+/// Write audio status halfword at `0x0300_00EA` (`0x0803D720`).
+pub fn func_0803D720() callconv(.c) void {
+    if (!abi.enter(0x0803D720)) return;
+    abi.fetches(5);
+    const dst = abi.read32(0x0803D728);
+    abi.write16(dst, @truncate(rt.r[0]));
+    rt.r[1] = dst;
+    abi.retLr();
+}
+
+/// Reset audio slot halfword `[0x0300_00E6] = 0xFFFF` (`0x0803D954`).
+pub fn func_0803D954() callconv(.c) void {
+    if (!abi.enter(0x0803D954)) return;
+    abi.fetches(7);
+    const dst = abi.read32(0x0803D960);
+    const fill = abi.read32(0x0803D964);
+    abi.write16(dst, @truncate(fill));
+    rt.r[1] = dst;
+    rt.r[2] = fill;
+    abi.setRegNz(&rt.r[0], fill);
+    abi.retLr();
+}
+
+/// Zero 64 bytes (`4 x 16`) at `[r0]` (`0x080779D8`).
+pub fn func_080779D8() callconv(.c) void {
+    if (!abi.enter(0x080779D8)) return;
+    abi.fetches(13);
+    const saved_r4 = rt.r[4];
+    var dst = rt.r[0];
+    var i: u32 = 0;
+    while (i < 16) : (i += 1) {
+        abi.write32(dst, 0);
+        dst +%= 4;
+    }
+    rt.r[0] = dst;
+    rt.r[1] = 0;
+    rt.r[2] = 0;
+    rt.r[3] = 0;
+    rt.r[4] = saved_r4;
+    rt.updateNz(0);
+    abi.retLr();
+}
+
+/// m4a `ply_tune` / track 32-bit LE command fetch into `track + 0x28`, stepping cursor `+0x40` by 4 (`0x080795B4`).
+pub fn func_080795B4() callconv(.c) void {
+    if (!abi.enter(0x080795B4)) return;
+    abi.fetches(29);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const track = rt.r[1];
+    const cmd = abi.read32(track +% track_cmd_cursor_off);
+    const b0: u32 = abi.read8(cmd);
+    const b1: u32 = abi.read8(cmd +% 1);
+    const b2: u32 = abi.read8(cmd +% 2);
+    const b3: u32 = abi.read8(cmd +% 3);
+    const word: u32 = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+    abi.write32(track +% 0x28, word);
+    const next_cmd = cmd +% 4;
+    abi.write32(track +% track_cmd_cursor_off, next_cmd);
+
+    rt.r[2] = next_cmd;
+    rt.r[3] = b3 << 24;
+    rt.updateNz(word);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_0803D710, .{ .name = "func_0803D710", .linkage = .strong });
+        @export(&func_0803D714, .{ .name = "func_0803D714", .linkage = .strong });
+        @export(&func_0803D720, .{ .name = "func_0803D720", .linkage = .strong });
+        @export(&func_0803D79C, .{ .name = "func_0803D79C", .linkage = .strong });
+        @export(&func_0803D7AC, .{ .name = "func_0803D7AC", .linkage = .strong });
+        @export(&func_0803D954, .{ .name = "func_0803D954", .linkage = .strong });
+        @export(&func_080779D8, .{ .name = "func_080779D8", .linkage = .strong });
+        @export(&func_080795B4, .{ .name = "func_080795B4", .linkage = .strong });
         @export(&func_08079610, .{ .name = "func_08079610", .linkage = .strong });
         @export(&func_08079624, .{ .name = "func_08079624", .linkage = .strong });
         @export(&func_08079638, .{ .name = "func_08079638", .linkage = .strong });
@@ -114,8 +213,6 @@ comptime {
         @export(&func_0807966C, .{ .name = "func_0807966C", .linkage = .strong });
         @export(&func_08079678, .{ .name = "func_08079678", .linkage = .strong });
         @export(&func_0807968C, .{ .name = "func_0807968C", .linkage = .strong });
-        @export(&func_0803D79C, .{ .name = "func_0803D79C", .linkage = .strong });
-        @export(&func_0803D7AC, .{ .name = "func_0803D7AC", .linkage = .strong });
     }
 }
 
