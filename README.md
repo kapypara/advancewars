@@ -50,8 +50,10 @@ Requires Zig `0.17.1` and SDL2 (`libsdl2-dev` / `sdl2`, optional with `-Dheadles
 ```bash
 zig build translate
 zig build -Doptimize=ReleaseFast
-./zig-out/bin/awre game/aw.gba
+./zig-out/bin/awre
 ```
+
+When `game/aw.gba` is present at build time, `build.zig` embeds it directly into `zig-out/bin/awre` (`-Dembed-rom=true` by default; pass `-Dembed-rom=false` to build without embedding). Launching `./awre` with no ROM argument loads the embedded ROM and reads/writes `awre.sav` next to the executable (auto-flushed atomically ~0.5s after in-game saves as well as on shutdown). Passing a ROM path or `--save <path>` overrides those locations.
 
 ## Controls & Usage
 
@@ -62,9 +64,10 @@ zig build -Doptimize=ReleaseFast
 Headless runs, screenshots, MP4 capture, and per-frame state dumps:
 
 ```bash
-./zig-out/bin/awre game/aw.gba --headless --frames 8000 --input replays/field_training.txt --screenshot scratch/ft.bmp
-./zig-out/bin/awre game/aw.gba --record scratch/intro.mp4 --frames 3600
-./zig-out/bin/awre game/aw.gba --dump-dir scratch/edge_dump
+./zig-out/bin/awre --headless --frames 8000 --input replays/field_training.txt --screenshot scratch/ft.bmp
+./zig-out/bin/awre --record scratch/intro.mp4 --frames 3600
+./zig-out/bin/awre --dump-dir scratch/edge_dump
+./zig-out/bin/awre game/aw.gba --save scratch/custom.sav
 ```
 
 See [docs/DEBUG_DUMPING.md](docs/DEBUG_DUMPING.md) for `--dump-dir`, `--dump-at`, and `GBA_WATCH` diagnostics, [docs/ZIG_PORT_PLAN.md](docs/ZIG_PORT_PLAN.md) for the port roadmap, and [ROADMAP.md](ROADMAP.md) for the original upstream reference.

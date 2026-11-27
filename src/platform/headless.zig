@@ -95,6 +95,7 @@ pub const Runner = struct {
     script_keys_pressed: u16 = 0,
 
     rom_path: ?[*:0]const u8 = null,
+    save_path: ?[*:0]const u8 = null,
     record_path: ?[*:0]const u8 = null,
     shot_path: ?[*:0]const u8 = null,
     input_path: ?[*:0]const u8 = null,
@@ -141,6 +142,9 @@ pub const Runner = struct {
             } else if (std.mem.eql(u8, arg, "--screenshot") and i + 1 < argv.len) {
                 i += 1;
                 self.shot_path = argv[i];
+            } else if (std.mem.eql(u8, arg, "--save") and i + 1 < argv.len) {
+                i += 1;
+                self.save_path = argv[i];
             } else if (std.mem.eql(u8, arg, "--input") and i + 1 < argv.len) {
                 i += 1;
                 self.input_path = argv[i];

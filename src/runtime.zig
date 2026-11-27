@@ -3,6 +3,9 @@ const builtin = @import("builtin");
 const core = @import("awre_core");
 const disp = @import("platform/display.zig");
 const validate_mod = @import("validate/validate.zig");
+const rt_options = @import("rt_options");
+
+const embedded_rom_bytes: []const u8 = if (rt_options.has_embedded_rom) @embedFile("embedded_rom") else &.{};
 
 const flash_mod = core.flash;
 const timers_mod = core.timers;
@@ -34,6 +37,9 @@ const c_host = if (has_posix) struct {
     extern "c" fn atoi(nptr: [*:0]const u8) c_int;
     extern "c" fn atol(nptr: [*:0]const u8) c_long;
     extern "c" fn strtoul(nptr: [*:0]const u8, endptr: ?*?[*]u8, base: c_int) c_ulong;
+    extern "c" fn readlink(pathname: [*:0]const u8, buf: [*]u8, bufsiz: usize) isize;
+    extern "c" fn rename(oldpath: [*:0]const u8, newpath: [*:0]const u8) c_int;
+    extern "c" fn remove(pathname: [*:0]const u8) c_int;
 } else struct {
     const FILE = opaque {};
 };
@@ -89,6 +95,10 @@ pub fn dispParseArgs(args: []const [*:0]const u8) ?[*:0]const u8 {
     return disp.parseArgsSlice(args);
 }
 
+pub fn dispSavePath() ?[*:0]const u8 {
+    return disp.savePath();
+}
+
 pub fn linkShardExports() void {
     const syms = .{
         &r,             &CPU_N,        &CPU_Z,        &CPU_C,           &CPU_V,
@@ -113,14 +123,22 @@ var oam_buf: [0x400]u8 = @splat(0);
 var sram_buf: [0x20000]u8 = @splat(0);
 var sram_active: bool = false;
 
-var rom_ptr: ?[*]u8 = null;
+var rom_ptr: ?[*]const u8 = null;
 var rom_size: u32 = 0;
+var rom_owned: bool = false;
 var bios_mem_ptr: ?[*]u8 = null;
 
+var exe_path_buf: [512]u8 = @splat(0);
 var sram_path_buf: [512]u8 = @splat(0);
 var sram_path_len: usize = 0;
 var eeprom_path_buf: [512]u8 = @splat(0);
 var eeprom_path_len: usize = 0;
+
+const save_debounce_frames: u32 = 30;
+var sram_dirty_frames: u32 = 0;
+var sram_last_seq: u32 = 0;
+var eeprom_dirty_frames: u32 = 0;
+var eeprom_last_seq: u32 = 0;
 
 // ---- CPU Mode, Backup, Peripherals & Scheduler State ----
 var cpsr: u32 = 0x0000_001F;
@@ -475,6 +493,7 @@ fn advanceCycles(cycles: u32) void {
 
             checkHistFrame();
             writeDumpAtSnapshot();
+            if (!validate_mod.g_validating) pollBackupFlush();
 
             const log_every = disp.display_log_every();
             if (frame_count <= 5 or (log_every != 0 and @mod(frame_count, @as(u32, @intCast(log_every))) == 0)) {
@@ -1289,15 +1308,81 @@ pub fn gba_run(entry_func: *const fn () void) void {
 }
 
 // ---- Save / Dump / Tracing / Validation ----
-fn buildSidecarPath(rom_slice: []const u8, ext: []const u8, dst: *[512]u8) usize {
+fn buildSidecarPath(base_slice: []const u8, ext: []const u8, dst: *[512]u8) usize {
     const max_base = 507;
-    const truncated = if (rom_slice.len > max_base) rom_slice[0..max_base] else rom_slice;
+    const truncated = if (base_slice.len > max_base) base_slice[0..max_base] else base_slice;
+    const last_fwd = std.mem.lastIndexOfScalar(u8, truncated, '/');
+    const last_back = std.mem.lastIndexOfScalar(u8, truncated, '\\');
+    const sep_end: usize = blk: {
+        if (last_fwd != null and last_back != null) break :blk @max(last_fwd.?, last_back.?) + 1;
+        if (last_fwd) |i| break :blk i + 1;
+        if (last_back) |i| break :blk i + 1;
+        break :blk 0;
+    };
     const stem = if (std.mem.lastIndexOfScalar(u8, truncated, '.')) |dot_idx|
-        truncated[0..dot_idx]
+        if (dot_idx > sep_end) truncated[0..dot_idx] else truncated
     else
         truncated;
     const formatted = std.mem.printSentinel(dst, "{s}{s}", .{ stem, ext }, 0) catch return 0;
     return formatted.len;
+}
+
+fn resolveSelfExePath(exe_arg0: ?[*:0]const u8, dst: *[512]u8) []const u8 {
+    if (has_posix) {
+        const n = c_host.readlink("/proc/self/exe", dst, dst.len - 1);
+        if (n > 0) {
+            const len: usize = @intCast(n);
+            dst[len] = 0;
+            return dst[0..len];
+        }
+        if (exe_arg0) |arg0| {
+            const span = std.mem.span(arg0);
+            const copy_len = @min(span.len, dst.len - 1);
+            @memcpy(dst[0..copy_len], span[0..copy_len]);
+            dst[copy_len] = 0;
+            return dst[0..copy_len];
+        }
+    }
+    return "awre";
+}
+
+fn writeAtomicFile(final_path_c: [*:0]const u8, final_slice: []const u8, data: []const u8) bool {
+    if (!has_posix) return false;
+    var tmp_buf: [520]u8 = undefined;
+    const tmp_slice = std.mem.printSentinel(&tmp_buf, "{s}.tmp", .{final_slice}, 0) catch return false;
+    const f = c_host.fopen(tmp_slice.ptr, "wb") orelse return false;
+    const written = c_host.fwrite(data.ptr, 1, data.len, f);
+    const close_rc = c_host.fclose(f);
+    if (written != data.len or close_rc != 0) {
+        _ = c_host.remove(tmp_slice.ptr);
+        return false;
+    }
+    if (c_host.rename(tmp_slice.ptr, final_path_c) != 0) {
+        _ = c_host.remove(tmp_slice.ptr);
+        return false;
+    }
+    return true;
+}
+
+fn pollBackupFlush() void {
+    if (flash_state.dirty) {
+        if (flash_state.write_seq != sram_last_seq) {
+            sram_last_seq = flash_state.write_seq;
+            sram_dirty_frames = save_debounce_frames;
+        } else if (sram_dirty_frames > 0) {
+            sram_dirty_frames -= 1;
+            if (sram_dirty_frames == 0) sramSave();
+        }
+    }
+    if (eeprom_state.dirty) {
+        if (eeprom_state.write_seq != eeprom_last_seq) {
+            eeprom_last_seq = eeprom_state.write_seq;
+            eeprom_dirty_frames = save_debounce_frames;
+        } else if (eeprom_dirty_frames > 0) {
+            eeprom_dirty_frames -= 1;
+            if (eeprom_dirty_frames == 0) eepromSave();
+        }
+    }
 }
 
 fn sramLoad() void {
@@ -1310,11 +1395,14 @@ fn sramLoad() void {
 }
 
 fn sramSave() void {
-    if (!has_posix or !sram_active or sram_path_len == 0) return;
+    if (!has_posix or !sram_active or sram_path_len == 0 or !flash_state.dirty) return;
+    const path_slice = sram_path_buf[0..sram_path_len];
     const path: [*:0]const u8 = @ptrCast(&sram_path_buf);
-    const f = c_host.fopen(path, "wb") orelse return;
-    defer _ = c_host.fclose(f);
-    _ = c_host.fwrite(&sram_buf, 1, flash_state.backup_size, f);
+    if (writeAtomicFile(path, path_slice, sram_buf[0..flash_state.backup_size])) {
+        flash_state.dirty = false;
+        sram_dirty_frames = 0;
+        std.debug.print("[runtime] Saved Flash to {s}\n", .{path_slice});
+    }
 }
 
 fn eepromLoad() void {
@@ -1327,11 +1415,14 @@ fn eepromLoad() void {
 }
 
 fn eepromSave() void {
-    if (!has_posix or !eeprom_state.present or eeprom_path_len == 0) return;
+    if (!has_posix or !eeprom_state.present or eeprom_path_len == 0 or !eeprom_state.dirty) return;
+    const path_slice = eeprom_path_buf[0..eeprom_path_len];
     const path: [*:0]const u8 = @ptrCast(&eeprom_path_buf);
-    const f = c_host.fopen(path, "wb") orelse return;
-    defer _ = c_host.fclose(f);
-    _ = c_host.fwrite(&eeprom_state.storage, 1, eeprom_state.storage.len, f);
+    if (writeAtomicFile(path, path_slice, &eeprom_state.storage)) {
+        eeprom_state.dirty = false;
+        eeprom_dirty_frames = 0;
+        std.debug.print("[runtime] Saved EEPROM to {s}\n", .{path_slice});
+    }
 }
 
 fn writeDumpAtSnapshot() void {
@@ -1592,6 +1683,10 @@ fn resetCommonState() void {
     g_ret = 0;
     g_func_ring_i = 0;
     @memset(&g_func_ring, 0);
+    sram_dirty_frames = 0;
+    sram_last_seq = 0;
+    eeprom_dirty_frames = 0;
+    eeprom_last_seq = 0;
 }
 
 fn initPostRomRegs() void {
@@ -1609,7 +1704,7 @@ fn initPostRomRegs() void {
     @memset(io_regs_buf[0x120..0x128], 0xFF);
 }
 
-pub fn gba_init(rom_path_c: [*:0]const u8) void {
+pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe_arg0: ?[*:0]const u8) void {
     if (!has_posix) return;
 
     if (c_host.getenv("GBA_VALIDATE")) |e| g_validate = c_host.atoi(e);
@@ -1617,53 +1712,86 @@ pub fn gba_init(rom_path_c: [*:0]const u8) void {
 
     resetCommonState();
 
-    const f = c_host.fopen(rom_path_c, "rb") orelse {
-        std.debug.print("[runtime] Cannot open ROM: {s}\n", .{std.mem.span(rom_path_c)});
-        c_host.exit(1);
-    };
-    _ = c_host.fseek(f, 0, 2); // SEEK_END
-    const raw_len = c_host.ftell(f);
-    if (raw_len <= 0) {
+    var rom_slice: []const u8 = undefined;
+    var default_base: []const u8 = undefined;
+    var rom_label: []const u8 = undefined;
+
+    if (rom_path_opt) |rom_path_c| {
+        const f = c_host.fopen(rom_path_c, "rb") orelse {
+            std.debug.print("[runtime] Cannot open ROM: {s}\n", .{std.mem.span(rom_path_c)});
+            c_host.exit(1);
+        };
+        _ = c_host.fseek(f, 0, 2); // SEEK_END
+        const raw_len = c_host.ftell(f);
+        if (raw_len <= 0) {
+            _ = c_host.fclose(f);
+            std.debug.print("[runtime] Empty or unreadable ROM: {s}\n", .{std.mem.span(rom_path_c)});
+            c_host.exit(1);
+        }
+        rom_size = @intCast(raw_len);
+        _ = c_host.fseek(f, 0, 0); // SEEK_SET
+        const mem = c_host.malloc(rom_size) orelse {
+            _ = c_host.fclose(f);
+            std.debug.print("[runtime] Failed to allocate ROM buffer ({d} bytes)\n", .{rom_size});
+            c_host.exit(1);
+        };
+        if (c_host.fread(mem, 1, rom_size, f) != rom_size) {
+            _ = c_host.fclose(f);
+            std.debug.print("[runtime] Failed to read ROM\n", .{});
+            c_host.exit(1);
+        }
         _ = c_host.fclose(f);
-        std.debug.print("[runtime] Empty or unreadable ROM: {s}\n", .{std.mem.span(rom_path_c)});
+        rom_ptr = mem;
+        rom_owned = true;
+        rom_slice = mem[0..rom_size];
+        default_base = std.mem.span(rom_path_c);
+        rom_label = default_base;
+    } else if (embedded_rom_bytes.len > 0) {
+        rom_ptr = embedded_rom_bytes.ptr;
+        rom_size = @intCast(embedded_rom_bytes.len);
+        rom_owned = false;
+        rom_slice = embedded_rom_bytes;
+        default_base = resolveSelfExePath(exe_arg0, &exe_path_buf);
+        rom_label = "embedded";
+    } else {
+        std.debug.print("[runtime] No ROM embedded and no ROM path given. Usage: awre <rom.gba> [options]\n", .{});
         c_host.exit(1);
     }
-    rom_size = @intCast(raw_len);
-    _ = c_host.fseek(f, 0, 0); // SEEK_SET
-    const mem = c_host.malloc(rom_size) orelse {
-        _ = c_host.fclose(f);
-        std.debug.print("[runtime] Failed to allocate ROM buffer ({d} bytes)\n", .{rom_size});
-        c_host.exit(1);
-    };
-    if (c_host.fread(mem, 1, rom_size, f) != rom_size) {
-        _ = c_host.fclose(f);
-        std.debug.print("[runtime] Failed to read ROM\n", .{});
-        c_host.exit(1);
+
+    if (save_path_opt) |sp| {
+        const sp_slice = std.mem.span(sp);
+        const formatted = std.mem.printSentinel(&sram_path_buf, "{s}", .{sp_slice}, 0) catch "";
+        sram_path_len = formatted.len;
+    } else {
+        sram_path_len = buildSidecarPath(default_base, ".sav", &sram_path_buf);
     }
-    _ = c_host.fclose(f);
-    rom_ptr = mem;
-
-    const rom_slice = mem[0..rom_size];
-    const rom_path_slice = std.mem.span(rom_path_c);
-
-    sram_path_len = buildSidecarPath(rom_path_slice, ".sav", &sram_path_buf);
     if (flash_state.detect(rom_slice)) |tag| {
         const size_label: []const u8 = if (flash_state.large) "128KB" else "64KB";
         std.debug.print("[runtime] Flash {s} detected ({s})\n", .{ size_label, tag });
         @memset(sram_buf[0..flash_state.backup_size], 0xFF);
     }
     sramLoad();
+    flash_state.dirty = false;
+    flash_state.write_seq = 0;
+    sram_last_seq = 0;
 
     if (eeprom_state.detect(rom_slice)) |ee_addr| {
         std.debug.print("[runtime] EEPROM detected at ROM 0x{X:0>8} (assuming 8KB)\n", .{ee_addr});
-        eeprom_path_len = buildSidecarPath(rom_path_slice, ".eep", &eeprom_path_buf);
+        const ee_base = if (save_path_opt) |sp| std.mem.span(sp) else default_base;
+        eeprom_path_len = buildSidecarPath(ee_base, ".eep", &eeprom_path_buf);
         eepromLoad();
+        eeprom_state.dirty = false;
+        eeprom_state.write_seq = 0;
+        eeprom_last_seq = 0;
     }
 
     initPostRomRegs();
 
     std.debug.print("[runtime] GBA static recomp runtime initialized (Zig)\n", .{});
-    std.debug.print("[runtime] ROM: {d} bytes ({s})\n", .{ rom_size, rom_path_slice });
+    std.debug.print("[runtime] ROM: {d} bytes ({s})\n", .{ rom_size, rom_label });
+    if (sram_path_len > 0) {
+        std.debug.print("[runtime] Save path: {s}\n", .{sram_path_buf[0..sram_path_len]});
+    }
 
     if (disp.display_init() != 0) {
         std.debug.print("[runtime] Failed to initialize display\n", .{});
@@ -1690,10 +1818,13 @@ pub fn gba_shutdown() void {
     bios_mem_ptr = null;
 
     if (has_posix) {
-        if (rom_ptr) |ptr| {
-            c_host.free(ptr);
-            rom_ptr = null;
+        if (rom_owned) {
+            if (rom_ptr) |ptr| {
+                c_host.free(@constCast(ptr));
+            }
         }
+        rom_ptr = null;
+        rom_owned = false;
     }
     rom_size = 0;
     std.debug.print("[runtime] Shutdown\n", .{});

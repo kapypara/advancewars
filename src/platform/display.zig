@@ -146,6 +146,10 @@ pub fn parseArgsSlice(args: []const [*:0]const u8) ?[*:0]const u8 {
     return s_runner.parseArgs(args, core.is_headless);
 }
 
+pub fn savePath() ?[*:0]const u8 {
+    return s_runner.save_path;
+}
+
 pub fn display_parse_args(argc: c_int, argv: [*][*:0]u8) ?[*:0]const u8 {
     if (argc <= 0) return null;
     const count: usize = @intCast(argc);

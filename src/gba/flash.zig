@@ -14,6 +14,8 @@ pub const Flash = struct {
     busy_until: u32 = 0,
     busy_sector: u32 = 0,
     backup_size: u32 = 0x10000,
+    dirty: bool = false,
+    write_seq: u32 = 0,
 
     const flash_tags = [_][]const u8{ "FLASH1M_V", "FLASH512_V", "FLASH_V" };
     const id_small = [2]u8{ 0x32, 0x1B }; // Panasonic MN63F805MNP (64 KB)
@@ -62,12 +64,20 @@ pub const Flash = struct {
     pub fn write8(self: *Flash, sram: []u8, addr: u32, val: u8, cycle_counter: u32) void {
         const off: u32 = addr & 0xFFFF;
         if (!self.present) {
-            sram[off] = val;
+            if (sram[off] != val) {
+                sram[off] = val;
+                self.dirty = true;
+                self.write_seq +%= 1;
+            }
             return;
         }
         const bank_off: u32 = self.bank * 0x10000;
         if (self.write_next) {
-            sram[bank_off + off] = val;
+            if (sram[bank_off + off] != val) {
+                sram[bank_off + off] = val;
+                self.dirty = true;
+                self.write_seq +%= 1;
+            }
             self.write_next = false;
             self.settle(off, 650, cycle_counter);
             return;
@@ -91,14 +101,24 @@ pub const Flash = struct {
             self.stage = 0;
             if (self.erase_armed and val == 0x30) {
                 const sec_off = bank_off + (off & 0xF000);
-                @memset(sram[sec_off .. sec_off + 0x1000], 0xFF);
+                const sector = sram[sec_off .. sec_off + 0x1000];
+                if (std.mem.indexOfNone(u8, sector, &.{0xFF}) != null) {
+                    @memset(sector, 0xFF);
+                    self.dirty = true;
+                    self.write_seq +%= 1;
+                }
                 self.settle(off, 30000, cycle_counter);
                 self.erase_armed = false;
                 return;
             }
             if (off != 0x5555) return;
             if (self.erase_armed and val == 0x10) {
-                @memset(sram[0..self.backup_size], 0xFF);
+                const chip = sram[0..self.backup_size];
+                if (std.mem.indexOfNone(u8, chip, &.{0xFF}) != null) {
+                    @memset(chip, 0xFF);
+                    self.dirty = true;
+                    self.write_seq +%= 1;
+                }
                 self.erase_armed = false;
                 return;
             }
@@ -138,6 +158,8 @@ pub const Eeprom = struct {
     cur_addr: u32 = 0,
     read_bit_idx: i32 = 0,
     storage: [0x2000]u8 = @splat(0),
+    dirty: bool = false,
+    write_seq: u32 = 0,
 
     /// Scan `rom` for `"EEPROM_V"`. Returns matching ROM offset if found.
     pub fn detect(self: *Eeprom, rom: []const u8) ?u32 {
@@ -232,9 +254,18 @@ pub const Eeprom = struct {
                 if (self.bit_cnt == 64) {
                     const base: usize = @intCast(self.cur_addr * 8);
                     if (base + 8 <= self.storage.len) {
+                        var changed = false;
                         for (0..8) |i| {
                             const shift: u6 = @intCast(56 - i * 8);
-                            self.storage[base + i] = @truncate(self.data_buf >> shift);
+                            const byte_val: u8 = @truncate(self.data_buf >> shift);
+                            if (self.storage[base + i] != byte_val) {
+                                self.storage[base + i] = byte_val;
+                                changed = true;
+                            }
+                        }
+                        if (changed) {
+                            self.dirty = true;
+                            self.write_seq +%= 1;
                         }
                     }
                     self.data_buf = 0;
@@ -278,12 +309,25 @@ test "Flash detect, ID mode, sector erase, byte write with busy polling, and 128
     fl.write8(&sram, 0x0E00_5555, 0xF0, 0);
 
     // Write byte at cycle 1000 -> settles for 650 cycles with inverted bit 7 data# polling
+    fl.dirty = false;
+    const seq_before_write = fl.write_seq;
     fl.write8(&sram, 0x0E00_5555, 0xAA, 1000);
     fl.write8(&sram, 0x0E00_2AAA, 0x55, 1000);
     fl.write8(&sram, 0x0E00_5555, 0xA0, 1000);
     fl.write8(&sram, 0x0E00_1234, 0x3C, 1000);
+    try std.testing.expect(fl.dirty);
+    try std.testing.expectEqual(seq_before_write + 1, fl.write_seq);
     try std.testing.expectEqual(@as(u8, 0x80), fl.read8(&sram, 0x0E00_1234, 1100));
     try std.testing.expectEqual(@as(u8, 0x3C), fl.read8(&sram, 0x0E00_1234, 1650));
+
+    // Identical-value rewrite must not re-dirty
+    fl.dirty = false;
+    fl.write8(&sram, 0x0E00_5555, 0xAA, 1700);
+    fl.write8(&sram, 0x0E00_2AAA, 0x55, 1700);
+    fl.write8(&sram, 0x0E00_5555, 0xA0, 1700);
+    fl.write8(&sram, 0x0E00_1234, 0x3C, 1700);
+    try std.testing.expect(!fl.dirty);
+    try std.testing.expectEqual(seq_before_write + 1, fl.write_seq);
 
     // Sector erase on sector 1 (0x1000..0x1FFF) -> settles after 30000 cycles
     fl.write8(&sram, 0x0E00_5555, 0xAA, 2000);
@@ -292,6 +336,7 @@ test "Flash detect, ID mode, sector erase, byte write with busy polling, and 128
     fl.write8(&sram, 0x0E00_5555, 0xAA, 2000);
     fl.write8(&sram, 0x0E00_2AAA, 0x55, 2000);
     fl.write8(&sram, 0x0E00_1000, 0x30, 2000);
+    try std.testing.expect(fl.dirty);
     try std.testing.expectEqual(@as(u8, 0x00), fl.read8(&sram, 0x0E00_1234, 10000));
     try std.testing.expectEqual(@as(u8, 0xFF), fl.read8(&sram, 0x0E00_1234, 32000));
 
@@ -314,6 +359,7 @@ test "Flash detect, ID mode, sector erase, byte write with busy polling, and 128
     fl1m.write8(&sram, 0x0E00_5555, 0xB0, 0);
     fl1m.write8(&sram, 0x0E00_0000, 1, 0);
     try std.testing.expectEqual(@as(u32, 1), fl1m.bank);
+    try std.testing.expect(!fl1m.dirty);
 }
 
 test "EEPROM 8KB bit-serial write and read round-trip" {
@@ -333,8 +379,11 @@ test "EEPROM 8KB bit-serial write and read round-trip" {
         ee.write(@truncate((payload >> @intCast(db)) & 1));
     }
     ee.write(0); // stop bit
+    try std.testing.expect(ee.dirty);
+    try std.testing.expectEqual(@as(u32, 1), ee.write_seq);
 
-    // Read block 5 back: 4 dummy 0 bits followed by 64 MSB-first bits
+    // Read block 5 back: 4 dummy 0 bits followed by 64 MSB-first bits (must not dirty EEPROM)
+    ee.dirty = false;
     ee.write(1);
     ee.write(1);
     b = 13;
@@ -342,6 +391,8 @@ test "EEPROM 8KB bit-serial write and read round-trip" {
         ee.write(@truncate((@as(u32, 5) >> @intCast(b)) & 1));
     }
     ee.write(0); // stop bit
+    try std.testing.expect(!ee.dirty);
+    try std.testing.expectEqual(@as(u32, 1), ee.write_seq);
 
     for (0..4) |_| {
         try std.testing.expectEqual(@as(u16, 0), ee.read());

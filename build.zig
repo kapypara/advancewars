@@ -27,9 +27,19 @@ pub fn build(b: *std.Build) void {
         "trace",
         "Enable GBA_VALIDATE / tracing hooks in shards (default: true on native hosts, false on freestanding)",
     ) orelse (target.result.os.tag != .freestanding);
+    const embed_rom_opt = b.option(
+        bool,
+        "embed-rom",
+        "Embed the GBA ROM into the executable (default: true when ROM file exists)",
+    );
     const strip_exe = strip_opt orelse (optimize != .debug);
     const strip_shards = strip_opt orelse true;
     const rom_lazy = resolvePath(b, rom_path);
+    const rom_exists = if (std.fs.path.isAbsolute(rom_path))
+        if (std.Io.Dir.accessAbsolute(b.graph.io, rom_path, .{})) true else |_| false
+    else
+        if (b.root.access(b.graph.io, rom_path, .{})) true else |_| false;
+    const embed_rom = embed_rom_opt orelse rom_exists;
 
     // ---- Pure-Zig host recompiler tool (`src/recomp/`) ----
     const recompiler_mod = b.createModule(.{
@@ -158,6 +168,9 @@ pub fn build(b: *std.Build) void {
 
     std.mem.sort([]const u8, shard_files.items, {}, stringLessThan);
 
+    const rt_opts = b.addOptions();
+    rt_opts.addOption(bool, "has_embedded_rom", embed_rom);
+
     const awre_rt_mod = b.createModule(.{
         .root_source_file = b.path("src/runtime.zig"),
         .target = target,
@@ -165,7 +178,13 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         .strip = strip_exe,
     });
+    awre_rt_mod.addOptions("rt_options", rt_opts);
     awre_rt_mod.addImport("awre_core", awre_core_mod);
+    if (embed_rom) {
+        awre_rt_mod.addAnonymousImport("embedded_rom", .{
+            .root_source_file = rom_lazy,
+        });
+    }
     if (target.result.os.tag != .freestanding) {
         awre_rt_mod.addCSourceFile(.{
             .file = b.path("src/validate/jmp.c"),
@@ -242,7 +261,9 @@ pub fn build(b: *std.Build) void {
     // ---- Run, conformance & headless smoke steps ----
     const run_cmd = b.addRunArtifact(awre_exe);
     run_cmd.step.dependOn(b.getInstallStep());
-    run_cmd.addFileArg(rom_lazy);
+    if (!embed_rom) {
+        run_cmd.addFileArg(rom_lazy);
+    }
     run_cmd.addPassthruArgs();
     const run_step = b.step("run", "Run awre against the ROM (pass flags after '--')");
     run_step.dependOn(&run_cmd.step);
