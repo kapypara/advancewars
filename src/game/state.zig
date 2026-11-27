@@ -1278,6 +1278,25 @@ pub fn func_0803AB5C() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Reset BG/VRAM via `0x0800FC58` and update states `[0x0804F93C]` / `[0x0804F940]` (`0x0804F924`).
+pub fn func_0804F924() callconv(.c) void {
+    if (!abi.enter(0x0804F924)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0800FC58, 0x0804F92B)) return;
+
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0804F93C);
+    if (!abi.call(decls.func_0803826C, 0x0804F931)) return;
+
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0804F940);
+    if (!abi.call(decls.func_08038260, 0x0804F937)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08015E10, .{ .name = "func_08015E10", .linkage = .strong });
@@ -1382,6 +1401,7 @@ comptime {
         @export(&func_0803A128, .{ .name = "func_0803A128", .linkage = .strong });
         @export(&func_0803A224, .{ .name = "func_0803A224", .linkage = .strong });
         @export(&func_0803AB5C, .{ .name = "func_0803AB5C", .linkage = .strong });
+        @export(&func_0804F924, .{ .name = "func_0804F924", .linkage = .strong });
     }
 }
 

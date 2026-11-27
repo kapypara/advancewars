@@ -1165,6 +1165,64 @@ pub fn func_0801785C() callconv(.c) void {
     abi.popReturn();
 }
 
+fn popReturnPcHw() void {
+    const pc_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[15] = pc_val;
+    rt.recompReturn(pc_val);
+}
+
+/// Clear IRQ mask via `0x0807AE60(0, 0)` and flush `0x0807ACE8` (`0x0807AD00`).
+pub fn func_0807AD00() callconv(.c) void {
+    if (!abi.enter(0x0807AD00)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0807AE60, 0x0807AD0B)) return;
+    abi.fetches(4);
+    if (!abi.call(func_0807ACE8, 0x0807AD0F)) return;
+    abi.fetches(3);
+    popReturnPcHw();
+}
+
+/// Reset hardware via `0x0807AD00` and sync audio/state `0x080386E4` (`0x0807AD10`).
+pub fn func_0807AD10() callconv(.c) void {
+    if (!abi.enter(0x0807AD10)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(func_0807AD00, 0x0807AD17)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080386E4, 0x0807AD1B)) return;
+    abi.fetches(3);
+    popReturnPcHw();
+}
+
+/// Configure Flash timing `0x0807B13C([0x0807AD84])` and finish `0x0807AD64` (`0x0807AD74`).
+pub fn func_0807AD74() callconv(.c) void {
+    if (!abi.enter(0x0807AD74)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0807AD84);
+    if (!abi.call(decls.func_0807B13C, 0x0807AD7D)) return;
+    abi.fetches(4);
+    if (!abi.call(func_0807AD64, 0x0807AD81)) return;
+    abi.fetches(3);
+    popReturnPcHw();
+}
+
+/// Poll hardware ready `0x0807AD88` then commit `0x0807ADF0` (`0x0807AE04`).
+pub fn func_0807AE04() callconv(.c) void {
+    if (!abi.enter(0x0807AE04)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0807AD88, 0x0807AE0B)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_0807ADF0, 0x0807AE0F)) return;
+    abi.fetches(3);
+    popReturnPcHw();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -1238,6 +1296,10 @@ comptime {
         @export(&func_0807B2DC, .{ .name = "func_0807B2DC", .linkage = .strong });
         @export(&func_0807B310, .{ .name = "func_0807B310", .linkage = .strong });
         @export(&func_0807B51C, .{ .name = "func_0807B51C", .linkage = .strong });
+        @export(&func_0807AD00, .{ .name = "func_0807AD00", .linkage = .strong });
+        @export(&func_0807AD10, .{ .name = "func_0807AD10", .linkage = .strong });
+        @export(&func_0807AD74, .{ .name = "func_0807AD74", .linkage = .strong });
+        @export(&func_0807AE04, .{ .name = "func_0807AE04", .linkage = .strong });
     }
 }
 

@@ -561,6 +561,63 @@ pub fn func_0803DAE0() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Reset state `[0x0804E674]` (`+0x2A = 0x80`, `+0x31 = 0`), spawn proc `[0x0804E678]`, and play SFX `0x74` (`0x0804E650`).
+pub fn func_0804E650() callconv(.c) void {
+    if (!abi.enter(0x0804E650)) return;
+    abi.fetches(14);
+    abi.pushLr();
+    const st = abi.read32(abi.read32(0x0804E674));
+    abi.write16(st +% 0x2A, 0x80);
+    abi.write8(st +% 0x31, 0);
+    rt.r[0] = abi.read32(0x0804E678);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x0804E669)) return;
+
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 0x74);
+    if (!abi.call(decls.func_0803D880, 0x0804E66F)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Play SFX `0xDA` via `0x0803D8C8` and spawn proc `[0x08051CA4]` via `0x0801320C` (`0x08051C90`).
+pub fn func_08051C90() callconv(.c) void {
+    if (!abi.enter(0x08051C90)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0xDA);
+    if (!abi.call(decls.func_0803D8C8, 0x08051C99)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x08051CA4);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08051CA1)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Commit display regs `0x080104B0`, configure blend `[0x080521E0..0x080521E8]`, and play SFX `0xCF` (`0x080521A4`).
+pub fn func_080521A4() callconv(.c) void {
+    if (!abi.enter(0x080521A4)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_080104B0, 0x080521AB)) return;
+
+    abi.fetches(26);
+    const ctrl = abi.read32(0x080521E0);
+    abi.write8(ctrl, (abi.read8(ctrl) & 0x3F) | 0x42);
+    abi.write8(ctrl +% 1, abi.read8(ctrl +% 1) | 0x18);
+    abi.write16(abi.read32(0x080521E4), 0xA);
+    abi.write16(abi.read32(0x080521E8), 8);
+    abi.setRegNz(&rt.r[0], 0xCF);
+    if (!abi.call(decls.func_0803D8C8, 0x080521DB)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
@@ -608,6 +665,9 @@ comptime {
         @export(&func_0803D968, .{ .name = "func_0803D968", .linkage = .strong });
         @export(&func_0803DAA0, .{ .name = "func_0803DAA0", .linkage = .strong });
         @export(&func_0803DAE0, .{ .name = "func_0803DAE0", .linkage = .strong });
+        @export(&func_0804E650, .{ .name = "func_0804E650", .linkage = .strong });
+        @export(&func_08051C90, .{ .name = "func_08051C90", .linkage = .strong });
+        @export(&func_080521A4, .{ .name = "func_080521A4", .linkage = .strong });
     }
 }
 

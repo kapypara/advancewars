@@ -346,6 +346,157 @@ pub fn func_0801CA18() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Upload CO unit palette `0x0801BEE4(u16(r0))` to OBJ palette `(r1 & 0xF) + 0x10` via `0x08011330` (`0x0806C9A0`).
+pub fn func_0806C9A0() callconv(.c) void {
+    if (!abi.enter(0x0806C9A0)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const pal_slot = rt.r[1] & 0xF;
+    rt.r[4] = pal_slot;
+    rt.updateNz(pal_slot);
+    rt.r[0] &= 0xFFFF;
+    rt.updateNz(rt.r[0]);
+    if (!abi.call(func_0801BEE4, 0x0806C9AF)) return;
+
+    abi.fetches(8);
+    const dst = (pal_slot +% 0x10) << 5;
+    rt.r[4] = dst;
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0806C9BB)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Upload `0x200`-byte CO tag tiles `0x0801BEA0(u16(r0))` to masked OBJ VRAM slot (`0x0806CA08`).
+pub fn func_0806CA08() callconv(.c) void {
+    if (!abi.enter(0x0806CA08)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const slot = abi.read32(0x0806CA34) & rt.r[1];
+    rt.r[4] = slot;
+    rt.updateNz(slot);
+    rt.r[0] &= 0xFFFF;
+    rt.updateNz(rt.r[0]);
+    if (!abi.call(func_0801BEA0, 0x0806CA17)) return;
+
+    abi.fetches(14);
+    const dst = ((slot << 5) | (@as(u32, 0x80) << 9)) +% (@as(u32, 0xC0) << 19);
+    rt.r[4] = dst;
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[2], @as(u32, 0x80) << 2);
+    if (!abi.call(decls.func_0800FFA8, 0x0806CA2F)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Decompress CO graphic `0x0801BEBC(u8(r0), u8(r1))` to `[0x0806CA60] + masked(r2) * 32` (`0x0806CA38`).
+pub fn func_0806CA38() callconv(.c) void {
+    if (!abi.enter(0x0806CA38)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const slot = abi.read32(0x0806CA5C) & rt.r[2];
+    rt.r[4] = slot;
+    rt.r[0] &= 0xFF;
+    rt.r[1] &= 0xFF;
+    rt.updateNz(rt.r[1]);
+    if (!abi.call(func_0801BEBC, 0x0806CA4B)) return;
+
+    abi.fetches(8);
+    const dst = (slot << 5) +% abi.read32(0x0806CA60);
+    rt.r[4] = dst;
+    rt.r[1] = dst;
+    if (!abi.call(decls.func_0800FE24, 0x0806CA57)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// LZ77-decompress CO asset `[0x0806CD4C][r0 * 36]` to tile `r1` and upload palette `0x0801BEE4` to `r2` (`0x0806CD10`).
+pub fn func_0806CD10() callconv(.c) void {
+    if (!abi.enter(0x0806CD10)) return;
+    abi.fetches(17);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const co_id = rt.r[0];
+    const pal_slot = rt.r[2];
+    rt.r[4] = co_id;
+    rt.r[5] = pal_slot;
+    const tbl = abi.read32(0x0806CD4C);
+    rt.r[0] = abi.read32((co_id *% 36) +% tbl);
+    rt.r[1] = (rt.r[1] << 5) +% (@as(u32, 0xC0) << 19);
+    abi.setRegNz(&rt.r[2], @as(u32, 0xC0) << 19);
+    if (!abi.call(decls.func_0800FE18, 0x0806CD2F)) return;
+
+    abi.fetches(7);
+    const co_u16 = co_id & 0xFFFF;
+    rt.r[4] = co_u16;
+    abi.copyRegFlags(&rt.r[0], co_u16);
+    if (!abi.call(func_0801BEE4, 0x0806CD39)) return;
+
+    abi.fetches(8);
+    const pal_off = (pal_slot << 21) >> 16;
+    rt.r[5] = pal_off;
+    rt.updateNz(pal_off);
+    abi.copyRegFlags(&rt.r[1], pal_off);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0806CD45)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Load CO icon `0x08051E58(u16(r0))` and LZ77-decompress to VRAM tile `r1` via `0x0800FE18` (`0x0806CE84`).
+pub fn func_0806CE84() callconv(.c) void {
+    if (!abi.enter(0x0806CE84)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const tile_idx = rt.r[1];
+    rt.r[4] = tile_idx;
+    rt.r[0] &= 0xFFFF;
+    rt.updateNz(rt.r[0]);
+    if (!abi.call(decls.func_08051E58, 0x0806CE91)) return;
+
+    abi.fetches(9);
+    const dst = (tile_idx << 5) +% (@as(u32, 0xC0) << 19);
+    rt.r[4] = dst;
+    rt.r[1] = dst;
+    if (!abi.call(decls.func_0800FE18, 0x0806CE9F)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_0801BDDC, .{ .name = "func_0801BDDC", .linkage = .strong });
@@ -367,6 +518,11 @@ comptime {
         @export(&func_0801C910, .{ .name = "func_0801C910", .linkage = .strong });
         @export(&func_0801C93C, .{ .name = "func_0801C93C", .linkage = .strong });
         @export(&func_0801CA18, .{ .name = "func_0801CA18", .linkage = .strong });
+        @export(&func_0806C9A0, .{ .name = "func_0806C9A0", .linkage = .strong });
+        @export(&func_0806CA08, .{ .name = "func_0806CA08", .linkage = .strong });
+        @export(&func_0806CA38, .{ .name = "func_0806CA38", .linkage = .strong });
+        @export(&func_0806CD10, .{ .name = "func_0806CD10", .linkage = .strong });
+        @export(&func_0806CE84, .{ .name = "func_0806CE84", .linkage = .strong });
     }
 }
 
