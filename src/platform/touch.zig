@@ -113,6 +113,9 @@ pub const UiMode = enum {
     battle_popup_menu,
     battle_unit_list,
     battle_attack_target,
+    battle_deploy_shop,
+    battle_intel_status,
+    battle_co_info,
     battle_overlay,
     frontend_main_menu,
     frontend_map_select,
@@ -590,6 +593,9 @@ pub const TouchController = struct {
                 } else if (slot.mode_on_down == .battle_popup_menu or
                     slot.mode_on_down == .battle_unit_list or
                     slot.mode_on_down == .battle_attack_target or
+                    slot.mode_on_down == .battle_deploy_shop or
+                    slot.mode_on_down == .battle_intel_status or
+                    slot.mode_on_down == .battle_co_info or
                     slot.mode_on_down == .battle_overlay or
                     slot.mode_on_down == .dialog or
                     slot.mode_on_down == .yes_no_prompt or
@@ -767,6 +773,49 @@ pub const TouchController = struct {
                     self.enqueuePulse(gba.Key.a.mask(), 4, 2);
                 } else {
                     self.startAttackTargetCycle(tile, state);
+                }
+            },
+            .battle_deploy_shop => {
+                const py_i: i32 = @intFromFloat(@floor(ly));
+                const vis_count: i32 = if (state.menu_count > 0) @as(i32, state.menu_count) else 7;
+                if (lx >= 8 and lx < 128 and py_i >= 40 and py_i < 40 + vis_count * 16) {
+                    const row: u8 = @intCast(@divTrunc(py_i - 40, 16));
+                    self.cancelNavigation();
+                    if (row == state.menu_selected) {
+                        self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                    } else {
+                        self.startMenuNavigation(row, false, state);
+                    }
+                } else if (lx >= 48 and lx < 88 and py_i >= 30 and py_i < 40) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.up.mask(), 4, 2);
+                } else if (lx >= 48 and lx < 88 and py_i >= 152 and py_i < 160) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.down.mask(), 4, 2);
+                }
+            },
+            .battle_intel_status => {
+                if (lx < 20 and ly < 30) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.left.mask(), 4, 2);
+                } else if (lx >= 36 and lx < 88 and ly < 30) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.right.mask(), 4, 2);
+                } else if (ly >= 118) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.b.mask(), 4, 2);
+                }
+            },
+            .battle_co_info => {
+                if (lx >= 4 and lx < 28 and ly >= 4 and ly < 28) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.l.mask(), 4, 2);
+                } else if (lx >= 108 and lx < 136 and ly >= 4 and ly < 28) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.r.mask(), 4, 2);
+                } else if (lx >= 4 and lx < 136 and ly >= 30) {
+                    self.cancelNavigation();
+                    self.enqueuePulse(gba.Key.a.mask(), 4, 2);
                 }
             },
             .battle_overlay => {
@@ -1026,6 +1075,7 @@ pub const TouchController = struct {
         };
         if (state.mode != .battle_popup_menu and
             state.mode != .battle_unit_list and
+            state.mode != .battle_deploy_shop and
             state.mode != .yes_no_prompt and
             state.mode != .frontend_map_select)
         {
@@ -2141,6 +2191,119 @@ test "Frontend Main Menu, Map Select, and CO Setup tap zones" {
 
     tc.handlePointer(.{ .id = 11, .phase = .down, .x = 60, .y = 112, .logical_x = 60, .logical_y = 112 }, co_state);
     tc.handlePointer(.{ .id = 11, .phase = .up, .x = 60, .y = 112, .logical_x = 60, .logical_y = 112 }, co_state);
+    tc.stepFrame(co_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+}
+
+test "Battle deploy shop 2-tap preview/buy, scroll arrows, INTEL ignore, and natural scroll" {
+    var tc = TouchController{};
+    var shop_state = GameState{
+        .mode = .battle_deploy_shop,
+        .menu_x = 8,
+        .menu_y = 40,
+        .menu_count = 7,
+        .menu_selected = 0,
+    };
+
+    // 1st tap row 3 (Tank, lx=64, ly=96) steps menu_selected 0 -> 3 without emitting A.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 64, .y = 96, .logical_x = 64, .logical_y = 96 }, shop_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 64, .y = 96, .logical_x = 64, .logical_y = 96 }, shop_state);
+    for (0..30) |_| {
+        tc.stepFrame(shop_state);
+        const k = tc.activeKeys();
+        try std.testing.expectEqual(@as(u16, 0), k & gba.Key.a.mask());
+        if (tc.menu_nav_timer == nav_pulse_frames - 1 and !tc.menu_nav_in_gap and (k & gba.Key.down.mask()) != 0) {
+            shop_state.menu_selected += 1;
+        }
+    }
+    try std.testing.expectEqual(@as(u8, 3), shop_state.menu_selected);
+
+    // 2nd tap row 3 confirms A (buy/deploy).
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 64, .y = 96, .logical_x = 64, .logical_y = 96 }, shop_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 64, .y = 96, .logical_x = 64, .logical_y = 96 }, shop_state);
+    tc.stepFrame(shop_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(shop_state);
+
+    // Top scroll arrow -> Up; bottom scroll arrow -> Down.
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 68, .y = 35, .logical_x = 68, .logical_y = 35 }, shop_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 68, .y = 35, .logical_x = 68, .logical_y = 35 }, shop_state);
+    tc.stepFrame(shop_state);
+    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(shop_state);
+
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 68, .y = 156, .logical_x = 68, .logical_y = 156 }, shop_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 68, .y = 156, .logical_x = 68, .logical_y = 156 }, shop_state);
+    tc.stepFrame(shop_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(shop_state);
+
+    // Tapping right INTEL panel (lx=180, ly=80) emits nothing.
+    tc.handlePointer(.{ .id = 5, .phase = .down, .x = 180, .y = 80, .logical_x = 180, .logical_y = 80 }, shop_state);
+    tc.handlePointer(.{ .id = 5, .phase = .up, .x = 180, .y = 80, .logical_x = 180, .logical_y = 80 }, shop_state);
+    tc.stepFrame(shop_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Natural scroll swipe up -> Key.down.
+    tc.handlePointer(.{ .id = 6, .phase = .down, .x = 68, .y = 110, .logical_x = 68, .logical_y = 110 }, shop_state);
+    tc.handlePointer(.{ .id = 6, .phase = .move, .x = 68, .y = 62, .logical_x = 68, .logical_y = 62 }, shop_state);
+    tc.stepFrame(shop_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+}
+
+test "Battle Intel Status and CO Dossier direct buttons and natural scroll" {
+    var tc = TouchController{};
+    const status_state = GameState{ .mode = .battle_intel_status };
+
+    // '<' emits Key.left; '>' / 'Unit' emits Key.right; bottom strip emits Key.b.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 8, .y = 16, .logical_x = 8, .logical_y = 16 }, status_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 8, .y = 16, .logical_x = 8, .logical_y = 16 }, status_state);
+    tc.stepFrame(status_state);
+    try std.testing.expectEqual(gba.Key.left.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(status_state);
+
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 48, .y = 16, .logical_x = 48, .logical_y = 16 }, status_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 48, .y = 16, .logical_x = 48, .logical_y = 16 }, status_state);
+    tc.stepFrame(status_state);
+    try std.testing.expectEqual(gba.Key.right.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(status_state);
+
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 120, .y = 140, .logical_x = 120, .logical_y = 140 }, status_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 120, .y = 140, .logical_x = 120, .logical_y = 140 }, status_state);
+    tc.stepFrame(status_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(status_state);
+
+    // Natural scroll swipe left -> Key.right.
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, status_state);
+    tc.handlePointer(.{ .id = 4, .phase = .move, .x = 72, .y = 80, .logical_x = 72, .logical_y = 80 }, status_state);
+    tc.stepFrame(status_state);
+    try std.testing.expectEqual(gba.Key.right.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 72, .y = 80, .logical_x = 72, .logical_y = 80 }, status_state);
+    for (0..8) |_| tc.stepFrame(status_state);
+
+    const co_state = GameState{ .mode = .battle_co_info };
+    tc.handlePointer(.{ .id = 5, .phase = .down, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, co_state);
+    tc.handlePointer(.{ .id = 5, .phase = .up, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, co_state);
+    tc.stepFrame(co_state);
+    try std.testing.expectEqual(gba.Key.l.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(co_state);
+
+    tc.handlePointer(.{ .id = 6, .phase = .down, .x = 120, .y = 16, .logical_x = 120, .logical_y = 16 }, co_state);
+    tc.handlePointer(.{ .id = 6, .phase = .up, .x = 120, .y = 16, .logical_x = 120, .logical_y = 16 }, co_state);
+    tc.stepFrame(co_state);
+    try std.testing.expectEqual(gba.Key.r.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(co_state);
+
+    tc.handlePointer(.{ .id = 7, .phase = .down, .x = 68, .y = 100, .logical_x = 68, .logical_y = 100 }, co_state);
+    tc.handlePointer(.{ .id = 7, .phase = .up, .x = 68, .y = 100, .logical_x = 68, .logical_y = 100 }, co_state);
+    tc.stepFrame(co_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(co_state);
+
+    // Natural scroll swipe up -> Key.down.
+    tc.handlePointer(.{ .id = 8, .phase = .down, .x = 68, .y = 100, .logical_x = 68, .logical_y = 100 }, co_state);
+    tc.handlePointer(.{ .id = 8, .phase = .move, .x = 68, .y = 52, .logical_x = 68, .logical_y = 52 }, co_state);
     tc.stepFrame(co_state);
     try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
 }

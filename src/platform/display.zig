@@ -211,8 +211,26 @@ fn sampleGameState() GameState {
                 menu_y = 56;
                 break :blk .battle_unit_list;
             }
+            if (findActiveProcSlot(0x0828_BC1C)) |shop_slot| {
+                const scroll_top = peek8(shop_slot + 0x1E);
+                const cursor_abs = peek8(shop_slot + 0x20);
+                const max_idx = peek8(shop_slot + 0x22);
+                const total_items: u8 = max_idx +| 1;
+                const vis = total_items -| scroll_top;
+                menu_count = if (vis > 0) @min(vis, @as(u8, 7)) else 7;
+                menu_selected = cursor_abs -| scroll_top;
+                menu_x = 8;
+                menu_y = 40;
+                break :blk .battle_deploy_shop;
+            }
             if (hasActiveProc(0x0828_B56C)) {
                 break :blk .battle_attack_target;
+            }
+            if (hasActiveProc(0x082E_B550)) {
+                break :blk .battle_intel_status;
+            }
+            if (hasActiveProc(0x082E_B114)) {
+                break :blk .battle_co_info;
             }
         }
         break :blk .battle_overlay;
