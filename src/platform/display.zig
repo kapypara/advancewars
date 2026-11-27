@@ -113,8 +113,10 @@ fn sampleGameState() GameState {
     const in_battle_scene = (main_scene_fn == 0x0803_849D);
     const dialog_active = hasActiveProc(0x0828_0E0C);
     const frontend_root = hasActiveProc(0x082F_1160);
-    const cursor_x = peek16(0x0300_36A4);
-    const cursor_y = peek16(0x0300_36A6);
+    const cursor_x_raw = peek16(0x0300_36A4);
+    const cursor_y_raw = peek16(0x0300_36A6);
+    var cursor_x: u16 = cursor_x_raw;
+    var cursor_y: u16 = cursor_y_raw;
 
     const raw_w = peek16(0x0201_57F8);
     const raw_h = peek16(0x0201_57FA);
@@ -140,7 +142,18 @@ fn sampleGameState() GameState {
 
     const mode: UiMode = if (disp_mode == 4)
         .title
-    else if (in_battle_scene and disp_mode == 0 and battle_lock == 0 and battle_lock2 == 0 and turn_phase == 5) blk: {
+    else if (findActiveProcSlot(0x0828_1CE8)) |yn_slot| blk: {
+        const tile_ptr = peek32(yn_slot + 0x18);
+        const cell = (tile_ptr & 0x7FF) >> 1;
+        const tile_x = cell % 32;
+        const tile_y = cell / 32;
+        menu_x = @intCast(tile_x * 8);
+        menu_y = @intCast(tile_y * 8);
+        const sel_raw: i16 = @bitCast(peek16(yn_slot + 0x1E));
+        menu_selected = if (sel_raw != 0) 1 else 0;
+        menu_count = 2;
+        break :blk .yes_no_prompt;
+    } else if (in_battle_scene and disp_mode == 0 and battle_lock == 0 and battle_lock2 == 0 and turn_phase == 5) blk: {
         if (dialog_active) break :blk .dialog;
         break :blk switch (substate) {
             0 => .battle_free_map,
@@ -149,9 +162,31 @@ fn sampleGameState() GameState {
         };
     } else if (dialog_active and !frontend_root)
         .dialog
-    else if (!in_battle_scene or battle_lock < 0)
-        .frontend_menu
-    else blk: {
+    else if (!in_battle_scene or battle_lock < 0) blk: {
+        if (disp_mode == 0) {
+            if (hasActiveProc(0x082F_1130) and !dialog_active) {
+                cursor_x = peek16(0x0200_802E);
+                cursor_y = peek16(0x0200_8030);
+                break :blk .name_entry;
+            }
+            if (hasActiveProc(0x082F_1BE0) and !hasActiveProc(0x0828_0D0C)) {
+                menu_count = peek8(0x0200_002D);
+                menu_selected = peek8(0x0200_002F);
+                break :blk .frontend_main_menu;
+            }
+            if (hasActiveProc(0x082E_BF68)) {
+                menu_count = 6;
+                menu_selected = peek8(0x0201_FD23);
+                menu_x = 4;
+                menu_y = 64;
+                break :blk .frontend_map_select;
+            }
+            if (hasActiveProc(0x083B_93C8) or hasActiveProc(0x083B_9244)) {
+                break :blk .frontend_co_setup;
+            }
+        }
+        break :blk .frontend_menu;
+    } else blk: {
         if (disp_mode == 0) {
             if (findActiveProcSlot(0x0828_1D60)) |main_slot| {
                 if (findActiveProcSlot(0x0828_1D80)) |cur_slot| {

@@ -105,8 +105,8 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
   - Unit-selected behavior: 1st tap previews path on reachable tiles via BFS (`findReachableNextStep`), 2nd tap on cursor confirms `A`; tapping outside movement range simply cancels/deselects (`B`); dragging smoothly paints a tile-by-tile path preview without auto-confirming; free-map drag mimics finger motion; menus (`.battle_overlay` & `.frontend_menu`) support natural scrolling + tap `A`.
 - **Milestone 7C — Direct In-Battle Menu Clicking (Done):**
   - Hooked Action/Map popup menus (`0x0828_1D60`/`0x0828_1D80` item count/selected/cursor pos) for direct row clicking (same-row `A`, other-row step + auto-confirm `A`, outside tap `B`), Unit List (`0x082E_CF68` visible rows relative to `+0x20` scroll + `<`/`>` column pager arrows, 2-tap select & jump), and Attack Target (`0x0828_B56C` 2-tap cycle preview + confirm `A`), keeping natural scrolling across all overlay menus; Factory/Deploy shop retains natural scroll + tap `A` fallback until verified on a Base map.
-- **Milestone 7D — Direct Campaign & Pre-Battle Menu Clicking (Next):**
-  - Hook Title/Main menus, Yes/No prompts, Name Entry grid + `BACK`/`OK!`, CO Select, and Mission Select.
+- **Milestone 7D — Direct Campaign & Pre-Battle Menu Clicking (Done):**
+  - Hooked universal Yes/No prompts (`0x0828_1CE8` tilemap anchor + selection toggle/confirm), Name Entry character grid (`0x082F_1130` 2D EWRAM cursor navigation + row-4 Left-first guard + `BACK`/`OK!`), Main Menu / Mode Submenu carousel (`0x082F_1BE0` top/center/bottom tap zones), Map Select (`0x082E_BF68` `<L`/`R>` category arrows + 2-tap map rows & minimap confirm), and VS CO / Rules Setup (`0x083B_93C8` / `0x083B_9244`), keeping natural scrolling across every screen.
 
 ## Phase 8 — Widescreen / Wider Viewport Mode (Planned)
 - Extend the PPU beyond `240x160` for desktop and mobile widescreen displays (deferred from Phase 7 so outside-frame controls stabilize cleanly first).
