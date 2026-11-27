@@ -5,7 +5,7 @@
 *.rar
 *.sav
 *.eep
-game/
+/game/
 
 # Generated ROM shards (rebuilt via `zig build translate`)
 gen/

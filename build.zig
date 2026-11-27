@@ -106,6 +106,14 @@ pub fn build(b: *std.Build) void {
     const shard_opts = b.addOptions();
     shard_opts.addOption(bool, "enable_trace", enable_trace);
 
+    const rt_shard_mod = b.createModule(.{
+        .root_source_file = b.path("src/shard.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip_exe,
+    });
+    rt_shard_mod.addOptions("build_options", shard_opts);
+
     const test_opts = b.addOptions();
     test_opts.addOption(bool, "headless", true);
 
@@ -154,9 +162,21 @@ pub fn build(b: *std.Build) void {
     });
     const run_recomp_tests = b.addRunArtifact(recomp_tests);
 
+    const decomp_test_mod = b.createModule(.{
+        .root_source_file = b.path("src/game/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    decomp_test_mod.addImport("runtime", rt_shard_mod);
+    const decomp_tests = b.addTest(.{
+        .root_module = decomp_test_mod,
+    });
+    const run_decomp_tests = b.addRunArtifact(decomp_tests);
+
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_core_tests.step);
     test_step.dependOn(&run_recomp_tests.step);
+    test_step.dependOn(&run_decomp_tests.step);
 
     // ---- Native Advance Wars executable (`awre`) ----
     var shard_files: std.ArrayList([]const u8) = .empty;
@@ -224,14 +244,6 @@ pub fn build(b: *std.Build) void {
         });
     }
 
-    const rt_shard_mod = b.createModule(.{
-        .root_source_file = b.path("src/shard.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip_exe,
-    });
-    rt_shard_mod.addOptions("build_options", shard_opts);
-
     const decls_mod = b.createModule(.{
         .root_source_file = b.path("gen/decls.zig"),
         .target = target,
@@ -248,6 +260,20 @@ pub fn build(b: *std.Build) void {
     game_mod.addImport("runtime", awre_rt_mod);
     game_mod.addImport("decls", decls_mod);
 
+    const decomp_game_mod = b.createModule(.{
+        .root_source_file = b.path("src/game/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip_exe,
+        .unwind_tables = if (strip_exe) .none else null,
+    });
+    decomp_game_mod.addImport("runtime", rt_shard_mod);
+    decomp_game_mod.addImport("decls", decls_mod);
+    const decomp_game_obj = b.addObject(.{
+        .name = "game_decomp",
+        .root_module = decomp_game_mod,
+    });
+
     const awre_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
@@ -258,6 +284,7 @@ pub fn build(b: *std.Build) void {
     });
     awre_mod.addImport("runtime", awre_rt_mod);
     awre_mod.addImport("game", game_mod);
+    awre_mod.addObject(decomp_game_obj);
     if (!headless) {
         awre_mod.linkSystemLibrary("SDL2", .{});
     }
@@ -343,6 +370,20 @@ pub fn build(b: *std.Build) void {
     wasm_game_mod.addImport("runtime", wasm_rt_mod);
     wasm_game_mod.addImport("decls", wasm_decls_mod);
 
+    const wasm_decomp_mod = b.createModule(.{
+        .root_source_file = b.path("src/game/root.zig"),
+        .target = wasm_target,
+        .optimize = .fast,
+        .strip = true,
+        .unwind_tables = .none,
+    });
+    wasm_decomp_mod.addImport("runtime", wasm_rt_shard_mod);
+    wasm_decomp_mod.addImport("decls", wasm_decls_mod);
+    const wasm_decomp_obj = b.addObject(.{
+        .name = "wasm_game_decomp",
+        .root_module = wasm_decomp_mod,
+    });
+
     const wasm_mod = b.createModule(.{
         .root_source_file = b.path("src/wasm_main.zig"),
         .target = wasm_target,
@@ -367,6 +408,7 @@ pub fn build(b: *std.Build) void {
     wasm_mod.addImport("awre_core", wasm_core_mod);
     wasm_mod.addImport("runtime", wasm_rt_mod);
     wasm_mod.addImport("game", wasm_game_mod);
+    wasm_mod.addObject(wasm_decomp_obj);
 
     addGeneratedShards(
         b,

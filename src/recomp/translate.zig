@@ -75,14 +75,8 @@ const Emitter = struct {
     }
 
     fn formatCall(self: *const Emitter, addr: u32, buf: []u8) []const u8 {
-        if (self.target_to_shard.get(addr)) |loc| {
-            const same = (loc.kind == self.current_kind and loc.shard_idx == self.current_shard);
-            if (same) {
-                return std.fmt.bufPrint(buf, "func_{X:0>8}()", .{addr}) catch unreachable;
-            }
-            return std.fmt.bufPrint(buf, "decls.func_{X:0>8}()", .{addr}) catch unreachable;
-        }
-        return std.fmt.bufPrint(buf, "func_{X:0>8}()", .{addr}) catch unreachable;
+        _ = self;
+        return std.fmt.bufPrint(buf, "decls.func_{X:0>8}()", .{addr}) catch unreachable;
     }
 
     fn lookupDenseIdx(self: *const Emitter, owner: u32, block_addr: u32) ?u32 {
@@ -1719,7 +1713,7 @@ pub fn translateToDir(
             const can_inline_body = !needs_enter_local[fi] and emit_blocks.len > 0 and
                 (self_contained.contains(f.entry) or entry_owner == f.entry);
 
-            try emitter.raw("pub export fn func_{X:0>8}() void {{\n", .{f.entry});
+            try emitter.raw("fn impl_func_{X:0>8}() callconv(.c) void {{\n", .{f.entry});
             emitter.indent = 1;
             try emitter.line("if (!rt.recompEnter(0x{X:0>8})) return;", .{f.entry});
 
@@ -1743,7 +1737,7 @@ pub fn translateToDir(
             }
 
             emitter.indent = 0;
-            try emitter.raw("}}\n\n", .{});
+            try emitter.raw("}}\ncomptime {{\n    @export(&impl_func_{X:0>8}, .{{ .name = \"func_{X:0>8}\", .linkage = .weak }});\n}}\n\n", .{ f.entry, f.entry });
 
             if (emit_blocks.len > 0 and needs_enter_local[fi]) {
                 const vis: []const u8 = if (needs_enter_export[fi]) "pub export " else "";
@@ -1789,14 +1783,17 @@ pub fn translateToDir(
                 const owner = effective_owners[bi];
                 if (owner != 0) {
                     var ebuf: [80]u8 = undefined;
-                    try emitter.raw("pub export fn func_{X:0>8}() void {{ {s}; }}\n", .{
-                        addr,
-                        emitter.formatEnter(owner, addr, &ebuf),
-                    });
+                    try emitter.raw(
+                        "fn impl_func_{X:0>8}() callconv(.c) void {{ {s}; }}\ncomptime {{ @export(&impl_func_{X:0>8}, .{{ .name = \"func_{X:0>8}\", .linkage = .weak }}); }}\n",
+                        .{ addr, emitter.formatEnter(owner, addr, &ebuf), addr, addr },
+                    );
                     continue;
                 }
             }
-            try emitter.raw("pub export fn func_{X:0>8}() void {{}}\n", .{addr});
+            try emitter.raw(
+                "fn impl_func_{X:0>8}() callconv(.c) void {{}}\ncomptime {{ @export(&impl_func_{X:0>8}, .{{ .name = \"func_{X:0>8}\", .linkage = .weak }}); }}\n",
+                .{ addr, addr, addr },
+            );
         }
 
         var sname_buf: [64]u8 = undefined;
@@ -1816,16 +1813,17 @@ pub fn translateToDir(
         , .{unres_list.items.len});
         for (unres_list.items) |addr| {
             try emitter.raw(
-                \\pub export fn func_{X:0>8}() void {{
+                \\fn impl_func_{X:0>8}() callconv(.c) void {{
                 \\    const S = struct {{ var warn: u32 = 0; }};
                 \\    S.warn +%= 1;
                 \\    if (builtin.os.tag != .freestanding and S.warn <= 3) {{
                 \\        std.debug.print("[unresolved] func_{X:0>8} called\n", .{{}});
                 \\    }}
                 \\}}
+                \\comptime {{ @export(&impl_func_{X:0>8}, .{{ .name = "func_{X:0>8}", .linkage = .weak }}); }}
                 \\
                 \\
-            , .{ addr, addr });
+            , .{ addr, addr, addr, addr });
         }
         try out_dir.writeFile(io, .{ .sub_path = "unresolved.zig", .data = emitter.buf.items });
     }
@@ -2034,6 +2032,7 @@ test "translateToDir generates valid shard files for a minimal ARM+Thumb ROM" {
 
     const funcs_zig = try tmp.dir.readFileAlloc(io, "gen_out/funcs_000.zig", std.testing.allocator, .limited(1024 * 1024));
     defer std.testing.allocator.free(funcs_zig);
+    try std.testing.expect(std.mem.indexOf(u8, funcs_zig, ".linkage = .weak") != null);
     try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "switch (@as(u32, 0)) {") != null);
     try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "0 => {") != null);
     try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "enter_08000100") == null);
