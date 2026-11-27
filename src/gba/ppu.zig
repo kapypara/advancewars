@@ -1,5 +1,5 @@
 const std = @import("std");
-const gba = @import("gba.zig");
+const gba = @import("defs.zig");
 
 const obj_width = [3][4]i32{
     .{ 8, 16, 32, 64 }, // Square

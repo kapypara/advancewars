@@ -1,7 +1,7 @@
 const std = @import("std");
 
-// External CPU/memory/runtime symbols exported from `src/zig/runtime_abi.zig`
-// so each generated `gen/zig/funcs_*.zig` shard compiles as an independent `.o`.
+// External CPU/memory/runtime symbols exported from `src/runtime.zig`
+// so each generated `gen/funcs_*.zig` shard compiles as an independent `.o`.
 pub extern var r: [16]u32;
 pub extern var CPU_N: bool;
 pub extern var CPU_Z: bool;

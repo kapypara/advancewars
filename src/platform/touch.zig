@@ -1,6 +1,6 @@
 const std = @import("std");
-const gba = @import("gba.zig");
-const platform = @import("platform.zig");
+const gba = @import("../gba/defs.zig");
+const platform = @import("backend.zig");
 
 pub const HudButton = enum(u3) {
     l = 0,

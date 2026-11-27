@@ -1,6 +1,6 @@
 const std = @import("std");
 const core = @import("awre_core");
-const rt = @import("runtime_abi.zig");
+const rt = @import("../runtime.zig");
 
 const gba = core.gba;
 const audio = core.audio;

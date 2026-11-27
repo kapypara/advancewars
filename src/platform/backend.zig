@@ -1,5 +1,5 @@
 const build_options = @import("build_options");
-const gba = @import("gba.zig");
+const gba = @import("../gba/defs.zig");
 
 pub const PointerPhase = enum {
     down,
@@ -52,4 +52,4 @@ const NoopBackend = struct {
 pub const Backend = if (build_options.headless)
     NoopBackend
 else
-    @import("platform_sdl2.zig").Sdl2Backend;
+    @import("sdl2.zig").Sdl2Backend;

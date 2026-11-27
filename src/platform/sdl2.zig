@@ -1,8 +1,8 @@
 const std = @import("std");
 const sdl = @import("sdl2");
-const gba = @import("gba.zig");
-const audio = @import("audio.zig");
-const platform = @import("platform.zig");
+const gba = @import("../gba/defs.zig");
+const audio = @import("../gba/audio.zig");
+const platform = @import("backend.zig");
 
 const max_pointer_queue: usize = 64;
 

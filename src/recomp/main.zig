@@ -4,7 +4,7 @@ pub const rom_mod = @import("rom.zig");
 pub const arm = @import("arm.zig");
 pub const thumb = @import("thumb.zig");
 pub const analysis = @import("analysis.zig");
-pub const translate_zig = @import("translate_zig.zig");
+pub const translate = @import("translate.zig");
 
 const GbaRom = rom_mod.GbaRom;
 const AnalysisCtx = analysis.AnalysisCtx;
@@ -175,7 +175,7 @@ pub fn main(init: std.process.Init) !u8 {
         try ctx.run();
         ctx.printSummary();
 
-        const stats = try translate_zig.translateToDir(gpa, io, &rom, &ctx, outdir);
+        const stats = try translate.translateToDir(gpa, io, &rom, &ctx, outdir);
         std.debug.print(
             "Generated {d} func shards + {d} stub shards in '{s}': {d} functions, {d} stubs, {d} unresolved, {d} unique blocks emitted ({d} delegated)\n",
             .{

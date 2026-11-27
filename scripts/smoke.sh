@@ -29,7 +29,7 @@ rm -f "$TMP_ROM" "$TMP_SAV"
 ln -s "$ROM_ABS" "$TMP_ROM"
 
 cd "$ROOT"
-"$EXE" "$TMP_ROM" --headless --input tools/field_training.txt --frames 8000 --log-every 0 --screenshot "$OUT_BMP"
+"$EXE" "$TMP_ROM" --headless --input replays/field_training.txt --frames 8000 --log-every 0 --screenshot "$OUT_BMP"
 
 if command -v ffmpeg >/dev/null 2>&1; then
     OUT_PNG="${OUT_BMP%.bmp}.png"

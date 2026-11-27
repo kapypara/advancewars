@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const core = @import("awre_core");
-const disp = @import("display_abi.zig");
-const validate_mod = @import("runtime/validate.zig");
+const disp = @import("platform/display.zig");
+const validate_mod = @import("validate/validate.zig");
 
 const flash_mod = core.flash;
 const timers_mod = core.timers;
@@ -38,7 +38,7 @@ const c_host = if (has_posix) struct {
     const FILE = opaque {};
 };
 
-// Callbacks registered at startup by `src/zig/main.zig` from generated `game.zig`.
+// Callbacks registered at startup by `src/main.zig` from generated `game.zig`.
 pub const GameCallbacks = struct {
     bx_depth: *i32,
     cpu_bx: *const fn (u32) callconv(.c) void,
@@ -64,7 +64,7 @@ inline fn cbRecompLookupFn(addr: u32) ?*const fn () callconv(.c) void {
     return if (game_cb) |cb| cb.recomp_lookup_fn(addr) else null;
 }
 
-// ---- CPU & Memory Globals (exported to independent gen/zig shards) ----
+// ---- CPU & Memory Globals (exported to independent gen shards) ----
 pub export var r: [16]u32 = @splat(0);
 pub export var CPU_N: bool = false;
 pub export var CPU_Z: bool = false;

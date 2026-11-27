@@ -13,7 +13,7 @@ cd /home/moon/Projects/zig/advancewars && rm -rf scratch/edge_dump && ./zig-out/
 **Headless script capture:**
 
 ```bash
-./zig-out/bin/awre game/aw.gba --headless --input tools/field_training.txt --frames 300 --dump-dir scratch/edge_dump
+./zig-out/bin/awre game/aw.gba --headless --input replays/field_training.txt --frames 300 --dump-dir scratch/edge_dump
 ```
 
 - The target directory `<dir>` is created automatically (single directory level; e.g. place under gitignored `scratch/`).

@@ -33,15 +33,15 @@ pub fn build(b: *std.Build) void {
     const recompiler_step = b.step("recompiler", "Build the pure-Zig gbarecomp static recompiler tool");
     recompiler_step.dependOn(&install_recompiler.step);
 
-    // ---- ROM translation step (`gen/zig/`) ----
+    // ---- ROM translation step (`gen/`) ----
     const run_translate = b.addRunArtifact(recompiler_exe);
     run_translate.addArg("translate");
     run_translate.addFileArg(rom_lazy);
-    run_translate.addArgs(&.{ "-o", "gen/zig", "--entries" });
+    run_translate.addArgs(&.{ "-o", "gen", "--entries" });
     run_translate.addFileArg(b.path("entries.txt"));
     run_translate.has_side_effects = true;
 
-    const translate_step = b.step("translate", "Translate the GBA ROM into pure-Zig sources under gen/zig/");
+    const translate_step = b.step("translate", "Translate the GBA ROM into pure-Zig sources under gen/");
     translate_step.dependOn(&run_translate.step);
 
     // ---- Zig core library, SDL2 bindings & unit tests ----
@@ -52,7 +52,7 @@ pub fn build(b: *std.Build) void {
     test_opts.addOption(bool, "headless", true);
 
     const awre_core_mod = b.createModule(.{
-        .root_source_file = b.path("src/zig/root.zig"),
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -73,7 +73,7 @@ pub fn build(b: *std.Build) void {
     }
 
     const awre_test_mod = b.createModule(.{
-        .root_source_file = b.path("src/zig/root.zig"),
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -104,11 +104,11 @@ pub fn build(b: *std.Build) void {
     var has_game_zig = false;
     var has_decls_zig = false;
 
-    if (b.root.openDir(b.graph.io, "gen/zig", .{ .iterate = true })) |dir_const| {
+    if (b.root.openDir(b.graph.io, "gen", .{ .iterate = true })) |dir_const| {
         var zig_dir = dir_const;
         defer zig_dir.close(b.graph.io);
 
-        b.dependOnDirectoryContents(b.path("gen/zig"));
+        b.dependOnDirectoryContents(b.path("gen"));
 
         var it = zig_dir.iterate();
         while (it.next(b.graph.io) catch null) |entry| {
@@ -134,7 +134,7 @@ pub fn build(b: *std.Build) void {
 
     if (!has_game_zig or !has_decls_zig) {
         b.graph.poisonCache();
-        const fail_step = b.addFail("gen/zig/ is not populated; run 'zig build translate' first");
+        const fail_step = b.addFail("gen/ is not populated; run 'zig build translate' first");
         b.getInstallStep().dependOn(&fail_step.step);
         return;
     }
@@ -142,7 +142,7 @@ pub fn build(b: *std.Build) void {
     std.mem.sort([]const u8, shard_files.items, {}, stringLessThan);
 
     const awre_rt_mod = b.createModule(.{
-        .root_source_file = b.path("src/zig/runtime_abi.zig"),
+        .root_source_file = b.path("src/runtime.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -150,25 +150,25 @@ pub fn build(b: *std.Build) void {
     awre_rt_mod.addImport("awre_core", awre_core_mod);
     if (target.result.os.tag != .freestanding) {
         awre_rt_mod.addCSourceFile(.{
-            .file = b.path("src/zig/runtime/validate_jmp.c"),
+            .file = b.path("src/validate/jmp.c"),
             .flags = &.{ "-std=c11", "-fno-sanitize=undefined" },
         });
     }
 
     const rt_shard_mod = b.createModule(.{
-        .root_source_file = b.path("src/zig/rt_shard.zig"),
+        .root_source_file = b.path("src/shard.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     const decls_mod = b.createModule(.{
-        .root_source_file = b.path("gen/zig/decls.zig"),
+        .root_source_file = b.path("gen/decls.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     const game_mod = b.createModule(.{
-        .root_source_file = b.path("gen/zig/game.zig"),
+        .root_source_file = b.path("gen/game.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -176,7 +176,7 @@ pub fn build(b: *std.Build) void {
     game_mod.addImport("decls", decls_mod);
 
     const awre_mod = b.createModule(.{
-        .root_source_file = b.path("src/zig/main.zig"),
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -188,7 +188,7 @@ pub fn build(b: *std.Build) void {
     }
 
     for (shard_files.items) |fname| {
-        const rel_path = b.pathJoin(&.{ "gen/zig", fname });
+        const rel_path = b.pathJoin(&.{ "gen", fname });
         const shard_mod = b.createModule(.{
             .root_source_file = b.path(rel_path),
             .target = target,

@@ -1,32 +1,27 @@
-# Game data never committed (repo rules section 3): ROMs, archives, saves
+# Game data never committed: ROMs, archives, saves
 *.gba
 *.zip
 *.7z
 *.rar
 *.sav
 *.eep
+game/
 
-# Generated C from the ROM - the tool ships, the output doesn't
-build/
+# Generated Zig shards from the ROM (rebuilt via `zig build translate`)
 gen/
-recomp_*/
 
-# Run output and scratch
+# Run output, scratch dumps and build artifacts
 scratch/
 *.log
 *.mp4
 *.bmp
-aw_shots*/
-garble.png
-menucover.png
-
-# Build artifacts
 *.o
 *.obj
 *.exe
 *.elf
 .zig-cache/
 zig-out/
+.cache/
 
 # IDE / OS
 .vscode/
@@ -37,12 +32,3 @@ zig-out/
 .DS_Store
 Thumbs.db
 desktop.ini
-imgui.ini
-
-# Your ROM, and what Setup.cmd makes for you
-game/
-setup.log
-Advance Wars (recomp).cmd
-
-# netlab drops (builds made on the farm)
-build-farm/

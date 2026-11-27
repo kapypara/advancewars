@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const gba = @import("gba.zig");
+const gba = @import("../gba/defs.zig");
 
 const has_posix_stdio = builtin.os.tag != .freestanding;
 

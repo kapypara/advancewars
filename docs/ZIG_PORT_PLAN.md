@@ -65,8 +65,8 @@ Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: 
   - Re-verified frame `931` (`--dump-dir` + `BG1CNT=0x5E02`, `BG2X=0x00000000`, `WIN0H=0x00F0` and matching `frames.log`) and clean `F1211`/`F2511` `m4a` PCM buffers (max step `<= 31`).
 
 ## Phase 5 — WebAssembly Browser Port (`wasm32-freestanding`) (Next)
-- Compile the pure Zig core + runtime + `gen/zig/` shards to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten), serving desktop and mobile browsers (with pure touch controls).
-- Minimal browser JS shell (~150 lines) presenting the `240x160` framebuffer via Canvas2D / WebGL2, AudioWorklet audio, browser Pointer/Touch events wired into `touch.zig`, local ROM file drop (never uploaded), and 64 KB Flash persistence in `IndexedDB`.
+- Compile the pure Zig core (`src/gba/`) + `src/runtime.zig` + `gen/` shards + `src/platform/wasm.zig` to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten), serving desktop and mobile browsers (with pure touch controls).
+- Minimal browser JS shell (~150 lines) presenting the `240x160` framebuffer via Canvas2D / WebGL2, AudioWorklet audio, browser Pointer/Touch events wired into `src/platform/touch.zig`, local ROM file drop (never uploaded), and 64 KB Flash persistence in `IndexedDB`.
 
 ## Phase 6 — Full Zig Recompiler (`ext/gbarecomp` -> Zig) & Pure-Zig Build (Done)
 Executed before Phase 5 to eliminate generated C sources and CMake/Clang compiler workarounds first:
@@ -80,6 +80,14 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
   - Pixel-exact BMP parity (`cmp -s`, `0 bytes diff`) in `ReleaseFast` against `ref_title.bmp` (`1,550` frames in `0.910s`), `ref_ft.bmp` (`8,000` frames in `5.128s`), and `ref_win.bmp` (`26,320` frames in `17.571s`).
   - Full Mission 2 replay (`tools/field_training_m2.txt`, `54,600` frames) completed cleanly in `35.541s` (~1,536 FPS) and 64 KB Flash `.sav` round-trip (`28,200` frames, `2,323` non-`0xFF` bytes written and reloaded cleanly) passed.
   - Native Arch Linux host check (`ldd zig-out/bin/awre` linking `libSDL2-2.0.so.0` + `libc.so.6` without `libm`, plus 10-frame headless smoke run) passed.
+
+### Tree Cleanup & Reorganization (Post-Phase 6, Done)
+- Removed legacy C/CMake/Windows leftovers (`build/`, `CMakeLists.txt`, `build.cmd`, `Setup.cmd`, `scripts/build.sh`, `tools/qa.cmd`, `tools/setup.ps1`, old `gen/*.c`/`*.h`, `.cache/`, old `.zig-cache/`, `scratch/edge_dump/`) and dropped the `ext/gbarecomp` submodule (inlining the conformance runner directly into `scripts/conformance.sh`), while keeping `ROADMAP.md` as historical reference.
+- Reorganized sources cleanly by layer:
+  - `src/zig/{gba,ppu,audio}.zig` + `src/zig/runtime/{bios,dma,flash,interp,timers}.zig` -> `src/gba/` (`defs.zig`, `ppu.zig`, `audio.zig`, `bios.zig`, `dma.zig`, `flash.zig`, `interp.zig`, `timers.zig`)
+  - `src/zig/{display_abi,headless,touch,platform,platform_sdl2}.zig` -> `src/platform/` (`display.zig`, `headless.zig`, `touch.zig`, `backend.zig`, `sdl2.zig`)
+  - `src/zig/runtime/{validate.zig,validate_jmp.c}` -> `src/validate/` (`validate.zig`, `jmp.c`)
+  - `src/zig/{main,root,runtime_abi,rt_shard}.zig` -> `src/{main,root,runtime,shard}.zig`, `src/recomp/translate_zig.zig` -> `src/recomp/translate.zig`, `gen/zig/` -> `gen/`, `tools/*.txt` -> `replays/*.txt`.
 
 ## Phase 7 — Post-Port Polish & Native UX Enhancements (After Main Plan)
 - **Direct UI/Menu Mouse & Touch Hooking:** Hook Advance Wars' non-map UI screens (name entry character grid + `BACK`/`OK!`, title/main menus, unit action menus, CO select) for direct tap/click selection.

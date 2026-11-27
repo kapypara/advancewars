@@ -11,7 +11,7 @@
         "scripts",
         "entries.txt",
         "conformance_baseline.txt",
-        "tools",
+        "replays",
         "docs",
         "README.md",
     },
