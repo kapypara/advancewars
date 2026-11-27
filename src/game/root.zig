@@ -9,6 +9,8 @@ pub const math = @import("math.zig");
 pub const dma = @import("dma.zig");
 pub const sound = @import("sound.zig");
 pub const hw = @import("hw.zig");
+pub const proc = @import("proc.zig");
+pub const sprite_anim = @import("sprite_anim.zig");
 
 comptime {
     _ = abi;
@@ -18,6 +20,8 @@ comptime {
     _ = dma;
     _ = sound;
     _ = hw;
+    _ = proc;
+    _ = sprite_anim;
 }
 
 test {
@@ -28,4 +32,6 @@ test {
     _ = dma;
     _ = sound;
     _ = hw;
+    _ = proc;
+    _ = sprite_anim;
 }
