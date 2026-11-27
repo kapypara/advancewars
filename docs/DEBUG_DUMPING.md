@@ -7,7 +7,7 @@ Use `--dump-dir <dir>` to continuously record every rendered frame alongside the
 **Live play (SDL2 window):**
 
 ```bash
-cd /home/moon/Projects/zig/advancewars && rm -rf scratch/edge_dump && ./zig-out/bin/awre game/aw.gba --dump-dir scratch/edge_dump
+rm -rf scratch/edge_dump && ./zig-out/bin/awre game/aw.gba --dump-dir scratch/edge_dump
 ```
 
 **Headless script capture:**
@@ -26,7 +26,7 @@ Every frame `N` writes three artifacts indexed by 6-digit zero-padded frame numb
 
 1. **`fNNNNNN.bmp`** (`153,654` bytes)
    - Top-down 32-bit BGRA `240x160` framebuffer (`54`-byte BMP header + raw pixels).
-   - In live mode, captures `s_present_buf` including any rendered touch overlay; in headless mode, captures the raw Zig PPU framebuffer.
+   - In live mode, captures `s_present_buf` including any rendered touch overlay; in headless mode, captures the raw PPU framebuffer.
 2. **`fNNNNNN.bin`** (`396,288` bytes / `0x60C00` bytes)
    - Complete GBA memory snapshot dumped at VBlank:
      - `0x00000..0x40000` — EWRAM (256 KB)

@@ -73,7 +73,7 @@ pub fn build(b: *std.Build) void {
         if (b.root.access(b.graph.io, rom_path, .{})) true else |_| false;
     const embed_rom = embed_rom_opt orelse rom_exists;
 
-    // ---- Pure-Zig host recompiler tool (`src/recomp/`) ----
+    // ---- Host recompiler tool (`src/recomp/`) ----
     const recompiler_mod = b.createModule(.{
         .root_source_file = b.path("src/recomp/main.zig"),
         .target = b.graph.host,
@@ -85,7 +85,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const install_recompiler = b.addInstallArtifact(recompiler_exe, .{});
-    const recompiler_step = b.step("recompiler", "Build the pure-Zig gbarecomp static recompiler tool");
+    const recompiler_step = b.step("recompiler", "Build the gbarecomp static recompiler tool");
     recompiler_step.dependOn(&install_recompiler.step);
 
     // ---- ROM translation step (`gen/`) ----
@@ -96,10 +96,10 @@ pub fn build(b: *std.Build) void {
     run_translate.addFileArg(b.path("entries.txt"));
     run_translate.has_side_effects = true;
 
-    const translate_step = b.step("translate", "Translate the GBA ROM into pure-Zig sources under gen/");
+    const translate_step = b.step("translate", "Translate the GBA ROM into generated shards under gen/");
     translate_step.dependOn(&run_translate.step);
 
-    // ---- Zig core library, SDL2 bindings & unit tests ----
+    // ---- Core library, SDL2 bindings & unit tests ----
     const build_opts = b.addOptions();
     build_opts.addOption(bool, "headless", headless);
 
@@ -139,10 +139,10 @@ pub fn build(b: *std.Build) void {
     });
     awre_test_mod.addOptions("build_options", test_opts);
 
-    const zig_tests = b.addTest(.{
+    const core_tests = b.addTest(.{
         .root_module = awre_test_mod,
     });
-    const run_zig_tests = b.addRunArtifact(zig_tests);
+    const run_core_tests = b.addRunArtifact(core_tests);
 
     const recomp_test_mod = b.createModule(.{
         .root_source_file = b.path("src/recomp/main.zig"),
@@ -154,31 +154,31 @@ pub fn build(b: *std.Build) void {
     });
     const run_recomp_tests = b.addRunArtifact(recomp_tests);
 
-    const test_step = b.step("test", "Run Zig unit tests");
-    test_step.dependOn(&run_zig_tests.step);
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_core_tests.step);
     test_step.dependOn(&run_recomp_tests.step);
 
-    // ---- Native pure-Zig Advance Wars executable (`awre`) ----
+    // ---- Native Advance Wars executable (`awre`) ----
     var shard_files: std.ArrayList([]const u8) = .empty;
-    var has_game_zig = false;
-    var has_decls_zig = false;
+    var has_game = false;
+    var has_decls = false;
 
     if (b.root.openDir(b.graph.io, "gen", .{ .iterate = true })) |dir_const| {
-        var zig_dir = dir_const;
-        defer zig_dir.close(b.graph.io);
+        var gen_dir = dir_const;
+        defer gen_dir.close(b.graph.io);
 
         b.dependOnDirectoryContents(b.path("gen"));
 
-        var it = zig_dir.iterate();
+        var it = gen_dir.iterate();
         while (it.next(b.graph.io) catch null) |entry| {
             if (entry.kind != .file) continue;
             if (!std.mem.endsWith(u8, entry.name, ".zig")) continue;
             if (std.mem.eql(u8, entry.name, "game.zig")) {
-                has_game_zig = true;
+                has_game = true;
                 continue;
             }
             if (std.mem.eql(u8, entry.name, "decls.zig")) {
-                has_decls_zig = true;
+                has_decls = true;
                 continue;
             }
             if (std.mem.startsWith(u8, entry.name, "funcs_") or
@@ -191,7 +191,7 @@ pub fn build(b: *std.Build) void {
         }
     } else |_| {}
 
-    if (!has_game_zig or !has_decls_zig) {
+    if (!has_game or !has_decls) {
         b.graph.poisonCache();
         const fail_step = b.addFail("gen/ is not populated; run 'zig build translate' first");
         b.getInstallStep().dependOn(&fail_step.step);
@@ -280,7 +280,7 @@ pub fn build(b: *std.Build) void {
     awre_exe.stack_size = 16 * 1024 * 1024;
     b.installArtifact(awre_exe);
 
-    // ---- Pure-Zig WebAssembly browser target (`zig build wasm`) ----
+    // ---- WebAssembly browser target (`zig build wasm`) ----
     const wasm_target = b.resolveTargetQuery(.{
         .cpu_arch = .wasm32,
         .os_tag = .freestanding,
@@ -395,7 +395,7 @@ pub fn build(b: *std.Build) void {
         .install_dir = .{ .custom = "web" },
         .install_subdir = "",
     });
-    const wasm_step = b.step("wasm", "Build pure-Zig WebAssembly browser bundle in zig-out/web/");
+    const wasm_step = b.step("wasm", "Build WebAssembly browser bundle in zig-out/web/");
     wasm_step.dependOn(&install_wasm.step);
     wasm_step.dependOn(&install_web_assets.step);
 
@@ -419,7 +419,7 @@ pub fn build(b: *std.Build) void {
     const smoke_cmd = b.addSystemCommand(&.{ "bash", "scripts/smoke.sh" });
     smoke_cmd.addArtifactArg(awre_exe);
     smoke_cmd.addFileArg(rom_lazy);
-    smoke_cmd.addArg("scratch/zig_field_training.bmp");
+    smoke_cmd.addArg("scratch/field_training.bmp");
     smoke_cmd.has_side_effects = true;
     const smoke_step = b.step("smoke", "Run headless Field Training smoke test without touching game/aw.sav");
     smoke_step.dependOn(&smoke_cmd.step);

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXE="${1:-$ROOT/zig-out/bin/awre}"
 ROM="${2:-$ROOT/game/aw.gba}"
-OUT_BMP="${3:-$ROOT/scratch/zig_field_training.bmp}"
+OUT_BMP="${3:-$ROOT/scratch/field_training.bmp}"
 
 if [[ ! -x "$EXE" ]]; then
     echo "error: executable not found: $EXE" >&2

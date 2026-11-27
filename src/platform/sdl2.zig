@@ -70,7 +70,7 @@ pub const Sdl2Backend = struct {
         _ = sdl.SDL_SetHint(sdl.SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
         const window = sdl.SDL_CreateWindow(
-            "Advance Wars (Zig)",
+            "Advance Wars",
             @intCast(sdl.SDL_WINDOWPOS_CENTERED),
             @intCast(sdl.SDL_WINDOWPOS_CENTERED),
             @intCast(win_width),

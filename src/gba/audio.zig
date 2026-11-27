@@ -201,7 +201,7 @@ fn pushTail(tail: *[3]f32, cur: []const i8) void {
     }
 }
 
-/// Pure Zig GBA DirectSound A/B stereo resampler (`input_rate_hz` -> 48 kHz `i16` stereo)
+/// GBA DirectSound A/B stereo resampler (`input_rate_hz` -> 48 kHz `i16` stereo)
 /// using a 2-sample-shifted 4-tap Catmull-Rom spline, 6 kHz Butterworth LPF, DC blocker,
 /// and dynamic rate control to prevent SDL buffer underruns/skips.
 pub const Mixer = struct {

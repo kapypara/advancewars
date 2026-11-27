@@ -108,7 +108,7 @@ const Emitter = struct {
         return self.formatCall(block_addr, buf);
     }
 
-    fn condToZig(cond: ArmCondition) ?[]const u8 {
+    fn condExpr(cond: ArmCondition) ?[]const u8 {
         return switch (cond) {
             .eq => "rt.CPU_Z",
             .ne => "!rt.CPU_Z",
@@ -139,7 +139,7 @@ const Emitter = struct {
         return names[reg];
     }
 
-    fn operand2ToZig(insn: *const ArmInsn, buf: []u8) []const u8 {
+    fn operand2Expr(insn: *const ArmInsn, buf: []u8) []const u8 {
         if (insn.i) {
             return std.fmt.bufPrint(buf, "0x{X}", .{insn.imm}) catch unreachable;
         }
@@ -172,7 +172,7 @@ const Emitter = struct {
     }
 
     fn beginCond(self: *Emitter, cond: ArmCondition) !bool {
-        if (condToZig(cond)) |c| {
+        if (condExpr(cond)) |c| {
             try self.line("if ({s}) {{", .{c});
             self.indent += 1;
             return true;
@@ -243,7 +243,7 @@ const Emitter = struct {
         switch (insn.type) {
             .mov => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("{s} = {s};", .{ regZ(insn.rd), op2 });
                 if (insn.s and insn.rd != 15) {
                     try self.line("rt.updateNz({s});", .{regZ(insn.rd)});
@@ -259,42 +259,42 @@ const Emitter = struct {
             },
             .mvn => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("{s} = ~@as(u32, {s});", .{ regZ(insn.rd), op2 });
                 if (insn.s and insn.rd != 15) try self.line("rt.updateNz({s});", .{regZ(insn.rd)});
                 try self.endCond(co);
             },
             .and_op => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("{s} = {s} & {s};", .{ regZ(insn.rd), regZ(insn.rn), op2 });
                 if (insn.s) try self.line("rt.updateNz({s});", .{regZ(insn.rd)});
                 try self.endCond(co);
             },
             .orr => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("{s} = {s} | {s};", .{ regZ(insn.rd), regZ(insn.rn), op2 });
                 if (insn.s) try self.line("rt.updateNz({s});", .{regZ(insn.rd)});
                 try self.endCond(co);
             },
             .eor => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("{s} = {s} ^ {s};", .{ regZ(insn.rd), regZ(insn.rn), op2 });
                 if (insn.s) try self.line("rt.updateNz({s});", .{regZ(insn.rd)});
                 try self.endCond(co);
             },
             .bic => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("{s} = {s} & ~@as(u32, {s});", .{ regZ(insn.rd), regZ(insn.rn), op2 });
                 if (insn.s) try self.line("rt.updateNz({s});", .{regZ(insn.rd)});
                 try self.endCond(co);
             },
             .add => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 if (insn.s and insn.rd != 15) {
                     try self.line("rt.cpuAdd(&{s}, {s}, {s}, true);", .{ regZ(insn.rd), regZ(insn.rn), op2 });
                 } else {
@@ -304,13 +304,13 @@ const Emitter = struct {
             },
             .adc => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("rt.cpuAdc(&{s}, {s}, {s}, {});", .{ regZ(insn.rd), regZ(insn.rn), op2, insn.s });
                 try self.endCond(co);
             },
             .sub => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 if (insn.s and insn.rd != 15) {
                     try self.line("rt.cpuSub(&{s}, {s}, {s}, true);", .{ regZ(insn.rd), regZ(insn.rn), op2 });
                 } else {
@@ -320,7 +320,7 @@ const Emitter = struct {
             },
             .rsb => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 if (insn.s and insn.rd != 15) {
                     try self.line("rt.cpuSub(&{s}, {s}, {s}, true);", .{ regZ(insn.rd), op2, regZ(insn.rn) });
                 } else {
@@ -330,37 +330,37 @@ const Emitter = struct {
             },
             .sbc => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("rt.cpuSbc(&{s}, {s}, {s}, {});", .{ regZ(insn.rd), regZ(insn.rn), op2, insn.s });
                 try self.endCond(co);
             },
             .rsc => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("rt.cpuSbc(&{s}, {s}, {s}, {});", .{ regZ(insn.rd), op2, regZ(insn.rn), insn.s });
                 try self.endCond(co);
             },
             .cmp => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("rt.cpuSub(null, {s}, {s}, true);", .{ regZ(insn.rn), op2 });
                 try self.endCond(co);
             },
             .cmn => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("rt.cpuAdd(null, {s}, {s}, true);", .{ regZ(insn.rn), op2 });
                 try self.endCond(co);
             },
             .tst => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("rt.updateNz({s} & {s});", .{ regZ(insn.rn), op2 });
                 try self.endCond(co);
             },
             .teq => {
                 const co = try self.beginCond(insn.cond);
-                const op2 = operand2ToZig(insn, &op2_buf);
+                const op2 = operand2Expr(insn, &op2_buf);
                 try self.line("rt.updateNz({s} ^ {s});", .{ regZ(insn.rn), op2 });
                 try self.endCond(co);
             },
@@ -465,7 +465,7 @@ const Emitter = struct {
                     if (!insn.i) {
                         try self.line("{s} = rt.{s}({s} {s} 0x{X});", .{ regZ(insn.rd), fn_name, regZ(insn.rn), sign, insn.imm });
                     } else {
-                        const op2 = operand2ToZig(insn, &op2_buf);
+                        const op2 = operand2Expr(insn, &op2_buf);
                         try self.line("{s} = rt.{s}({s} {s} {s});", .{ regZ(insn.rd), fn_name, regZ(insn.rn), sign, op2 });
                     }
                     if (insn.w) {
@@ -473,7 +473,7 @@ const Emitter = struct {
                         if (!insn.i) {
                             try self.line("{s} {s} 0x{X};", .{ regZ(insn.rn), wbop, insn.imm });
                         } else {
-                            const op2 = operand2ToZig(insn, &op2_buf);
+                            const op2 = operand2Expr(insn, &op2_buf);
                             try self.line("{s} {s} {s};", .{ regZ(insn.rn), wbop, op2 });
                         }
                     }
@@ -483,7 +483,7 @@ const Emitter = struct {
                     if (!insn.i) {
                         try self.line("{s} {s} 0x{X};", .{ regZ(insn.rn), wbop, insn.imm });
                     } else {
-                        const op2 = operand2ToZig(insn, &op2_buf);
+                        const op2 = operand2Expr(insn, &op2_buf);
                         try self.line("{s} {s} {s};", .{ regZ(insn.rn), wbop, op2 });
                     }
                 }
@@ -502,7 +502,7 @@ const Emitter = struct {
                     if (!insn.i) {
                         try self.line("rt.{s}({s} {s} 0x{X}, {s});", .{ fn_name, regZ(insn.rn), sign, insn.imm, val_expr });
                     } else {
-                        const op2 = operand2ToZig(insn, &op2_buf);
+                        const op2 = operand2Expr(insn, &op2_buf);
                         try self.line("rt.{s}({s} {s} {s}, {s});", .{ fn_name, regZ(insn.rn), sign, op2, val_expr });
                     }
                     if (insn.w and !insn.i) {
@@ -863,7 +863,7 @@ const Emitter = struct {
             },
             .cond_branch => {
                 const target = addr +% 4 +% @as(u32, @bitCast(insn.offset));
-                if (condToZig(insn.cond)) |c| {
+                if (condExpr(insn.cond)) |c| {
                     try self.line("if ({s}) {{", .{c});
                     self.indent += 1;
                     try self.emitBranchTarget(target);
@@ -1210,7 +1210,7 @@ fn thumbBxVeneerReg(rom: *const GbaRom, addr: u32) ?u4 {
     return if (rs < 14) rs else null;
 }
 
-/// Emit sharded pure-Zig translation into `outdir` (`funcs_*.zig`, `stubs_*.zig`, `unresolved.zig`, `game.zig`).
+/// Emit sharded translation into `outdir` (`funcs_*.zig`, `stubs_*.zig`, `unresolved.zig`, `game.zig`).
 pub fn translateToDir(
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -1695,7 +1695,7 @@ pub fn translateToDir(
         emitter.indent = 0;
 
         try emitter.raw(
-            \\// Auto-generated by gbarecomp-zig ({s}) - Part {d}/{d}
+            \\// Auto-generated by gbarecomp ({s}) - Part {d}/{d}
             \\const rt = @import("runtime");
             \\const decls = @import("decls");
             \\
@@ -1834,7 +1834,7 @@ pub fn translateToDir(
     {
         emitter.buf.clearRetainingCapacity();
         try emitter.raw(
-            \\// Auto-generated external symbol declarations for parallel Zig shard compilation
+            \\// Auto-generated external symbol declarations for parallel shard compilation
             \\pub extern fn awre_cpu_bx(target: u32) void;
             \\
             \\// Functions ({d})
@@ -1864,7 +1864,7 @@ pub fn translateToDir(
     {
         emitter.buf.clearRetainingCapacity();
         try emitter.raw(
-            \\// Auto-generated by gbarecomp-zig - {s}
+            \\// Auto-generated by gbarecomp - {s}
             \\const std = @import("std");
             \\const builtin = @import("builtin");
             \\const rt = @import("runtime");
@@ -1991,7 +1991,7 @@ pub fn translateToDir(
     };
 }
 
-test "translateToDir generates valid Zig files for a minimal ARM+Thumb ROM" {
+test "translateToDir generates valid shard files for a minimal ARM+Thumb ROM" {
     var rom_buf: [512]u8 = @splat(0);
     std.mem.writeInt(u32, rom_buf[0x000..0x004], 0xEA00_002E, .little);
     @memcpy(rom_buf[0xA0..0xAC], "TESTROM     ");
@@ -2015,24 +2015,24 @@ test "translateToDir generates valid Zig files for a minimal ARM+Thumb ROM" {
 
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
-    const out_sub = try std.fmt.allocPrint(std.testing.allocator, ".zig-cache/tmp/{s}/gen_zig", .{tmp.sub_path});
+    const out_sub = try std.fmt.allocPrint(std.testing.allocator, ".zig-cache/tmp/{s}/gen_out", .{tmp.sub_path});
     defer std.testing.allocator.free(out_sub);
 
     const stats = try translateToDir(std.testing.allocator, io, &rom, &ctx, out_sub);
     try std.testing.expectEqual(@as(usize, 2), stats.num_functions);
     try std.testing.expectEqual(@as(usize, 1), stats.num_func_files);
-    const game_zig = try tmp.dir.readFileAlloc(io, "gen_zig/game.zig", std.testing.allocator, .limited(1024 * 1024));
+    const game_zig = try tmp.dir.readFileAlloc(io, "gen_out/game.zig", std.testing.allocator, .limited(1024 * 1024));
     defer std.testing.allocator.free(game_zig);
     try std.testing.expect(std.mem.indexOf(u8, game_zig, "pub fn gameEntry() void") != null);
     try std.testing.expect(std.mem.indexOf(u8, game_zig, "decls.func_08000100") != null);
     try std.testing.expect(std.mem.indexOf(u8, game_zig, "pub export fn awre_cpu_bx") != null);
-    const decls_zig = try tmp.dir.readFileAlloc(io, "gen_zig/decls.zig", std.testing.allocator, .limited(1024 * 1024));
+    const decls_zig = try tmp.dir.readFileAlloc(io, "gen_out/decls.zig", std.testing.allocator, .limited(1024 * 1024));
     defer std.testing.allocator.free(decls_zig);
     try std.testing.expect(std.mem.indexOf(u8, decls_zig, "pub extern fn awre_cpu_bx") != null);
     try std.testing.expect(std.mem.indexOf(u8, decls_zig, "pub extern fn func_08000100() void;") != null);
     try std.testing.expect(std.mem.indexOf(u8, decls_zig, "enter_08000100") == null);
 
-    const funcs_zig = try tmp.dir.readFileAlloc(io, "gen_zig/funcs_000.zig", std.testing.allocator, .limited(1024 * 1024));
+    const funcs_zig = try tmp.dir.readFileAlloc(io, "gen_out/funcs_000.zig", std.testing.allocator, .limited(1024 * 1024));
     defer std.testing.allocator.free(funcs_zig);
     try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "switch (@as(u32, 0)) {") != null);
     try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "0 => {") != null);

@@ -1876,7 +1876,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
 
     initPostRomRegs();
 
-    core.gba.logPrint("[runtime] GBA static recomp runtime initialized (Zig)\n", .{});
+    core.gba.logPrint("[runtime] GBA static recomp runtime initialized\n", .{});
     core.gba.logPrint("[runtime] ROM: {d} bytes ({s})\n", .{ rom_size, rom_label });
     if (sram_path_len > 0) {
         core.gba.logPrint("[runtime] Save path: {s}\n", .{sram_path_buf[0..sram_path_len]});

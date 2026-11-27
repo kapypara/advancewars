@@ -30,7 +30,7 @@ pub extern fn cpu_undefined(insn: u32) void;
 pub extern fn recomp_enter(addr: u32) bool;
 pub extern fn recomp_called_slow(retaddr: u32) bool;
 
-// ---- Local pure-Zig ARM7TDMI ALU / Shift / Unwind Helpers (inlined per shard in ReleaseFast) ----
+// ---- Local ARM7TDMI ALU / Shift / Unwind Helpers (inlined per shard in ReleaseFast) ----
 pub fn ror32(val: u32, amount: u32) u32 {
     const a: u5 = @truncate(amount);
     return std.math.rotr(u32, val, a);

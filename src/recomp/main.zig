@@ -11,7 +11,7 @@ const AnalysisCtx = analysis.AnalysisCtx;
 
 fn printUsage(prog: []const u8) void {
     std.debug.print(
-        \\gbarecomp-zig - Pure-Zig GBA Static Recompiler
+        \\gbarecomp - GBA Static Recompiler
         \\
         \\Usage:
         \\  {s} info <rom.gba>

@@ -7,7 +7,7 @@
 *.eep
 game/
 
-# Generated Zig shards from the ROM (rebuilt via `zig build translate`)
+# Generated ROM shards (rebuilt via `zig build translate`)
 gen/
 
 # Run output, scratch dumps and build artifacts

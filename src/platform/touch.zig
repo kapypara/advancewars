@@ -102,7 +102,7 @@ const Pulse = struct {
     gap_frames: u8 = 0,
 };
 
-/// Pure Zig touch + mouse controller combining Tier 1 corner HUD buttons and
+/// Touch + mouse controller combining Tier 1 corner HUD buttons and
 /// Tier 2 direct map-tile tapping, menu/dialog taps, and swipe gestures.
 pub const TouchController = struct {
     hud_visible: bool = true,
