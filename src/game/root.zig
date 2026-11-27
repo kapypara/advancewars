@@ -7,6 +7,8 @@ pub const types = @import("types.zig");
 pub const bios = @import("bios.zig");
 pub const math = @import("math.zig");
 pub const dma = @import("dma.zig");
+pub const sound = @import("sound.zig");
+pub const hw = @import("hw.zig");
 
 comptime {
     _ = abi;
@@ -14,6 +16,8 @@ comptime {
     _ = bios;
     _ = math;
     _ = dma;
+    _ = sound;
+    _ = hw;
 }
 
 test {
@@ -22,4 +26,6 @@ test {
     _ = bios;
     _ = math;
     _ = dma;
+    _ = sound;
+    _ = hw;
 }
