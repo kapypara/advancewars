@@ -683,9 +683,35 @@ pub fn func_0803BB0C() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Evaluate `[*(0x08043834) + 4 + i16(*(0x08043838)+0x1E)]` via `0x08022640` and set byte flag `+0x41 = 1` (`0x08043810`).
+pub fn func_08043810() callconv(.c) void {
+    if (!abi.enter(0x08043810)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const table = abi.read32(0x08043834);
+    rt.r[4] = abi.read32(0x08043838);
+    abi.setRegNz(&rt.r[2], 0x1E);
+    const unit_idx = abi.signExtend16(abi.read16(abi.read32(rt.r[4]) +% 0x1E));
+    rt.r[1] = table +% 4;
+    rt.r[0] = abi.read8(@as(u32, @bitCast(unit_idx)) +% rt.r[1]);
+    if (!abi.call(decls.func_08022640, 0x08043827)) return;
+
+    abi.fetches(9);
+    rt.r[0] = abi.read32(rt.r[4]) +% 0x41;
+    abi.setRegNz(&rt.r[1], 1);
+    abi.write8(rt.r[0], 1);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08019970, .{ .name = "func_08019970", .linkage = .strong });
+        @export(&func_08043810, .{ .name = "func_08043810", .linkage = .strong });
         @export(&func_0801B8D4, .{ .name = "func_0801B8D4", .linkage = .strong });
         @export(&func_0801BAB4, .{ .name = "func_0801BAB4", .linkage = .strong });
         @export(&func_0801C150, .{ .name = "func_0801C150", .linkage = .strong });

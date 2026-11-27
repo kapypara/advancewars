@@ -658,9 +658,39 @@ pub fn func_08015A20() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Position animator `r0` relative to `0x60`-strided descriptor `[0x08049588]` and camera `[0x08049590]` via `0x08013550` (`0x08049554`).
+pub fn func_08049554() callconv(.c) void {
+    if (!abi.enter(0x08049554)) return;
+    abi.fetches(25);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    abi.setRegNz(&rt.r[1], 0);
+    const idx: u32 = @bitCast(abi.signExtend16(abi.read16(abi.read32(0x08049588))));
+    const entry = (((idx << 1) +% idx) << 5) +% abi.read32(0x0804958C);
+    const cam = abi.read32(abi.read32(0x08049590));
+    rt.r[4] = abi.read16(entry +% 0x1E);
+    rt.r[5] = abi.read16(cam +% 0x1A);
+    rt.r[1] = @bitCast(abi.signExtend16(@truncate(rt.r[4] +% rt.r[5])));
+    rt.r[2] = @bitCast(abi.signExtend16(@truncate(abi.read16(entry +% 0x20) +% abi.read16(cam +% 0x1E))));
+    rt.r[3] = abi.read16(cam +% 0x1E);
+    if (!abi.call(decls.func_08013550, 0x08049583)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08011CF0, .{ .name = "func_08011CF0", .linkage = .strong });
+        @export(&func_08049554, .{ .name = "func_08049554", .linkage = .strong });
         @export(&func_0801253C, .{ .name = "func_0801253C", .linkage = .strong });
         @export(&func_08012794, .{ .name = "func_08012794", .linkage = .strong });
         @export(&func_08012A14, .{ .name = "func_08012A14", .linkage = .strong });

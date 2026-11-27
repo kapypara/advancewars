@@ -629,6 +629,53 @@ pub fn func_080422C4() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Transfer `0x4000`-strided BG/OBJ block from bits `[3:2]` of `[0x08043854]` via `0x0801B850` (`0x0804383C`).
+pub fn func_0804383C() callconv(.c) void {
+    if (!abi.enter(0x0804383C)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    const bank = (abi.read32(abi.read32(0x08043854)) << 28) >> 30;
+    rt.r[1] = abi.read32(0x08043858);
+    rt.r[0] = (bank << 14) +% rt.r[1];
+    if (!abi.call(decls.func_0801B850, 0x08043851)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Transfer `0x4000`-strided BG/OBJ block from bits `[3:2]` of `[0x08043884]` via `0x0801B860` and clear `*(0x0804388C)+0x8D0` (`0x0804385C`).
+pub fn func_0804385C() callconv(.c) void {
+    if (!abi.enter(0x0804385C)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    const bank = (abi.read32(abi.read32(0x08043884)) << 28) >> 30;
+    rt.r[1] = abi.read32(0x08043888);
+    rt.r[0] = (bank << 14) +% rt.r[1];
+    if (!abi.call(decls.func_0801B860, 0x08043871)) return;
+
+    abi.fetches(11);
+    const dst = abi.read32(abi.read32(0x0804388C)) +% (0x8D << 4);
+    rt.r[0] = dst;
+    abi.setRegNz(&rt.r[1], 0);
+    abi.write8(dst, 0);
+    abi.popReturn();
+}
+
+/// Upload masked `[0..0xF0)` BG/sprite table slice via `0x0801B888` (`0x0804890C`).
+pub fn func_0804890C() callconv(.c) void {
+    if (!abi.enter(0x0804890C)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    const cur = abi.read16(abi.read32(abi.read32(0x0804892C)) +% 0x2A);
+    const mask = abi.read32(0x08048930);
+    rt.r[0] = (0xF0 -% cur) & mask;
+    rt.r[2] = abi.read32(0x08048934);
+    rt.r[3] = abi.read32(0x08048938);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801B888, 0x08048929)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -660,6 +707,9 @@ comptime {
         @export(&func_0801B8A8, .{ .name = "func_0801B8A8", .linkage = .strong });
         @export(&func_0801DAB8, .{ .name = "func_0801DAB8", .linkage = .strong });
         @export(&func_080422C4, .{ .name = "func_080422C4", .linkage = .strong });
+        @export(&func_0804383C, .{ .name = "func_0804383C", .linkage = .strong });
+        @export(&func_0804385C, .{ .name = "func_0804385C", .linkage = .strong });
+        @export(&func_0804890C, .{ .name = "func_0804890C", .linkage = .strong });
         @export(&func_08069B1C, .{ .name = "func_08069B1C", .linkage = .strong });
         @export(&func_08079958, .{ .name = "func_08079958", .linkage = .strong });
         @export(&func_08079A00, .{ .name = "func_08079A00", .linkage = .strong });

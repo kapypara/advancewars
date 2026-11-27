@@ -761,9 +761,21 @@ pub fn func_0803FCE0() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Clear/reset state structure `0x0804B43C` via `0x0800FC74` (`0x0804B430`).
+pub fn func_0804B430() callconv(.c) void {
+    if (!abi.enter(0x0804B430)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0804B43C);
+    if (!abi.call(decls.func_0800FC74, 0x0804B439)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08015E10, .{ .name = "func_08015E10", .linkage = .strong });
+        @export(&func_0804B430, .{ .name = "func_0804B430", .linkage = .strong });
         @export(&func_08015E24, .{ .name = "func_08015E24", .linkage = .strong });
         @export(&func_08016918, .{ .name = "func_08016918", .linkage = .strong });
         @export(&func_08016F44, .{ .name = "func_08016F44", .linkage = .strong });

@@ -320,6 +320,30 @@ pub fn func_0803D920() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Play sound effect `0x84` (`0x080492A0`).
+pub fn func_080492A0() callconv(.c) void {
+    if (!abi.enter(0x080492A0)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0x84);
+    if (!abi.call(decls.func_0803D880, 0x080492A9)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Copy `u8([*(0x0804E51C) + 0x4C])` into `r0+0x1E` and play sound effect `0x74` (`0x0804E504`).
+pub fn func_0804E504() callconv(.c) void {
+    if (!abi.enter(0x0804E504)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[1] = abi.read8(abi.read32(abi.read32(0x0804E51C)) +% 0x4C);
+    abi.write16(rt.r[0] +% 0x1E, @truncate(rt.r[1]));
+    abi.setRegNz(&rt.r[0], 0x74);
+    if (!abi.call(decls.func_0803D880, 0x0804E517)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
@@ -341,6 +365,8 @@ comptime {
         @export(&func_0803D880, .{ .name = "func_0803D880", .linkage = .strong });
         @export(&func_0803D920, .{ .name = "func_0803D920", .linkage = .strong });
         @export(&func_0803D954, .{ .name = "func_0803D954", .linkage = .strong });
+        @export(&func_080492A0, .{ .name = "func_080492A0", .linkage = .strong });
+        @export(&func_0804E504, .{ .name = "func_0804E504", .linkage = .strong });
         @export(&func_080779D8, .{ .name = "func_080779D8", .linkage = .strong });
         @export(&func_080795B4, .{ .name = "func_080795B4", .linkage = .strong });
         @export(&func_08079610, .{ .name = "func_08079610", .linkage = .strong });
