@@ -64,13 +64,22 @@ Behind one thin, backend-agnostic `Platform` interface (no `wgpu-native` bloat: 
   - Pixel-exact BMP parity (`0 bytes diff`) against `ref_title.bmp` (1,550 frames), `ref_ft.bmp` (8,000 frames, both `Debug` and `ReleaseFast`), and `ref_win.bmp` (26,320 frames), plus full 54,600-frame `tools/field_training_m2.txt` Mission 2 replay and 64 KB Flash `.sav` round-trip.
   - Re-verified frame `931` (`--dump-dir` + `BG1CNT=0x5E02`, `BG2X=0x00000000`, `WIN0H=0x00F0` and matching `frames.log`) and clean `F1211`/`F2511` `m4a` PCM buffers (max step `<= 31`).
 
-## Phase 5 — WebAssembly Browser Port (`wasm32-freestanding`)
-- Compile the pure Zig core + runtime to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten), serving desktop and mobile browsers (with pure touch controls).
+## Phase 5 — WebAssembly Browser Port (`wasm32-freestanding`) (Next)
+- Compile the pure Zig core + runtime + `gen/zig/` shards to `wasm32-freestanding` running inside a Web Worker (60 Hz loop without blocking the browser UI thread or pulling in Emscripten), serving desktop and mobile browsers (with pure touch controls).
 - Minimal browser JS shell (~150 lines) presenting the `240x160` framebuffer via Canvas2D / WebGL2, AudioWorklet audio, browser Pointer/Touch events wired into `touch.zig`, local ROM file drop (never uploaded), and 64 KB Flash persistence in `IndexedDB`.
 
-## Phase 6 — Full Zig Recompiler (`ext/gbarecomp` -> Zig)
-- Port `gbarecomp`'s ROM loader, ARM/Thumb decoders, CFG/entry-point analyzer, and code generator (`src/rom.c`, `arm.c`, `thumb.c`, `disasm.c`, `analysis.c`, `translate.c`, `main.c`) into Zig (`src/recomp/`), emitting pure `.zig` instead of C.
-- Eliminate all remaining C code, C flags (`.sanitize_c = .off`, `-std=gnu11`, `-O1`), and CMake/Clang/GCC tooling across Linux and WASM for 100% pure, fully-optimized Zig (`ReleaseFast`).
+## Phase 6 — Full Zig Recompiler (`ext/gbarecomp` -> Zig) & Pure-Zig Build (Done)
+Executed before Phase 5 to eliminate generated C sources and CMake/Clang compiler workarounds first:
+- Ported `gbarecomp` into pure Zig (`src/recomp/{types,rom,arm,thumb,analysis,translate_zig,main}.zig`), adding ARM/Thumb decoders, recursive-descent + prologue + jump-table + code-pointer analysis (`7,577` functions, `64,740` basic blocks), block-level iterative Tarjan SCC owner unification (eliminating cross-owner loop cycles with zero block duplication), split-`BL` handling, dual-use `POP+BX` veneer detection, and parallel shard emission (`gen/zig/`).
+- Replaced C `gen/*.c` compilation, `src/zig/abi_root.zig`, `gen_c_flags`, `.sanitize_c = .off`, and `-lm` in `build.zig` with pure-Zig entry (`src/zig/main.zig`), shared shard ABI (`src/zig/rt_shard.zig`), external declarations (`gen/zig/decls.zig`), BX dispatch (`gen/zig/game.zig`), and parallel `b.addObject` compilation across all 62 generated shards (keeping `src/zig/runtime/validate_jmp.c` strictly conditional on non-freestanding hosts for `GBA_VALIDATE`).
+- Generated `gen/zig/` output: `41 MB` / `1,121,323` total lines (`60` func shards + `1` stub shard + `unresolved.zig` + `decls.zig` + `game.zig`; `7,577` functions, `151` stubs, `78` unresolved, `70,705` unique blocks emitted, `947` delegated) — vs `257 MB` / `~8.87M` lines in C.
+- Verified in Podman (`podman compose run --rm dev ...`, without modifying `game/aw.sav` or `ext/gbarecomp`):
+  - `zig build test --summary all`: all `awre_core` and `recomp` (`7/7`) unit tests pass.
+  - Build & translate times: `zig build translate` takes `0.901s` cached (`24.248s` cold including `gbarecomp` fast compile); `zig build -Dheadless=true` Debug takes `5.951s`; `zig build` SDL Debug takes `5.789s` (reusing cached shards); cold `zig build -Doptimize=ReleaseFast` across 16 CPU cores takes `50.923s` (and `13.600s` / `13.639s` on an incremental `src/zig/ppu.zig` edit).
+  - Lockstep conformance (`zig build conformance` and `zig build -Doptimize=ReleaseFast conformance`): `165/165 functions agree` on both `Debug` and `ReleaseFast`.
+  - Pixel-exact BMP parity (`cmp -s`, `0 bytes diff`) in `ReleaseFast` against `ref_title.bmp` (`1,550` frames in `0.910s`), `ref_ft.bmp` (`8,000` frames in `5.128s`), and `ref_win.bmp` (`26,320` frames in `17.571s`).
+  - Full Mission 2 replay (`tools/field_training_m2.txt`, `54,600` frames) completed cleanly in `35.541s` (~1,536 FPS) and 64 KB Flash `.sav` round-trip (`28,200` frames, `2,323` non-`0xFF` bytes written and reloaded cleanly) passed.
+  - Native Arch Linux host check (`ldd zig-out/bin/awre` linking `libSDL2-2.0.so.0` + `libc.so.6` without `libm`, plus 10-frame headless smoke run) passed.
 
 ## Phase 7 — Post-Port Polish & Native UX Enhancements (After Main Plan)
 - **Direct UI/Menu Mouse & Touch Hooking:** Hook Advance Wars' non-map UI screens (name entry character grid + `BACK`/`OK!`, title/main menus, unit action menus, CO select) for direct tap/click selection.

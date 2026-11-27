@@ -38,25 +38,45 @@ const c_host = if (has_posix) struct {
     const FILE = opaque {};
 };
 
-// Symbols defined in generated `gen/game_entry.c`.
-extern var g_bx_depth: c_int;
-extern fn cpu_bx(target: u32) void;
-extern fn recomp_lookup(addr: u32) u32;
-extern fn recomp_lookup_fn(addr: u32) ?*const fn () callconv(.c) void;
+// Callbacks registered at startup by `src/zig/main.zig` from generated `game.zig`.
+pub const GameCallbacks = struct {
+    bx_depth: *i32,
+    cpu_bx: *const fn (u32) callconv(.c) void,
+    recomp_lookup: *const fn (u32) u32,
+    recomp_lookup_fn: *const fn (u32) ?*const fn () callconv(.c) void,
+};
 
-// ---- Exported C-ABI CPU & Memory Globals (`gba_runtime.h`) ----
+var game_cb: ?GameCallbacks = null;
+
+pub fn registerGameCallbacks(cb: GameCallbacks) void {
+    game_cb = cb;
+}
+
+inline fn cbCpuBx(target: u32) void {
+    if (game_cb) |cb| cb.cpu_bx(target);
+}
+
+inline fn cbRecompLookup(addr: u32) u32 {
+    return if (game_cb) |cb| cb.recomp_lookup(addr) else 0;
+}
+
+inline fn cbRecompLookupFn(addr: u32) ?*const fn () callconv(.c) void {
+    return if (game_cb) |cb| cb.recomp_lookup_fn(addr) else null;
+}
+
+// ---- CPU & Memory Globals (exported to independent gen/zig shards) ----
 pub export var r: [16]u32 = @splat(0);
 pub export var CPU_N: bool = false;
 pub export var CPU_Z: bool = false;
 pub export var CPU_C: bool = false;
 pub export var CPU_V: bool = false;
 
-pub export var ewram: ?[*]u8 = null;
-pub export var iwram: ?[*]u8 = null;
-pub export var io_regs: ?[*]u8 = null;
-pub export var palette: ?[*]u8 = null;
-pub export var vram: ?[*]u8 = null;
-pub export var oam: ?[*]u8 = null;
+pub var ewram: ?[*]u8 = null;
+pub var iwram: ?[*]u8 = null;
+pub var io_regs: ?[*]u8 = null;
+pub var palette: ?[*]u8 = null;
+pub var vram: ?[*]u8 = null;
+pub var oam: ?[*]u8 = null;
 
 pub export var g_func_ring: [4096]u32 = @splat(0);
 pub export var g_func_ring_i: u32 = 0;
@@ -64,6 +84,24 @@ pub export var g_validate: c_int = 0;
 pub export var g_ret: u32 = 0;
 pub export var g_unwind_trace: c_int = 0;
 pub export var g_hist_on: c_int = 0;
+
+pub fn dispParseArgs(args: []const [*:0]const u8) ?[*:0]const u8 {
+    return disp.parseArgsSlice(args);
+}
+
+pub fn linkShardExports() void {
+    const syms = .{
+        &r,             &CPU_N,        &CPU_Z,        &CPU_C,           &CPU_V,
+        &g_func_ring,   &g_func_ring_i, &g_validate,  &g_ret,           &g_unwind_trace,
+        &g_hist_on,     &bus_read32,   &bus_read32s,  &bus_read16,      &bus_read8,
+        &bus_write32,   &bus_write16,  &bus_write8,   &cpu_fetches,     &gba_swi,
+        &cpu_get_cpsr,  &cpu_set_cpsr, &cpu_get_spsr, &cpu_set_spsr,    &cpu_undefined,
+        &recomp_unwind_note, &recomp_hist, &recomp_validate,
+    };
+    inline for (syms) |s| {
+        std.mem.doNotOptimizeAway(s);
+    }
+}
 
 // ---- Backing Memory Storage ----
 var ewram_buf: [0x40000]u8 = @splat(0);
@@ -360,7 +398,7 @@ fn checkInterrupts() void {
     const saved_mode = bus_mode;
     bus_mode = .rom_code;
 
-    cpu_bx(handler_addr);
+    cbCpuBx(handler_addr);
 
     bus_mode = saved_mode;
     in_irq = was_in_irq;
@@ -821,7 +859,7 @@ fn busWrite8_(addr: u32, value: u8) void {
     }
 }
 
-// ---- Exported Bus & CPU Timing API ----
+// ---- Bus & CPU Timing API ----
 pub export fn bus_read32(addr: u32) u32 {
     charge(dataCycles(addr, true, true));
     return read32_(addr);
@@ -873,7 +911,7 @@ pub export fn cpu_fetches(n: u32) void {
     fetch_frac &= 15;
 }
 
-// ---- Exported CPSR / SPSR ----
+// ---- CPSR / SPSR ----
 pub export fn cpu_get_cpsr() u32 {
     var flags: u32 = 0;
     if (CPU_N) flags |= 1 << 31;
@@ -1153,10 +1191,10 @@ const InterpCtx = struct {
         gba_swi(number);
     }
     pub fn cpuBx(_: *@This(), addr: u32) void {
-        cpu_bx(addr);
+        cbCpuBx(addr);
     }
     pub fn recompLookup(_: *@This(), addr: u32) u32 {
-        return recomp_lookup(addr);
+        return cbRecompLookup(addr);
     }
     pub fn warnUnmappedArmBx(_: *@This(), addr: u32, rm: u32, insn_pc: u32) void {
         if (unmapped_bx_warns < 5) {
@@ -1187,12 +1225,12 @@ const InterpCtx = struct {
 };
 var interp_ctx: InterpCtx = .{};
 
-pub export fn run_iwram_function(target: u32) void {
+pub fn run_iwram_function(target: u32) void {
     interp_mod.runFunction(&interp_ctx, target);
 }
 
-// ---- Misc Exported C-ABI Functions ----
-pub export fn cpu_bx_trace(target: u32) void {
+// ---- Misc Runtime API Functions ----
+pub fn cpu_bx_trace(target: u32) void {
     bx_trace_count +%= 1;
     if (target != bx_trace_last and bx_trace_count <= 100) {
         std.debug.print("[bx #{d}] -> 0x{X:0>8}\n", .{ bx_trace_count, target });
@@ -1204,30 +1242,30 @@ pub export fn cpu_undefined(insn: u32) void {
     std.debug.print("[runtime] Undefined instruction 0x{X:0>8} at PC=0x{X:0>8}\n", .{ insn, r[15] });
 }
 
-pub export fn ppu_render_scanline() void {}
+pub fn ppu_render_scanline() void {}
 
-pub export fn ppu_in_vblank() bool {
+pub fn ppu_in_vblank() bool {
     return scanline >= visible_scanlines;
 }
 
-pub export fn ppu_in_hblank() bool {
+pub fn ppu_in_hblank() bool {
     return scanline_cycles >= hblank_start_cycle;
 }
 
-pub export fn apu_step(_: u32) void {}
+pub fn apu_step(_: u32) void {}
 
-pub export fn dma_check() void {}
+pub fn dma_check() void {}
 
-pub export fn timer_step(cycles: u32) void {
+pub fn timer_step(cycles: u32) void {
     const timer_irqs = timer_state.tick(cycles);
     if (timer_irqs != 0) raiseIrqBits(timer_irqs);
 }
 
-pub export fn irq_check() void {
+pub fn irq_check() void {
     checkInterrupts();
 }
 
-pub export fn gba_frame() void {
+pub fn gba_frame() void {
     const target_cycle = ((cycle_counter / cycles_per_frame) + 1) * cycles_per_frame +
         visible_scanlines * cycles_per_scanline;
     while (cycle_counter < target_cycle) {
@@ -1236,13 +1274,12 @@ pub export fn gba_frame() void {
     }
 }
 
-pub export fn gba_run(entry_func: ?*const fn () callconv(.c) void) void {
-    const entry = entry_func orelse return;
+pub fn gba_run(entry_func: *const fn () void) void {
     while (true) {
         soft_reset_pending = false;
         in_irq = false;
         g_ret = 0;
-        entry();
+        entry_func();
         if (!soft_reset_pending) break;
         soft_reset_count +%= 1;
         if (soft_reset_count <= 5) {
@@ -1413,19 +1450,19 @@ pub export fn recomp_hist(addr: u32) void {
 
 const ValidateHost = struct {
     pub fn recompLookup(_: *@This(), addr: u32) u32 {
-        return recomp_lookup(addr);
+        return cbRecompLookup(addr);
     }
     pub fn recompLookupFn(_: *@This(), addr: u32) ?*const fn () callconv(.c) void {
-        return recomp_lookup_fn(addr);
+        return cbRecompLookupFn(addr);
     }
     pub fn regs(_: *@This()) *[16]u32 {
         return &r;
     }
-    pub fn getBxDepth(_: *@This()) c_int {
-        return g_bx_depth;
+    pub fn getBxDepth(_: *@This()) i32 {
+        return if (game_cb) |cb| cb.bx_depth.* else 0;
     }
-    pub fn setBxDepth(_: *@This(), v: c_int) void {
-        g_bx_depth = v;
+    pub fn setBxDepth(_: *@This(), v: i32) void {
+        if (game_cb) |cb| cb.bx_depth.* = v;
     }
     pub fn getRet(_: *@This()) u32 {
         return g_ret;
@@ -1555,7 +1592,7 @@ fn initPostRomRegs() void {
     @memset(io_regs_buf[0x120..0x128], 0xFF);
 }
 
-pub export fn gba_init(rom_path_c: [*:0]const u8) void {
+pub fn gba_init(rom_path_c: [*:0]const u8) void {
     if (!has_posix) return;
 
     if (c_host.getenv("GBA_VALIDATE")) |e| g_validate = c_host.atoi(e);
@@ -1617,7 +1654,7 @@ pub export fn gba_init(rom_path_c: [*:0]const u8) void {
     }
 }
 
-pub export fn gba_shutdown() void {
+pub fn gba_shutdown() void {
     if (has_posix) {
         if (c_host.getenv("GBA_FUNC_TRACE") != null) funcRingDump();
     }

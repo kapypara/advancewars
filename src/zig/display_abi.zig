@@ -142,14 +142,18 @@ fn pumpLiveAudio() void {
     }
 }
 
-pub export fn display_parse_args(argc: c_int, argv: [*][*:0]u8) ?[*:0]const u8 {
+pub fn parseArgsSlice(args: []const [*:0]const u8) ?[*:0]const u8 {
+    return s_runner.parseArgs(args, core.is_headless);
+}
+
+pub fn display_parse_args(argc: c_int, argv: [*][*:0]u8) ?[*:0]const u8 {
     if (argc <= 0) return null;
     const count: usize = @intCast(argc);
     const args: [*]const [*:0]const u8 = @ptrCast(argv);
-    return s_runner.parseArgs(args[0..count], core.is_headless);
+    return parseArgsSlice(args[0..count]);
 }
 
-pub export fn display_pace() void {
+pub fn display_pace() void {
     if (!s_runner.headless) {
         s_backend.pace();
     }
@@ -207,19 +211,19 @@ fn dumpContinuousFrame(framebuf: *const [gba.width * gba.height]u32, state: Game
     s_runner.writeDumpLogLine(line);
 }
 
-pub export fn display_headless() c_int {
+pub fn display_headless() c_int {
     return if (s_runner.headless) 1 else 0;
 }
 
-pub export fn display_log_every() c_long {
+pub fn display_log_every() c_long {
     return @intCast(s_runner.log_every);
 }
 
-pub export fn display_dump_path(frame: c_long) ?[*:0]const u8 {
+pub fn display_dump_path(frame: c_long) ?[*:0]const u8 {
     return s_runner.dumpPath(@intCast(frame));
 }
 
-pub export fn display_init() c_int {
+pub fn display_init() c_int {
     const win_w: u32 = @as(u32, @intCast(gba.width)) * default_scale;
     const win_h: u32 = @as(u32, @intCast(gba.height)) * default_scale;
     if (!s_runner.initRecording(win_w, win_h)) {
@@ -241,7 +245,7 @@ pub export fn display_init() c_int {
     return 0;
 }
 
-pub export fn display_render_line(y: c_int) void {
+pub fn display_render_line(y: c_int) void {
     const io = rt.io_regs orelse return;
     const vr = rt.vram orelse return;
     const pal = rt.palette orelse return;
@@ -257,7 +261,7 @@ pub export fn display_render_line(y: c_int) void {
     }, @intCast(y));
 }
 
-pub export fn display_render_frame() void {
+pub fn display_render_frame() void {
     if (rt.io_regs == null or rt.vram == null or rt.palette == null or rt.oam == null) return;
     if (s_runner.onFrame(&s_ppu.framebuf)) {
         dumpContinuousFrame(&s_ppu.framebuf, sampleGameState());
@@ -272,7 +276,7 @@ pub export fn display_render_frame() void {
     s_backend.present(&s_present_buf);
 }
 
-pub export fn display_poll_events() c_int {
+pub fn display_poll_events() c_int {
     if (s_runner.reachedFrameLimit()) return 1;
     if (s_runner.headless) return 0;
 
@@ -297,13 +301,13 @@ pub export fn display_poll_events() c_int {
     return if (res.quit) 1 else 0;
 }
 
-pub export fn display_get_keys() u16 {
+pub fn display_get_keys() u16 {
     const touch_keys: u16 = if (s_runner.headless) 0 else s_touch.activeKeys();
     const combined = s_runner.script_keys_pressed | s_live_keys_pressed | touch_keys;
     return gba.keyInputFromPressed(combined);
 }
 
-pub export fn display_shutdown() void {
+pub fn display_shutdown() void {
     s_runner.shutdown(&s_ppu.framebuf);
     if (!s_runner.headless) {
         s_backend.shutdown();

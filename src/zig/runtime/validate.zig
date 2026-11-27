@@ -16,6 +16,12 @@ const host_jmp = if (has_host_validate) struct {
     extern "c" fn strtoul(nptr: [*:0]const u8, endptr: ?*?[*]u8, base: c_int) c_ulong;
     extern "c" fn strchr(s: [*:0]const u8, c: c_int) ?[*:0]const u8;
     extern "c" fn atol(nptr: [*:0]const u8) c_long;
+
+    var pending_call_u32: ?*const fn (u32) void = null;
+
+    fn trampolineCallU32(arg: u32) callconv(.c) void {
+        if (pending_call_u32) |f| f(arg);
+    }
 } else struct {};
 
 pub const MachineState = struct {
@@ -97,7 +103,7 @@ pub fn runValidate(
     in_irq: bool,
     frame_count: u32,
     host: anytype,
-    run_iwram_fn: *const fn (u32) callconv(.c) void,
+    run_iwram_fn: *const fn (u32) void,
 ) c_int {
     if (!has_host_validate) return 0;
     if (g_validating or in_irq) return 0;
@@ -166,7 +172,8 @@ pub fn runValidate(
     host.stateLoad(&s0);
     validate_deadline = host.getCycleCounter() +% 2 * cycles_per_frame;
     host.setRet(0);
-    if (host_jmp.awre_validate_call_u32(run_iwram_fn, target) != 0) {
+    host_jmp.pending_call_u32 = run_iwram_fn;
+    if (host_jmp.awre_validate_call_u32(host_jmp.trampolineCallU32, target) != 0) {
         host.stateLoad(&s0);
         host.setBxDepth(bx_depth0);
         host.setRet(0);
