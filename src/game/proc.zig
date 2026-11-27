@@ -525,8 +525,41 @@ pub fn func_080192DC() callconv(.c) void {
     rt.recompReturn(rt.r[1]);
 }
 
+/// Dispatch proc field `proc->+0x18` via `0x0807B44C` (`0x08010F04`).
+pub fn func_08010F04() callconv(.c) void {
+    if (!abi.enter(0x08010F04)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(rt.r[0] +% 0x18);
+    if (!abi.call(decls.func_0807B44C, 0x08010F0D)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Spawn `0x08010F24` proc storing caller pointer `r0` at `proc->+0x18` (`0x08010F10`).
+pub fn func_08010F10() callconv(.c) void {
+    if (!abi.enter(0x08010F10)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0];
+    rt.r[0] = abi.read32(0x08010F24);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08010F1D)) return;
+
+    abi.fetches(6);
+    abi.write32(rt.r[0] +% 0x18, rt.r[4]);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_08010F04, .{ .name = "func_08010F04", .linkage = .strong });
+        @export(&func_08010F10, .{ .name = "func_08010F10", .linkage = .strong });
         @export(&func_08013D14, .{ .name = "func_08013D14", .linkage = .strong });
         @export(&func_08013D3C, .{ .name = "func_08013D3C", .linkage = .strong });
         @export(&func_08013DA0, .{ .name = "func_08013DA0", .linkage = .strong });

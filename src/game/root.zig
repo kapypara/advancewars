@@ -19,6 +19,7 @@ pub const co = @import("co.zig");
 pub const unit = @import("unit.zig");
 pub const battle = @import("battle.zig");
 pub const turn = @import("turn.zig");
+pub const menu = @import("menu.zig");
 
 comptime {
     _ = abi;
@@ -38,6 +39,7 @@ comptime {
     _ = unit;
     _ = battle;
     _ = turn;
+    _ = menu;
 }
 
 test {
@@ -58,4 +60,5 @@ test {
     _ = unit;
     _ = battle;
     _ = turn;
+    _ = menu;
 }

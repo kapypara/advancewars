@@ -3,6 +3,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
+const decls = @import("decls");
 const abi = @import("abi.zig");
 const types = @import("types.zig");
 
@@ -310,10 +311,170 @@ pub fn func_0801A1BC() callconv(.c) void {
     abi.retLr();
 }
 
+fn allocOamSheetWithOffset(comptime pool_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[1] = rt.r[0] & 0xFFFF;
+    rt.r[0] = abi.read32(pool_ref);
+    abi.setRegNz(&rt.r[2], 0);
+    abi.setRegNz(&rt.r[3], 0);
+    if (!abi.call(decls.func_0801256C, ret_addr)) return;
+    abi.fetches(4);
+    finishPoppedLr(1);
+}
+
+fn procSlotAnimHandle(comptime proc_pool_ref: u32, slot_reg: u32) u16 {
+    const base = abi.read32(proc_pool_ref);
+    const slot_i: u32 = @bitCast(abi.signExtend16(@truncate(slot_reg)));
+    return abi.read16(base +% (slot_i * 96) +% 0x26);
+}
+
+/// Allocate sprite/OAM queue entry using palette/tile count from `0x08012568` (`0x0801253C`).
+pub fn func_0801253C() callconv(.c) void {
+    if (!abi.enter(0x0801253C)) return;
+    abi.fetches(19);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+
+    const tbl = abi.read32(0x08012568);
+    const v0 = abi.read16(tbl) << 1;
+    const v1 = abi.read16(tbl +% (0x81 << 3));
+    rt.r[1] = (v1 +% v0) & 0xFFFF;
+    abi.write32(rt.r[13], 0);
+    abi.setRegNz(&rt.r[2], 0);
+    abi.setRegNz(&rt.r[3], 0);
+    if (!abi.call(decls.func_080124F8, 0x0801255F)) return;
+
+    abi.fetches(7);
+    abi.setRegNz(&rt.r[0], rt.r[0] & 0xFFFF);
+    rt.r[13] +%= 4;
+    finishPoppedLr(1);
+}
+
+/// Bind/load sprite descriptor `0x080127AC` at offset `u16(r0)` (`0x08012794`).
+pub fn func_08012794() callconv(.c) void {
+    if (!abi.enter(0x08012794)) return;
+    allocOamSheetWithOffset(0x080127AC, 0x080127A7);
+}
+
+/// Bind/load sprite descriptor `0x08012A2C` at offset `u16(r0)` (`0x08012A14`).
+pub fn func_08012A14() callconv(.c) void {
+    if (!abi.enter(0x08012A14)) return;
+    allocOamSheetWithOffset(0x08012A2C, 0x08012A27);
+}
+
+/// Bind/load sprite descriptor `0x08012A48` at offset `u16(r0)` (`0x08012A30`).
+pub fn func_08012A30() callconv(.c) void {
+    if (!abi.enter(0x08012A30)) return;
+    allocOamSheetWithOffset(0x08012A48, 0x08012A43);
+}
+
+/// Bind/load sprite descriptor `0x08012A64` at offset `u16(r0)` (`0x08012A4C`).
+pub fn func_08012A4C() callconv(.c) void {
+    if (!abi.enter(0x08012A4C)) return;
+    allocOamSheetWithOffset(0x08012A64, 0x08012A5F);
+}
+
+/// Release/clear signed animator handle `i16(r0)` via `0x08019FD8` (`0x080134F8`).
+pub fn func_080134F8() callconv(.c) void {
+    if (!abi.enter(0x080134F8)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    if (!abi.call(decls.func_08019FD8, 0x08013503)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Spawn any free animator (`0xFF`) with `(r0, r1, u8(r2))` via `0x08013508` (`0x08013530`).
+pub fn func_08013530() callconv(.c) void {
+    if (!abi.enter(0x08013530)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0];
+    rt.r[5] = rt.r[1];
+    rt.r[3] = rt.r[2] & 0xFF;
+    abi.setRegNz(&rt.r[0], 0xFF);
+    rt.r[1] = rt.r[4];
+    rt.r[2] = rt.r[5];
+    if (!abi.call(decls.func_08013508, 0x08013545)) return;
+
+    abi.fetches(7);
+    abi.setRegNz(&rt.r[0], @bitCast(abi.signExtend8(@truncate(rt.r[0]))));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    finishPoppedLr(1);
+}
+
+/// Set animator position `(i16(r1), i16(r2))` for proc slot `i16(r0)->+0x26` (`0x08013550`).
+pub fn func_08013550() callconv(.c) void {
+    if (!abi.enter(0x08013550)) return;
+    abi.fetches(17);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[0] = procSlotAnimHandle(0x08013574, rt.r[0]);
+    rt.r[1] = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
+    rt.r[2] = @bitCast(abi.signExtend16(@truncate(rt.r[2])));
+    if (!abi.call(decls.func_0801A0EC, 0x0801356F)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Step animator for proc slot `i16(r0)->+0x26` via `0x0801A15C` (`0x08013578`).
+pub fn func_08013578() callconv(.c) void {
+    if (!abi.enter(0x08013578)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[0] = procSlotAnimHandle(0x08013594, rt.r[0]);
+    if (!abi.call(decls.func_0801A15C, 0x0801358F)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Query signed animator state for proc slot `i16(r0)->+0x26` via `0x0801A1AC` (`0x08013630`).
+pub fn func_08013630() callconv(.c) void {
+    if (!abi.enter(0x08013630)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    rt.r[0] = procSlotAnimHandle(0x08013650, rt.r[0]);
+    if (!abi.call(decls.func_0801A1AC, 0x08013647)) return;
+    abi.fetches(6);
+    abi.setRegNz(&rt.r[0], @bitCast(abi.signExtend16(@truncate(rt.r[0]))));
+    finishPoppedLr(1);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08011CF0, .{ .name = "func_08011CF0", .linkage = .strong });
+        @export(&func_0801253C, .{ .name = "func_0801253C", .linkage = .strong });
+        @export(&func_08012794, .{ .name = "func_08012794", .linkage = .strong });
+        @export(&func_08012A14, .{ .name = "func_08012A14", .linkage = .strong });
+        @export(&func_08012A30, .{ .name = "func_08012A30", .linkage = .strong });
+        @export(&func_08012A4C, .{ .name = "func_08012A4C", .linkage = .strong });
+        @export(&func_080134F8, .{ .name = "func_080134F8", .linkage = .strong });
+        @export(&func_08013530, .{ .name = "func_08013530", .linkage = .strong });
+        @export(&func_08013550, .{ .name = "func_08013550", .linkage = .strong });
+        @export(&func_08013578, .{ .name = "func_08013578", .linkage = .strong });
         @export(&func_08013598, .{ .name = "func_08013598", .linkage = .strong });
+        @export(&func_08013630, .{ .name = "func_08013630", .linkage = .strong });
         @export(&func_080135C8, .{ .name = "func_080135C8", .linkage = .strong });
         @export(&func_080135FC, .{ .name = "func_080135FC", .linkage = .strong });
         @export(&func_08013678, .{ .name = "func_08013678", .linkage = .strong });

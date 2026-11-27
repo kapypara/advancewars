@@ -3,6 +3,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
+const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 
@@ -60,11 +61,52 @@ pub fn func_08010AC8() callconv(.c) void {
     abi.retLr();
 }
 
+fn copyMaskedHalfwords(comptime mask_ref: u32, comptime base_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(12);
+    abi.pushLr();
+    const masked = rt.r[1] & abi.read32(mask_ref);
+    const base = abi.read32(base_ref);
+    rt.r[3] = base;
+    rt.r[1] = masked +% base;
+    rt.r[2] &= 0xFFFF;
+    if (!abi.call(decls.func_0800FD94, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Bulk-copy `0x800` bytes from `0x0800F8A8` to `0x0800F8AC` via `0x0800FDA4` (`0x0800F894`).
+pub fn func_0800F894() callconv(.c) void {
+    if (!abi.enter(0x0800F894)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0800F8A8);
+    rt.r[1] = abi.read32(0x0800F8AC);
+    abi.setRegNz(&rt.r[2], 0x800);
+    if (!abi.call(decls.func_0800FDA4, 0x0800F8A3)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Copy `u16(r2)` halfwords from `r0` to masked VRAM offset `0x08011328`/`0x0801132C` (`0x08011310`).
+pub fn func_08011310() callconv(.c) void {
+    if (!abi.enter(0x08011310)) return;
+    copyMaskedHalfwords(0x08011328, 0x0801132C, 0x08011325);
+}
+
+/// Copy `u16(r2)` halfwords from `r0` to masked VRAM offset `0x0801136C`/`0x08011370` (`0x08011354`).
+pub fn func_08011354() callconv(.c) void {
+    if (!abi.enter(0x08011354)) return;
+    copyMaskedHalfwords(0x0801136C, 0x08011370, 0x08011369);
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_0800F894, .{ .name = "func_0800F894", .linkage = .strong });
         @export(&func_0800FD94, .{ .name = "func_0800FD94", .linkage = .strong });
         @export(&func_0800FDCC, .{ .name = "func_0800FDCC", .linkage = .strong });
         @export(&func_08010AC8, .{ .name = "func_08010AC8", .linkage = .strong });
+        @export(&func_08011310, .{ .name = "func_08011310", .linkage = .strong });
+        @export(&func_08011354, .{ .name = "func_08011354", .linkage = .strong });
     }
 }
 

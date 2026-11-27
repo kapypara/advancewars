@@ -516,6 +516,97 @@ pub fn func_0801DAB8() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Clear/initialize hardware buffers via `0x0800FE24` (`0x0800FE18`).
+pub fn func_0800FE18() callconv(.c) void {
+    if (!abi.enter(0x0800FE18)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0800FE24, 0x0800FE1F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Set fade/window mask `(0x14, 6)`, sync display shadow, and zero scroll registers (`0x0801036C`).
+pub fn func_0801036C() callconv(.c) void {
+    if (!abi.enter(0x0801036C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0x14);
+    abi.setRegNz(&rt.r[1], 6);
+    if (!abi.call(decls.func_080103AC, 0x08010377)) return;
+    abi.fetches(17);
+    abi.write16(abi.read32(0x08010394), abi.read16(abi.read32(0x08010398)));
+    inline for ([_]u32{ 0x0801039C, 0x080103A0, 0x080103A4, 0x080103A8 }) |ref| {
+        abi.write16(abi.read32(ref), 0);
+    }
+    abi.popReturn();
+}
+
+/// Disable display/VBlank IRQ flags (`0x11`) and mask DMA channel flags via `0x0807AE60` (`0x08010AD8`).
+pub fn func_08010AD8() callconv(.c) void {
+    if (!abi.enter(0x08010AD8)) return;
+    abi.fetches(14);
+    abi.pushLr();
+    const ctrl = abi.read32(0x08010AF4);
+    abi.write8(ctrl, abi.read8(ctrl) & ~@as(u8, 0x11));
+    abi.setRegNz(&rt.r[0], 1);
+    rt.r[1] = @bitCast(@as(i32, -3));
+    if (!abi.call(decls.func_0807AE60, 0x08010AF1)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear/flush hardware state block `0x08010B24` via `0x0800FBEC` (`0x08010B18`).
+pub fn func_08010B18() callconv(.c) void {
+    if (!abi.enter(0x08010B18)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08010B24);
+    if (!abi.call(decls.func_0800FBEC, 0x08010B21)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Forward to `func_08010AD8` (`0x08010B44`).
+pub fn func_08010B44() callconv(.c) void {
+    if (!abi.enter(0x08010B44)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08010AD8, 0x08010B4B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Enable IRQ flag bit `0x08`, sync shadow register, and configure timer/IRQ via `0x0807AE60` (`0x08010B50`).
+pub fn func_08010B50() callconv(.c) void {
+    if (!abi.enter(0x08010B50)) return;
+    abi.fetches(15);
+    abi.pushLr();
+    const ctrl = abi.read32(0x08010B70);
+    abi.write8(ctrl, abi.read8(ctrl) | 0x08);
+    abi.write16(abi.read32(0x08010B74), abi.read16(ctrl));
+    abi.setRegNz(&rt.r[0], 2);
+    abi.setRegNz(&rt.r[1], 1);
+    if (!abi.call(decls.func_0807AE60, 0x08010B6B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear IRQ bits `0x09`, sync shadow register, and mask via `0x0807AE60` (`0x08010B78`).
+pub fn func_08010B78() callconv(.c) void {
+    if (!abi.enter(0x08010B78)) return;
+    abi.fetches(17);
+    abi.pushLr();
+    const ctrl = abi.read32(0x08010B9C);
+    abi.write8(ctrl, abi.read8(ctrl) & ~@as(u8, 0x09));
+    abi.write16(abi.read32(0x08010BA0), abi.read16(ctrl));
+    abi.setRegNz(&rt.r[0], 1);
+    rt.r[1] = @bitCast(@as(i32, -2));
+    if (!abi.call(decls.func_0807AE60, 0x08010B97)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -525,8 +616,15 @@ comptime {
         @export(&func_0800F094, .{ .name = "func_0800F094", .linkage = .strong });
         @export(&func_0800F170, .{ .name = "func_0800F170", .linkage = .strong });
         @export(&func_0800F578, .{ .name = "func_0800F578", .linkage = .strong });
+        @export(&func_0800FE18, .{ .name = "func_0800FE18", .linkage = .strong });
+        @export(&func_0801036C, .{ .name = "func_0801036C", .linkage = .strong });
         @export(&func_08010444, .{ .name = "func_08010444", .linkage = .strong });
         @export(&func_080104B0, .{ .name = "func_080104B0", .linkage = .strong });
+        @export(&func_08010AD8, .{ .name = "func_08010AD8", .linkage = .strong });
+        @export(&func_08010B18, .{ .name = "func_08010B18", .linkage = .strong });
+        @export(&func_08010B44, .{ .name = "func_08010B44", .linkage = .strong });
+        @export(&func_08010B50, .{ .name = "func_08010B50", .linkage = .strong });
+        @export(&func_08010B78, .{ .name = "func_08010B78", .linkage = .strong });
         @export(&func_08012BAC, .{ .name = "func_08012BAC", .linkage = .strong });
         @export(&func_080134E0, .{ .name = "func_080134E0", .linkage = .strong });
         @export(&func_080134EC, .{ .name = "func_080134EC", .linkage = .strong });
