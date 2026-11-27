@@ -481,9 +481,101 @@ pub fn func_0802F634() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Dispatch `[0x08066AE0]` bytes `(+2, +3, +1)` to `0x080243DC` and set phase `[0x08066AE4] = 6` (`0x08066AC8`).
+pub fn func_08066AC8() callconv(.c) void {
+    if (!abi.enter(0x08066AC8)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const st = abi.read32(0x08066AE0);
+    rt.r[0] = abi.read8(st +% 2);
+    rt.r[1] = abi.read8(st +% 3);
+    rt.r[2] = abi.read8(st +% 1);
+    if (!abi.call(decls.func_080243DC, 0x08066AD7)) return;
+
+    abi.fetches(7);
+    rt.r[1] = abi.read32(0x08066AE4);
+    abi.setRegNz(&rt.r[0], 6);
+    abi.write16(rt.r[1], 6);
+    abi.popReturn();
+}
+
+/// Invoke `0x0801C120` with byte `[0x08066BB0]+6` (`0x08066BA0`).
+pub fn func_08066BA0() callconv(.c) void {
+    if (!abi.enter(0x08066BA0)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read8(abi.read32(0x08066BB0) +% 6);
+    if (!abi.call(decls.func_0801C120, 0x08066BAB)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear unit selection via `0x0802615C([0x08066CA4]+6)` and set phases `(2, 0)` (`0x08066C88`).
+pub fn func_08066C88() callconv(.c) void {
+    if (!abi.enter(0x08066C88)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read8(abi.read32(0x08066CA4) +% 6);
+    if (!abi.call(decls.func_0802615C, 0x08066C93)) return;
+
+    abi.fetches(10);
+    abi.write16(abi.read32(0x08066CA8), 2);
+    rt.r[1] = abi.read32(0x08066CAC);
+    abi.setRegNz(&rt.r[0], 0);
+    abi.write16(rt.r[1], 0);
+    abi.popReturn();
+}
+
+/// Enable battle overlay via `0x0802C4A8` and set flag bit `0x20` on `*(0x08066E94)+1` (`0x08066E7C`).
+pub fn func_08066E7C() callconv(.c) void {
+    if (!abi.enter(0x08066E7C)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0802C4A8, 0x08066E83)) return;
+
+    abi.fetches(10);
+    rt.r[1] = abi.read32(abi.read32(0x08066E94));
+    rt.r[2] = abi.read8(rt.r[1] +% 1);
+    rt.r[0] = 0x20 | rt.r[2];
+    abi.write8(rt.r[1] +% 1, @truncate(rt.r[0]));
+    abi.popReturn();
+}
+
+/// Disable battle overlay via `0x0802C49C` and clear flag bit `0x20` on `*(0x08066EB0)+1` (`0x08066E98`).
+pub fn func_08066E98() callconv(.c) void {
+    if (!abi.enter(0x08066E98)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0802C49C, 0x08066E9F)) return;
+
+    abi.fetches(10);
+    rt.r[1] = abi.read32(abi.read32(0x08066EB0));
+    rt.r[2] = abi.read8(rt.r[1] +% 1);
+    rt.r[0] = 0xDF & rt.r[2];
+    abi.write8(rt.r[1] +% 1, @truncate(rt.r[0]));
+    abi.popReturn();
+}
+
+/// Advance battle state `[0x08066EC4]` via `0x0802AAF8` (`0x08066EB4`).
+pub fn func_08066EB4() callconv(.c) void {
+    if (!abi.enter(0x08066EB4)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read32(abi.read32(0x08066EC4));
+    if (!abi.call(decls.func_0802AAF8, 0x08066EBF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08022220, .{ .name = "func_08022220", .linkage = .strong });
+        @export(&func_08066AC8, .{ .name = "func_08066AC8", .linkage = .strong });
+        @export(&func_08066BA0, .{ .name = "func_08066BA0", .linkage = .strong });
+        @export(&func_08066C88, .{ .name = "func_08066C88", .linkage = .strong });
+        @export(&func_08066E7C, .{ .name = "func_08066E7C", .linkage = .strong });
+        @export(&func_08066E98, .{ .name = "func_08066E98", .linkage = .strong });
+        @export(&func_08066EB4, .{ .name = "func_08066EB4", .linkage = .strong });
         @export(&func_080224C8, .{ .name = "func_080224C8", .linkage = .strong });
         @export(&func_080226A4, .{ .name = "func_080226A4", .linkage = .strong });
         @export(&func_080234A0, .{ .name = "func_080234A0", .linkage = .strong });

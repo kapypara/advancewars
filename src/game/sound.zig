@@ -344,9 +344,34 @@ pub fn func_0804E504() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Set audio track/channel parameter `4` on `[0x08050C6C]` via `0x08078488` (`0x08050C5C`).
+pub fn func_08050C5C() callconv(.c) void {
+    if (!abi.enter(0x08050C5C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08050C6C);
+    abi.setRegNz(&rt.r[1], 4);
+    if (!abi.call(decls.func_08078488, 0x08050C67)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Play sound effect `0xCC` (`0x08051868`).
+pub fn func_08051868() callconv(.c) void {
+    if (!abi.enter(0x08051868)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0xCC);
+    if (!abi.call(decls.func_0803D880, 0x08051871)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
+        @export(&func_08050C5C, .{ .name = "func_08050C5C", .linkage = .strong });
+        @export(&func_08051868, .{ .name = "func_08051868", .linkage = .strong });
         @export(&func_08038034, .{ .name = "func_08038034", .linkage = .strong });
         @export(&func_08038040, .{ .name = "func_08038040", .linkage = .strong });
         @export(&func_0803804C, .{ .name = "func_0803804C", .linkage = .strong });

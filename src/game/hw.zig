@@ -676,9 +676,262 @@ pub fn func_0804890C() callconv(.c) void {
     abi.popReturn();
 }
 
+fn uploadBgTileSliceFFA8(
+    comptime r2_shift: u5,
+    comptime count_shift: u5,
+    comptime src_tbl_ref: u32,
+    comptime dst_base_ref: u32,
+    comptime ret_addr: u32,
+) void {
+    abi.fetches(21);
+    abi.pushLr();
+    const idx = rt.r[0] & 0xFFFF;
+    const dst_off = (rt.r[2] << r2_shift) >> 16;
+    const src_off = (idx << 29) >> 16;
+    const tbl = abi.read32(src_tbl_ref) +% 0x18;
+    rt.r[3] = tbl;
+    rt.r[0] = abi.read32(tbl +% (idx << 5)) +% dst_off;
+    rt.r[1] = src_off +% abi.read32(dst_base_ref);
+    abi.setRegNz(&rt.r[2], @as(u32, 0x80) << count_shift);
+    if (!abi.call(decls.func_0800FFA8, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn drawWrappedObj1B888(comptime mask_ref: u32, comptime data_ref: u32, comptime attr_or_ref: u32, comptime is_imm_attr: bool, comptime ret_addr: u32) void {
+    abi.fetches(if (is_imm_attr) 19 else 18);
+    abi.pushLr();
+    rt.r[0] = (rt.r[0] +% 0x200) & abi.read32(mask_ref);
+    rt.r[1] = (rt.r[1] +% 0x100) & 0xFF;
+    rt.r[2] = abi.read32(data_ref);
+    if (is_imm_attr) {
+        abi.setRegNz(&rt.r[3], attr_or_ref);
+    } else {
+        rt.r[3] = abi.read32(attr_or_ref);
+    }
+    if (!abi.call(decls.func_0801B888, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Decompress LZ77 resource from `0x18`-strided table `[0x08052AB0]+4[r0]` (`0x08052A98`).
+pub fn func_08052A98() callconv(.c) void {
+    if (!abi.enter(0x08052A98)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    const base = abi.read32(0x08052AB0) +% 4;
+    rt.r[3] = base;
+    rt.r[2] = (((rt.r[0] << 1) +% rt.r[0]) << 3) +% base;
+    rt.r[0] = abi.read32(rt.r[2]);
+    if (!abi.call(decls.func_080796D8, 0x08052AAD)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// CpuFastSet upload from `0x18`-strided table `[0x08052ADC]+0xC[r0]` indexed by `[0x08052AE0]` (`0x08052AB4`).
+pub fn func_08052AB4() callconv(.c) void {
+    if (!abi.enter(0x08052AB4)) return;
+    abi.fetches(18);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const tbl = abi.read32(0x08052ADC) +% 0xC;
+    const sub = abi.read16(abi.read32(0x08052AE0)) << 2;
+    const slot = ((rt.r[0] << 1) +% rt.r[0]) << 3;
+    rt.r[5] = tbl;
+    rt.r[3] = slot;
+    rt.r[4] = tbl +% (sub +% slot);
+    rt.r[0] = abi.read32(rt.r[4]);
+    rt.r[2] = (rt.r[2] << 9) >> 11;
+    if (!abi.call(decls.func_080796C0, 0x08052AD5)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// DMA tile slice (`0x200` bytes) via `0x0800FFA8` (`0x08054194`).
+pub fn func_08054194() callconv(.c) void {
+    if (!abi.enter(0x08054194)) return;
+    uploadBgTileSliceFFA8(25, 2, 0x080541C0, 0x080541C4, 0x080541BB);
+}
+
+/// DMA tile slice (`0x400` bytes) via `0x0800FFA8` (`0x08054610`).
+pub fn func_08054610() callconv(.c) void {
+    if (!abi.enter(0x08054610)) return;
+    uploadBgTileSliceFFA8(26, 3, 0x0805463C, 0x08054640, 0x08054637);
+}
+
+/// DMA tile slice (`0x800` bytes) via `0x0800FFA8` (`0x0805505C`).
+pub fn func_0805505C() callconv(.c) void {
+    if (!abi.enter(0x0805505C)) return;
+    uploadBgTileSliceFFA8(27, 4, 0x08055088, 0x0805508C, 0x08055083);
+}
+
+/// Set display/blend IRQ flags at `0x08059E3C`/`0x08059E40` and refresh via `0x08010574` (`0x08059E14`).
+pub fn func_08059E14() callconv(.c) void {
+    if (!abi.enter(0x08059E14)) return;
+    abi.fetches(19);
+    abi.pushLr();
+    const r_a = abi.read32(0x08059E3C);
+    abi.write8(r_a, abi.read8(r_a) | 0x08);
+    const r_b = abi.read32(0x08059E40);
+    abi.write8(r_b, abi.read8(r_b) | 0x01);
+    rt.r[1] = r_b;
+    rt.r[2] = abi.read8(r_b +% 1);
+    rt.r[0] = 0x80 | rt.r[2];
+    abi.write8(r_b +% 1, @truncate(rt.r[0]));
+    if (!abi.call(decls.func_08010574, 0x08059E37)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Draw masked sprite from descriptor `[r0+0x24/+0x28/+0x3C/+0x40]` via `0x0801B888` (`0x0806A638`).
+pub fn func_0806A638() callconv(.c) void {
+    if (!abi.enter(0x0806A638)) return;
+    abi.fetches(21);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const mask = abi.read32(0x0806A664);
+    rt.r[4] = (abi.read32(rt.r[0] +% 0x24) +% 0x200) & mask;
+    rt.r[1] = (abi.read32(rt.r[0] +% 0x28) +% (mask -% 0xFF)) & 0xFF;
+    rt.r[2] = abi.read32(rt.r[0] +% 0x3C);
+    rt.r[3] = abi.read16(rt.r[0] +% 0x40);
+    rt.r[0] = rt.r[4];
+    if (!abi.call(decls.func_0801B888, 0x0806A65F)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Sync parent `(r0+0x20)` coordinates `+0x24/+0x28` and render via `0x0801B888` (`0x0806BB20`).
+pub fn func_0806BB20() callconv(.c) void {
+    if (!abi.enter(0x0806BB20)) return;
+    abi.fetches(17);
+    abi.pushLr();
+    const parent = abi.read32(rt.r[0] +% 0x20);
+    const x = abi.read32(parent +% 0x24);
+    const y = abi.read32(parent +% 0x28);
+    abi.write32(rt.r[0] +% 0x24, x);
+    abi.write32(rt.r[0] +% 0x28, y);
+    rt.r[0] = @bitCast(abi.signExtend16(@truncate(x)));
+    rt.r[1] = @bitCast(abi.signExtend16(@truncate(y)));
+    rt.r[2] = abi.read32(0x0806BB44);
+    abi.setRegNz(&rt.r[3], 0);
+    if (!abi.call(decls.func_0801B888, 0x0806BB3F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload 32-byte OBJ palette bank `(r0 & 0xF) + 0x10` from `0x0806CB4C` via `0x08011330` (`0x0806CB34`).
+pub fn func_0806CB34() callconv(.c) void {
+    if (!abi.enter(0x0806CB34)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[1] = (((rt.r[0] & 0xF) +% 0x10) << 5);
+    rt.r[0] = abi.read32(0x0806CB4C);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0806CB47)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload `0x100`-byte OBJ tiles into `0x0601_0000 + ((r1 & [0x0806CC44]) << 5)` via `0x0800FFA8` (`0x0806CC18`).
+pub fn func_0806CC18() callconv(.c) void {
+    if (!abi.enter(0x0806CC18)) return;
+    abi.fetches(21);
+    abi.pushLr();
+    const slot = (rt.r[1] & abi.read32(0x0806CC44)) << 5;
+    rt.r[0] = ((rt.r[0] +% 6) << 8) +% abi.read32(0x0806CC48);
+    rt.r[3] = (slot | 0x10000) +% 0x0600_0000;
+    rt.r[1] = rt.r[3];
+    abi.setRegNz(&rt.r[2], 0x100);
+    if (!abi.call(decls.func_0800FFA8, 0x0806CC3F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Select tile descriptor `0x0806CC70[r0]` and upload via `0x0800FE18` (`0x0806CC4C`).
+pub fn func_0806CC4C() callconv(.c) void {
+    if (!abi.enter(0x0806CC4C)) return;
+    abi.fetches(15);
+    abi.pushLr();
+    const slot = (rt.r[1] & abi.read32(0x0806CC6C)) << 5;
+    rt.r[0] = abi.read32(abi.read32(0x0806CC70) +% (rt.r[0] << 2));
+    rt.r[2] = slot +% abi.read32(0x0806CC74);
+    rt.r[1] = rt.r[2];
+    if (!abi.call(decls.func_0800FE18, 0x0806CC67)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload `0x580` bytes from `0x0806CCA0` into `0x0601_0000 + ((r0 & [0x0806CC9C]) << 5)` via `0x0800FFA8` (`0x0806CC78`).
+pub fn func_0806CC78() callconv(.c) void {
+    if (!abi.enter(0x0806CC78)) return;
+    abi.fetches(17);
+    abi.pushLr();
+    const slot = (rt.r[0] & abi.read32(0x0806CC9C)) << 5;
+    rt.r[0] = abi.read32(0x0806CCA0);
+    rt.r[1] = (slot | 0x10000) +% 0x0600_0000;
+    abi.setRegNz(&rt.r[2], 0x580);
+    if (!abi.call(decls.func_0800FFA8, 0x0806CC97)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload 32-byte palette slot `(r0 & 0x7FF) << 5` from `0x0806CEB8` via `0x08011330` (`0x0806CEA4`).
+pub fn func_0806CEA4() callconv(.c) void {
+    if (!abi.enter(0x0806CEA4)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[1] = (rt.r[0] << 21) >> 16;
+    rt.r[0] = abi.read32(0x0806CEB8);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0806CEB5)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Draw wrapped `(x+0x100, y+0x80)` OBJ with `attr=0xD000` via `0x0801B888` (`0x0806D7AC`).
+pub fn func_0806D7AC() callconv(.c) void {
+    if (!abi.enter(0x0806D7AC)) return;
+    drawWrappedObj1B888(0x0806D7D4, 0x0806D7D8, 0xD000, true, 0x0806D7CF);
+}
+
+/// Draw wrapped `(x+0x100, y+0x80)` OBJ with `[0x0806D808]` attr via `0x0801B888` (`0x0806D7DC`).
+pub fn func_0806D7DC() callconv(.c) void {
+    if (!abi.enter(0x0806D7DC)) return;
+    drawWrappedObj1B888(0x0806D800, 0x0806D804, 0x0806D808, false, 0x0806D7FD);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
+        @export(&func_08052A98, .{ .name = "func_08052A98", .linkage = .strong });
+        @export(&func_08052AB4, .{ .name = "func_08052AB4", .linkage = .strong });
+        @export(&func_08054194, .{ .name = "func_08054194", .linkage = .strong });
+        @export(&func_08054610, .{ .name = "func_08054610", .linkage = .strong });
+        @export(&func_0805505C, .{ .name = "func_0805505C", .linkage = .strong });
+        @export(&func_08059E14, .{ .name = "func_08059E14", .linkage = .strong });
+        @export(&func_0806A638, .{ .name = "func_0806A638", .linkage = .strong });
+        @export(&func_0806BB20, .{ .name = "func_0806BB20", .linkage = .strong });
+        @export(&func_0806CB34, .{ .name = "func_0806CB34", .linkage = .strong });
+        @export(&func_0806CC18, .{ .name = "func_0806CC18", .linkage = .strong });
+        @export(&func_0806CC4C, .{ .name = "func_0806CC4C", .linkage = .strong });
+        @export(&func_0806CC78, .{ .name = "func_0806CC78", .linkage = .strong });
+        @export(&func_0806CEA4, .{ .name = "func_0806CEA4", .linkage = .strong });
+        @export(&func_0806D7AC, .{ .name = "func_0806D7AC", .linkage = .strong });
+        @export(&func_0806D7DC, .{ .name = "func_0806D7DC", .linkage = .strong });
         @export(&func_080045A8, .{ .name = "func_080045A8", .linkage = .strong });
         @export(&func_08004F34, .{ .name = "func_08004F34", .linkage = .strong });
         @export(&func_080076FC, .{ .name = "func_080076FC", .linkage = .strong });
