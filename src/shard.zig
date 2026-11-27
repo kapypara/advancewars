@@ -1,4 +1,5 @@
 const std = @import("std");
+const build_options = @import("build_options");
 
 // External CPU/memory/runtime symbols exported from `src/runtime.zig`
 // so each generated `gen/funcs_*.zig` shard compiles as an independent `.o`.
@@ -8,12 +9,7 @@ pub extern var CPU_Z: bool;
 pub extern var CPU_C: bool;
 pub extern var CPU_V: bool;
 
-pub extern var g_func_ring: [4096]u32;
-pub extern var g_func_ring_i: u32;
-pub extern var g_validate: c_int;
 pub extern var g_ret: u32;
-pub extern var g_unwind_trace: c_int;
-pub extern var g_hist_on: c_int;
 
 pub extern fn bus_read32(addr: u32) u32;
 pub extern fn bus_read32s(addr: u32) u32;
@@ -31,9 +27,8 @@ pub extern fn cpu_get_spsr() u32;
 pub extern fn cpu_set_spsr(value: u32, mask: u32) void;
 pub extern fn cpu_undefined(insn: u32) void;
 
-pub extern fn recomp_unwind_note(retaddr: u32) void;
-pub extern fn recomp_hist(addr: u32) void;
-pub extern fn recomp_validate(addr: u32) c_int;
+pub extern fn recomp_enter(addr: u32) bool;
+pub extern fn recomp_called_slow(retaddr: u32) bool;
 
 // ---- Local pure-Zig ARM7TDMI ALU / Shift / Unwind Helpers (inlined per shard in ReleaseFast) ----
 pub fn ror32(val: u32, amount: u32) u32 {
@@ -133,18 +128,11 @@ pub fn recompReturn(target: u32) void {
 }
 
 pub fn recompCalled(retaddr: u32) bool {
-    if (g_ret != 0 and ((g_ret ^ retaddr) & ~@as(u32, 1)) != 0) {
-        if (g_unwind_trace != 0) recomp_unwind_note(retaddr);
-        return false;
-    }
-    g_ret = 0;
-    return true;
+    if (g_ret == 0) return true;
+    return recomp_called_slow(retaddr);
 }
 
-pub fn recompEnter(addr: u32) bool {
-    g_func_ring[g_func_ring_i & 4095] = addr;
-    g_func_ring_i +%= 1;
-    if (g_hist_on != 0) recomp_hist(addr);
-    if (g_validate != 0 and recomp_validate(addr) != 0) return false;
-    return true;
+pub inline fn recompEnter(addr: u32) bool {
+    if (!build_options.enable_trace) return true;
+    return recomp_enter(addr);
 }

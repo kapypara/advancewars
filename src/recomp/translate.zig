@@ -14,8 +14,12 @@ const ThumbInsn = thumb_mod.ThumbInsn;
 const ShiftType = types.ShiftType;
 const ArmCondition = types.ArmCondition;
 
-pub const funcs_per_file: usize = 128;
+pub const target_func_shards: usize = 64;
 pub const stubs_per_file: usize = 256;
+
+fn orderU32(lhs: u32, rhs: u32) std.math.Order {
+    return std.math.order(lhs, rhs);
+}
 
 pub const TranslateStats = struct {
     num_func_files: usize,
@@ -47,11 +51,13 @@ const Emitter = struct {
     current_kind: ShardKind = .func,
     current_shard: usize = 0,
     setjmp_resume: u32 = 0,
-    local_prongs: *std.AutoHashMap(u32, void),
+    local_prongs: *std.AutoHashMap(u32, u32),
     effective_owners: []const u32,
     target_to_shard: *const std.AutoHashMap(u32, ShardLoc),
     blocks_by_start: *const std.AutoHashMap(u32, usize),
     jts_by_branch: *const std.AutoHashMap(u32, usize),
+    func_idx_by_entry: *const std.AutoHashMap(u32, usize),
+    func_emit_blocks: []const []u32,
 
     fn writeIndent(self: *Emitter) !void {
         for (0..self.indent) |_| {
@@ -79,15 +85,23 @@ const Emitter = struct {
         return std.fmt.bufPrint(buf, "func_{X:0>8}()", .{addr}) catch unreachable;
     }
 
+    fn lookupDenseIdx(self: *const Emitter, owner: u32, block_addr: u32) ?u32 {
+        const fi = self.func_idx_by_entry.get(owner) orelse return null;
+        const slice = self.func_emit_blocks[fi];
+        const idx = std.sort.binarySearch(u32, slice, block_addr, orderU32) orelse return null;
+        return @intCast(idx);
+    }
+
     fn formatEnter(self: *const Emitter, owner: u32, block_addr: u32, buf: []u8) []const u8 {
+        const dense_idx = self.lookupDenseIdx(owner, block_addr) orelse return self.formatCall(block_addr, buf);
         if (self.target_to_shard.get(owner)) |loc| {
             if (loc.kind == .func) {
                 if (self.current_kind == .func and loc.shard_idx == self.current_shard) {
-                    return std.fmt.bufPrint(buf, "enter_{X:0>8}(0x{X:0>8})", .{ owner, block_addr }) catch unreachable;
+                    return std.fmt.bufPrint(buf, "enter_{X:0>8}({d})", .{ owner, dense_idx }) catch unreachable;
                 }
-                return std.fmt.bufPrint(buf, "decls.enter_{X:0>8}(0x{X:0>8})", .{
+                return std.fmt.bufPrint(buf, "decls.enter_{X:0>8}({d})", .{
                     owner,
-                    block_addr,
+                    dense_idx,
                 }) catch unreachable;
             }
         }
@@ -174,8 +188,8 @@ const Emitter = struct {
     }
 
     fn emitBranchTarget(self: *Emitter, target: u32) !void {
-        if (self.local_prongs.contains(target)) {
-            try self.line("continue :blk 0x{X:0>8};", .{target});
+        if (self.local_prongs.get(target)) |idx| {
+            try self.line("continue :blk {d};", .{idx});
             return;
         }
         if (self.blocks_by_start.get(target)) |bi| {
@@ -198,11 +212,13 @@ const Emitter = struct {
     }
 
     fn emitCalled(self: *Emitter, retaddr: u32) !void {
-        if (self.setjmp_resume != 0 and self.local_prongs.contains(self.setjmp_resume & ~@as(u32, 1))) {
-            try self.line(
-                "if (((rt.g_ret ^ 0x{X:0>8}) & ~@as(u32, 1)) == 0) {{ rt.g_ret = 0; continue :blk 0x{X:0>8}; }}",
-                .{ self.setjmp_resume, self.setjmp_resume & ~@as(u32, 1) },
-            );
+        if (self.setjmp_resume != 0) {
+            if (self.local_prongs.get(self.setjmp_resume & ~@as(u32, 1))) |resume_idx| {
+                try self.line(
+                    "if (((rt.g_ret ^ 0x{X:0>8}) & ~@as(u32, 1)) == 0) {{ rt.g_ret = 0; continue :blk {d}; }}",
+                    .{ self.setjmp_resume, resume_idx },
+                );
+            }
         }
         try self.line("if (!rt.recompCalled(0x{X:0>8})) return;", .{retaddr});
     }
@@ -694,8 +710,8 @@ const Emitter = struct {
                                     }
                                 }
                                 if (!dup) {
-                                    if (self.local_prongs.contains(tgt)) {
-                                        try self.line("0x{X:0>8} => continue :blk 0x{X:0>8},", .{ tgt, tgt });
+                                    if (self.local_prongs.get(tgt)) |tgt_idx| {
+                                        try self.line("0x{X:0>8} => continue :blk {d},", .{ tgt, tgt_idx });
                                     } else if (self.blocks_by_start.get(tgt)) |bi| {
                                         const owner = self.effective_owners[bi];
                                         if (owner != 0) {
@@ -873,24 +889,29 @@ const Emitter = struct {
     fn emitSwitchBody(
         self: *Emitter,
         blocks: []const u32,
+        initial_prong: ?u32,
     ) !usize {
         self.local_prongs.clearRetainingCapacity();
-        for (blocks) |ba| {
-            try self.local_prongs.put(ba, {});
+        for (blocks, 0..) |ba, idx| {
+            try self.local_prongs.put(ba, @intCast(idx));
         }
 
         const switch_keyword_pos = self.buf.items.len + self.indent * 4;
-        try self.line("switch (start_block) {{", .{});
+        if (initial_prong) |init_idx| {
+            try self.line("switch (@as(u32, {d})) {{", .{init_idx});
+        } else {
+            try self.line("switch (start_block) {{", .{});
+        }
         self.indent += 1;
 
         var call_buf: [64]u8 = undefined;
         var enter_buf: [80]u8 = undefined;
 
-        for (blocks) |block_addr| {
+        for (blocks, 0..) |block_addr, prong_idx| {
             const bi = self.blocks_by_start.get(block_addr) orelse continue;
             const block = self.analysis.blocks.items[bi];
 
-            try self.line("0x{X:0>8} => {{", .{block.start});
+            try self.line("{d} => {{", .{prong_idx});
             self.indent += 1;
             try self.line("rt.cpu_fetches({d});", .{((block.end - block.start) / 2) + 2});
 
@@ -931,8 +952,8 @@ const Emitter = struct {
                     if (block.successors[s] == block.end) falls_through = true;
                 }
                 if (falls_through) {
-                    if (self.local_prongs.contains(block.end)) {
-                        try self.line("continue :blk 0x{X:0>8};", .{block.end});
+                    if (self.local_prongs.get(block.end)) |next_idx| {
+                        try self.line("continue :blk {d};", .{next_idx});
                     } else {
                         var ends_in_call = false;
                         var into_prologue = false;
@@ -1200,6 +1221,30 @@ pub fn translateToDir(
     var out_dir = try std.Io.Dir.cwd().createDirPathOpen(io, outdir, .{});
     defer out_dir.close(io);
 
+    // Clean stale shards so shard-count adjustments never leave orphaned `.zig` files.
+    {
+        var iter_dir = try std.Io.Dir.cwd().openDir(io, outdir, .{ .iterate = true });
+        defer iter_dir.close(io);
+        var stale_files: std.ArrayList([]u8) = .empty;
+        defer {
+            for (stale_files.items) |name| allocator.free(name);
+            stale_files.deinit(allocator);
+        }
+        var it = iter_dir.iterate();
+        while (try it.next(io)) |entry| {
+            if (entry.kind != .file) continue;
+            if (!std.mem.endsWith(u8, entry.name, ".zig")) continue;
+            if (std.mem.startsWith(u8, entry.name, "funcs_") or
+                std.mem.startsWith(u8, entry.name, "stubs_"))
+            {
+                try stale_files.append(allocator, try allocator.dupe(u8, entry.name));
+            }
+        }
+        for (stale_files.items) |name| {
+            try out_dir.deleteFile(io, name);
+        }
+    }
+
     // Quick indices
     var blocks_by_start = std.AutoHashMap(u32, usize).init(allocator);
     defer blocks_by_start.deinit();
@@ -1281,6 +1326,68 @@ pub fn translateToDir(
         }
     }
 
+    var func_idx_by_entry = std.AutoHashMap(u32, usize).init(allocator);
+    defer func_idx_by_entry.deinit();
+    for (analysis.functions.items, 0..) |f, fi| {
+        try func_idx_by_entry.put(f.entry, fi);
+    }
+
+    // Weight-balanced LPT assignment across shards (avoids compiling-tail stragglers).
+    const num_func_files: usize = if (num_funcs <= target_func_shards) 1 else target_func_shards;
+    const func_weights = try allocator.alloc(u64, num_funcs);
+    defer allocator.free(func_weights);
+    const func_order = try allocator.alloc(usize, num_funcs);
+    defer allocator.free(func_order);
+    const func_to_shard = try allocator.alloc(usize, num_funcs);
+    defer allocator.free(func_to_shard);
+
+    for (0..num_funcs) |fi| {
+        func_order[fi] = fi;
+        var w: u64 = 4;
+        const blocks_for_w = if (func_emit_blocks[fi].len > 0) func_emit_blocks[fi] else func_sorted_blocks[fi];
+        for (blocks_for_w) |ba| {
+            if (blocks_by_start.get(ba)) |bi| {
+                const blk = analysis.blocks.items[bi];
+                w +%= @as(u64, blk.end -% blk.start);
+            }
+        }
+        func_weights[fi] = w;
+    }
+
+    const WeightSortCtx = struct {
+        weights: []const u64,
+        fn lessThan(ctx: @This(), a: usize, b: usize) bool {
+            if (ctx.weights[a] != ctx.weights[b]) return ctx.weights[a] > ctx.weights[b];
+            return a < b;
+        }
+    };
+    std.mem.sort(usize, func_order, WeightSortCtx{ .weights = func_weights }, WeightSortCtx.lessThan);
+
+    var shard_loads: [target_func_shards]u64 = @splat(0);
+    const shard_funcs = try allocator.alloc(std.ArrayList(usize), num_func_files);
+    defer {
+        for (shard_funcs) |*sf| sf.deinit(allocator);
+        allocator.free(shard_funcs);
+    }
+    for (shard_funcs) |*sf| sf.* = .empty;
+
+    for (func_order) |fi| {
+        var best_shard: usize = 0;
+        var best_load = shard_loads[0];
+        for (1..num_func_files) |si| {
+            if (shard_loads[si] < best_load) {
+                best_load = shard_loads[si];
+                best_shard = si;
+            }
+        }
+        func_to_shard[fi] = best_shard;
+        shard_loads[best_shard] += func_weights[fi];
+        try shard_funcs[best_shard].append(allocator, fi);
+    }
+    for (shard_funcs) |*sf| {
+        std.mem.sort(usize, sf.items, {}, std.sort.asc(usize));
+    }
+
     // Collect stub targets (missing branch targets + BL targets not in analysis.functions)
     var defined_set = std.AutoHashMap(u32, void).init(allocator);
     defer defined_set.deinit();
@@ -1289,7 +1396,7 @@ pub fn translateToDir(
 
     for (analysis.functions.items, 0..) |f, fi| {
         try defined_set.put(f.entry, {});
-        try target_to_shard.put(f.entry, .{ .kind = .func, .shard_idx = fi / funcs_per_file });
+        try target_to_shard.put(f.entry, .{ .kind = .func, .shard_idx = func_to_shard[fi] });
     }
 
     var stubs_list: std.ArrayList(u32) = .empty;
@@ -1392,7 +1499,175 @@ pub fn translateToDir(
         }
     }
 
-    var local_prongs = std.AutoHashMap(u32, void).init(allocator);
+    // Pre-scan which `enter_*` entrypoints actually need local or exported definitions.
+    const needs_enter_local = try allocator.alloc(bool, num_funcs);
+    defer allocator.free(needs_enter_local);
+    @memset(needs_enter_local, false);
+    const needs_enter_export = try allocator.alloc(bool, num_funcs);
+    defer allocator.free(needs_enter_export);
+    @memset(needs_enter_export, false);
+
+    const EnterScan = struct {
+        fn mark(
+            f_idx_map: *const std.AutoHashMap(u32, usize),
+            f_shard: []const usize,
+            local_flags: []bool,
+            export_flags: []bool,
+            caller_is_func: bool,
+            caller_shard: usize,
+            owner: u32,
+        ) void {
+            const ofi = f_idx_map.get(owner) orelse return;
+            local_flags[ofi] = true;
+            if (!caller_is_func or f_shard[ofi] != caller_shard) {
+                export_flags[ofi] = true;
+            }
+        }
+
+        fn scanBranchTarget(
+            rom_ref: *const GbaRom,
+            target_shard_map: *const std.AutoHashMap(u32, ShardLoc),
+            block_map: *const std.AutoHashMap(u32, usize),
+            eff_owners: []const u32,
+            f_idx_map: *const std.AutoHashMap(u32, usize),
+            f_shard: []const usize,
+            local_flags: []bool,
+            export_flags: []bool,
+            blocks_to_scan: []const u32,
+            caller_shard: usize,
+            t: u32,
+        ) void {
+            if (t == 0 or std.sort.binarySearch(u32, blocks_to_scan, t, orderU32) != null) return;
+            const tbi = block_map.get(t) orelse return;
+            const owner = eff_owners[tbi];
+            if (owner == 0) return;
+            const calls_func = if (target_shard_map.get(t)) |loc|
+                loc.kind == .func and (owner == t or thumbBxVeneerReg(rom_ref, t) != null)
+            else
+                false;
+            if (!calls_func) {
+                mark(f_idx_map, f_shard, local_flags, export_flags, true, caller_shard, owner);
+            }
+        }
+    };
+
+    for (analysis.functions.items, 0..) |f, fi| {
+        const caller_shard = func_to_shard[fi];
+        const entry_owner = if (blocks_by_start.get(f.entry)) |ebi| effective_owners[ebi] else 0;
+        if (!(f.mode == .thumb and thumbBxVeneerReg(rom, f.entry) != null) and
+            !(self_contained.contains(f.entry) and func_emit_blocks[fi].len > 0) and
+            entry_owner != 0 and entry_owner != f.entry)
+        {
+            EnterScan.mark(&func_idx_by_entry, func_to_shard, needs_enter_local, needs_enter_export, true, caller_shard, entry_owner);
+        }
+
+        const blocks_to_scan = if (func_emit_blocks[fi].len > 0) func_emit_blocks[fi] else func_sorted_blocks[fi];
+        for (blocks_to_scan) |ba| {
+            const bi = blocks_by_start.get(ba) orelse continue;
+            const blk = analysis.blocks.items[bi];
+
+            for (0..blk.num_successors) |s| {
+                const t = blk.successors[s];
+                if (t == 0) continue;
+                if (std.sort.binarySearch(u32, blocks_to_scan, t, orderU32) != null) continue;
+                if (t == blk.end) {
+                    if (blocks_by_start.get(t)) |tbi| {
+                        const owner = effective_owners[tbi];
+                        if (owner != 0) {
+                            const is_func_entry = if (target_to_shard.get(t)) |loc| loc.kind == .func else false;
+                            const into_prologue = if (blk.mode == .thumb)
+                                (rom.read16(blk.end) & 0xFE00) == 0xB400
+                            else
+                                (rom.read32(blk.end) & 0xFFFF_0000) == 0xE92D_0000;
+                            if (!(is_func_entry and into_prologue and (owner == t or thumbBxVeneerReg(rom, t) != null))) {
+                                EnterScan.mark(&func_idx_by_entry, func_to_shard, needs_enter_local, needs_enter_export, true, caller_shard, owner);
+                            }
+                        }
+                    }
+                } else {
+                    EnterScan.scanBranchTarget(
+                        rom,
+                        &target_to_shard,
+                        &blocks_by_start,
+                        effective_owners,
+                        &func_idx_by_entry,
+                        func_to_shard,
+                        needs_enter_local,
+                        needs_enter_export,
+                        blocks_to_scan,
+                        caller_shard,
+                        t,
+                    );
+                }
+            }
+
+            if (blk.mode == .arm) {
+                var a = blk.start;
+                while (a < blk.end) : (a +%= 4) {
+                    const insn = arm_mod.decode(rom.read32(a));
+                    if (insn.type == .b) {
+                        const t = a +% 8 +% @as(u32, @bitCast(insn.branch_offset));
+                        EnterScan.scanBranchTarget(
+                            rom,
+                            &target_to_shard,
+                            &blocks_by_start,
+                            effective_owners,
+                            &func_idx_by_entry,
+                            func_to_shard,
+                            needs_enter_local,
+                            needs_enter_export,
+                            blocks_to_scan,
+                            caller_shard,
+                            t,
+                        );
+                    }
+                }
+            } else {
+                var a = blk.start;
+                while (a < blk.end) : (a += 2) {
+                    const insn = thumb_mod.decode(rom.read16(a));
+                    if (insn.type == .branch or insn.type == .cond_branch) {
+                        const t = a +% 4 +% @as(u32, @bitCast(insn.offset));
+                        EnterScan.scanBranchTarget(
+                            rom,
+                            &target_to_shard,
+                            &blocks_by_start,
+                            effective_owners,
+                            &func_idx_by_entry,
+                            func_to_shard,
+                            needs_enter_local,
+                            needs_enter_export,
+                            blocks_to_scan,
+                            caller_shard,
+                            t,
+                        );
+                    }
+                    if (jts_by_branch.get(a)) |jti| {
+                        for (analysis.jump_tables.items[jti].targets.items) |tgt| {
+                            if (std.sort.binarySearch(u32, blocks_to_scan, tgt, orderU32) != null) continue;
+                            if (blocks_by_start.get(tgt)) |tbi| {
+                                const owner = effective_owners[tbi];
+                                if (owner != 0) {
+                                    EnterScan.mark(&func_idx_by_entry, func_to_shard, needs_enter_local, needs_enter_export, true, caller_shard, owner);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (stubs_list.items) |addr| {
+        if (blocks_by_start.get(addr)) |bi| {
+            const owner = effective_owners[bi];
+            if (owner != 0) {
+                EnterScan.mark(&func_idx_by_entry, func_to_shard, needs_enter_local, needs_enter_export, false, 0, owner);
+            }
+        }
+    }
+
+    var local_prongs = std.AutoHashMap(u32, u32).init(allocator);
     defer local_prongs.deinit();
 
     var emitter: Emitter = .{
@@ -1405,10 +1680,11 @@ pub fn translateToDir(
         .target_to_shard = &target_to_shard,
         .blocks_by_start = &blocks_by_start,
         .jts_by_branch = &jts_by_branch,
+        .func_idx_by_entry = &func_idx_by_entry,
+        .func_emit_blocks = func_emit_blocks,
     };
     defer emitter.buf.deinit(allocator);
 
-    const num_func_files = (num_funcs + funcs_per_file - 1) / funcs_per_file;
     var num_prongs_emitted: usize = 0;
 
     // 1. Emit funcs_XXX.zig shards
@@ -1431,10 +1707,7 @@ pub fn translateToDir(
             \\
         , .{ rom.titleStr(), file_idx + 1, num_func_files });
 
-        const start = file_idx * funcs_per_file;
-        const end = @min(start + funcs_per_file, num_funcs);
-
-        for (start..end) |fi| {
+        for (shard_funcs[file_idx].items) |fi| {
             const f = analysis.functions.items[fi];
             emitter.setjmp_resume = setjmp_resumes.get(f.entry) orelse 0;
             const emit_blocks = func_emit_blocks[fi];
@@ -1443,6 +1716,8 @@ pub fn translateToDir(
                 effective_owners[ebi]
             else
                 0;
+            const can_inline_body = !needs_enter_local[fi] and emit_blocks.len > 0 and
+                (self_contained.contains(f.entry) or entry_owner == f.entry);
 
             try emitter.raw("pub export fn func_{X:0>8}() void {{\n", .{f.entry});
             emitter.indent = 1;
@@ -1452,24 +1727,29 @@ pub fn translateToDir(
                 const rs = thumbBxVeneerReg(rom, f.entry).?;
                 try emitter.line("rt.cpu_fetches(3);", .{});
                 try emitter.line("decls.awre_cpu_bx(rt.r[{d}]);", .{rs});
+            } else if (can_inline_body) {
+                const entry_arg = if (emitter.blocks_by_start.contains(f.entry)) f.entry else emit_blocks[0];
+                const entry_idx = emitter.lookupDenseIdx(f.entry, entry_arg) orelse 0;
+                num_prongs_emitted += try emitter.emitSwitchBody(emit_blocks, entry_idx);
             } else if (self_contained.contains(f.entry) and emit_blocks.len > 0) {
                 const entry_arg = if (emitter.blocks_by_start.contains(f.entry)) f.entry else emit_blocks[0];
-                try emitter.line("enter_{X:0>8}(0x{X:0>8});", .{ f.entry, entry_arg });
+                const entry_idx = emitter.lookupDenseIdx(f.entry, entry_arg) orelse 0;
+                try emitter.line("enter_{X:0>8}({d});", .{ f.entry, entry_idx });
             } else if (entry_owner != 0) {
                 var ebuf: [80]u8 = undefined;
                 try emitter.line("{s};", .{emitter.formatEnter(entry_owner, f.entry, &ebuf)});
             } else if (all_blocks.len > 0) {
-                try emitter.line("const start_block: u32 = 0x{X:0>8};", .{all_blocks[0]});
-                num_prongs_emitted += try emitter.emitSwitchBody(all_blocks);
+                num_prongs_emitted += try emitter.emitSwitchBody(all_blocks, 0);
             }
 
             emitter.indent = 0;
             try emitter.raw("}}\n\n", .{});
 
-            if (emit_blocks.len > 0) {
-                try emitter.raw("pub export fn enter_{X:0>8}(start_block: u32) void {{\n", .{f.entry});
+            if (emit_blocks.len > 0 and needs_enter_local[fi]) {
+                const vis: []const u8 = if (needs_enter_export[fi]) "pub export " else "";
+                try emitter.raw("{s}fn enter_{X:0>8}(start_block: u32) void {{\n", .{ vis, f.entry });
                 emitter.indent = 1;
-                num_prongs_emitted += try emitter.emitSwitchBody(emit_blocks);
+                num_prongs_emitted += try emitter.emitSwitchBody(emit_blocks, null);
                 emitter.indent = 0;
                 try emitter.raw("}}\n\n", .{});
             }
@@ -1564,7 +1844,7 @@ pub fn translateToDir(
         }
         try emitter.raw("\n// Block entrypoints\n", .{});
         for (analysis.functions.items, 0..) |f, fi| {
-            if (func_emit_blocks[fi].len > 0) {
+            if (func_emit_blocks[fi].len > 0 and needs_enter_export[fi]) {
                 try emitter.raw("pub extern fn enter_{X:0>8}(start_block: u32) void;\n", .{f.entry});
             }
         }
@@ -1748,6 +2028,13 @@ test "translateToDir generates valid Zig files for a minimal ARM+Thumb ROM" {
     defer std.testing.allocator.free(decls_zig);
     try std.testing.expect(std.mem.indexOf(u8, decls_zig, "pub extern fn awre_cpu_bx") != null);
     try std.testing.expect(std.mem.indexOf(u8, decls_zig, "pub extern fn func_08000100() void;") != null);
+    try std.testing.expect(std.mem.indexOf(u8, decls_zig, "enter_08000100") == null);
+
+    const funcs_zig = try tmp.dir.readFileAlloc(io, "gen_zig/funcs_000.zig", std.testing.allocator, .limited(1024 * 1024));
+    defer std.testing.allocator.free(funcs_zig);
+    try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "switch (@as(u32, 0)) {") != null);
+    try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "0 => {") != null);
+    try std.testing.expect(std.mem.indexOf(u8, funcs_zig, "enter_08000100") == null);
 }
 
 test "unifyBlockSccOwners merges split-owner block cycles under a single canonical owner" {

@@ -16,6 +16,19 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const headless = b.option(bool, "headless", "Build without SDL2 (headless only)") orelse false;
     const rom_path = b.option([]const u8, "rom", "Path to GBA ROM (default: game/aw.gba)") orelse "game/aw.gba";
+    const strip_opt = b.option(bool, "strip", "Strip debug info (default: shards always stripped, exe stripped in Release)");
+    const shard_optimize = b.option(
+        std.builtin.OptimizeMode,
+        "shard-optimize",
+        "Optimize mode for generated gen/ shards (default: small for fast/safe release builds)",
+    ) orelse if (optimize == .fast or optimize == .safe) .small else optimize;
+    const enable_trace = b.option(
+        bool,
+        "trace",
+        "Enable GBA_VALIDATE / tracing hooks in shards (default: true on native hosts, false on freestanding)",
+    ) orelse (target.result.os.tag != .freestanding);
+    const strip_exe = strip_opt orelse (optimize != .debug);
+    const strip_shards = strip_opt orelse true;
     const rom_lazy = resolvePath(b, rom_path);
 
     // ---- Pure-Zig host recompiler tool (`src/recomp/`) ----
@@ -48,6 +61,9 @@ pub fn build(b: *std.Build) void {
     const build_opts = b.addOptions();
     build_opts.addOption(bool, "headless", headless);
 
+    const shard_opts = b.addOptions();
+    shard_opts.addOption(bool, "enable_trace", enable_trace);
+
     const test_opts = b.addOptions();
     test_opts.addOption(bool, "headless", true);
 
@@ -56,6 +72,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .strip = strip_exe,
     });
     awre_core_mod.addOptions("build_options", build_opts);
 
@@ -146,6 +163,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .strip = strip_exe,
     });
     awre_rt_mod.addImport("awre_core", awre_core_mod);
     if (target.result.os.tag != .freestanding) {
@@ -159,18 +177,22 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/shard.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip_exe,
     });
+    rt_shard_mod.addOptions("build_options", shard_opts);
 
     const decls_mod = b.createModule(.{
         .root_source_file = b.path("gen/decls.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip_exe,
     });
 
     const game_mod = b.createModule(.{
         .root_source_file = b.path("gen/game.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip_exe,
     });
     game_mod.addImport("runtime", awre_rt_mod);
     game_mod.addImport("decls", decls_mod);
@@ -180,6 +202,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .strip = strip_exe,
+        .unwind_tables = if (strip_exe) .none else null,
     });
     awre_mod.addImport("runtime", awre_rt_mod);
     awre_mod.addImport("game", game_mod);
@@ -192,7 +216,9 @@ pub fn build(b: *std.Build) void {
         const shard_mod = b.createModule(.{
             .root_source_file = b.path(rel_path),
             .target = target,
-            .optimize = optimize,
+            .optimize = shard_optimize,
+            .strip = strip_shards,
+            .unwind_tables = .none,
         });
         if (!std.mem.eql(u8, fname, "unresolved.zig")) {
             shard_mod.addImport("runtime", rt_shard_mod);

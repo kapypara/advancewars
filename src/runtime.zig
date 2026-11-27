@@ -96,7 +96,7 @@ pub fn linkShardExports() void {
         &g_hist_on,     &bus_read32,   &bus_read32s,  &bus_read16,      &bus_read8,
         &bus_write32,   &bus_write16,  &bus_write8,   &cpu_fetches,     &gba_swi,
         &cpu_get_cpsr,  &cpu_set_cpsr, &cpu_get_spsr, &cpu_set_spsr,    &cpu_undefined,
-        &recomp_unwind_note, &recomp_hist, &recomp_validate,
+        &recomp_enter,  &recomp_called_slow, &recomp_unwind_note, &recomp_hist, &recomp_validate,
     };
     inline for (syms) |s| {
         std.mem.doNotOptimizeAway(s);
@@ -1416,6 +1416,23 @@ fn funcRingDump() void {
         std.debug.print("{s}{X:0>8}({d})", .{ sep, ring_seen[k], ring_count[k] });
     }
     std.debug.print("\n", .{});
+}
+
+pub export fn recomp_enter(addr: u32) bool {
+    g_func_ring[g_func_ring_i & 4095] = addr;
+    g_func_ring_i +%= 1;
+    if (g_hist_on != 0) recomp_hist(addr);
+    if (g_validate != 0 and recomp_validate(addr) != 0) return false;
+    return true;
+}
+
+pub export fn recomp_called_slow(retaddr: u32) bool {
+    if (((g_ret ^ retaddr) & ~@as(u32, 1)) != 0) {
+        if (g_unwind_trace != 0) recomp_unwind_note(retaddr);
+        return false;
+    }
+    g_ret = 0;
+    return true;
 }
 
 pub export fn recomp_unwind_note(retaddr: u32) void {
