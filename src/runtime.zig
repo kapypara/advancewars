@@ -132,6 +132,12 @@ var rom_size: u32 = 0;
 var rom_owned: bool = false;
 var bios_mem_ptr: ?[*]u8 = null;
 
+pub fn romSlice() ?[]const u8 {
+    const p = rom_ptr orelse return null;
+    if (rom_size == 0) return null;
+    return p[0..rom_size];
+}
+
 const wasm_rom_max: usize = 16 * 1024 * 1024;
 var wasm_rom_buf: if (!has_posix) [wasm_rom_max]u8 else [0]u8 = @splat(0);
 var wasm_stop_requested: bool = false;

@@ -31,6 +31,9 @@ var s_last_hud_width: u16 = gba.width;
 var s_last_hud_held: u16 = 0;
 var s_widescreen: bool = true;
 var s_wide_width: u16 = gba.width;
+var s_has_prev_battle_cam: bool = false;
+var s_prev_battle_cam_x: i16 = 0;
+var s_prev_battle_cam_y: i16 = 0;
 var s_pcm_a: [audio.max_frame_samples]i8 = @splat(0);
 var s_pcm_b: [audio.max_frame_samples]i8 = @splat(0);
 var s_stereo_out: [audio.max_out_stereo_i16]i16 = @splat(0);
@@ -178,8 +181,12 @@ fn sampleGameState() GameState {
                 break :blk .frontend_main_menu;
             }
             if (hasActiveProc(0x082E_BF68)) {
-                menu_count = 6;
-                menu_selected = peek8(0x0201_FD23);
+                const cursor_abs = peek16(0x0200_001E);
+                const scroll_top = peek16(0x0200_0020);
+                const total_maps = peek8(0x0200_0037);
+                const vis = total_maps -| @as(u8, @truncate(scroll_top));
+                menu_count = if (vis > 0) @min(vis, @as(u8, 6)) else 6;
+                menu_selected = @truncate(cursor_abs -| scroll_top);
                 menu_x = 4;
                 menu_y = 64;
                 break :blk .frontend_map_select;
@@ -254,7 +261,8 @@ fn sampleGameState() GameState {
     };
 
     if (mode == .battle_unit_selected and state.map_width > 0 and state.map_height > 0) {
-        for (0..@as(usize, state.map_height)) |y| {
+        const reach_h = @min(@as(usize, state.map_height), 40);
+        for (0..reach_h) |y| {
             const row_ptr = peek32(0x0300_3600 + @as(u32, @intCast(y)) * 4);
             if (row_ptr >= 0x0200_0000 and row_ptr + @as(u32, state.map_width) <= 0x0204_0000) {
                 for (0..@as(usize, state.map_width)) |x| {
@@ -423,6 +431,21 @@ pub fn display_init() c_int {
     return 0;
 }
 
+fn isBgBackmost(io: [*]const u8, dispcnt: u16, target_bg: u32) bool {
+    const en_bit = @as(u16, 0x0100) << @intCast(target_bg);
+    if ((dispcnt & en_bit) == 0) return false;
+    const target_prio = readIo16(io, gba.io_reg.bg0cnt + target_bg * 2) & 3;
+    for (0..4) |other| {
+        if (other == target_bg) continue;
+        const other_bit = @as(u16, 0x0100) << @intCast(other);
+        if ((dispcnt & other_bit) != 0) {
+            const other_prio = readIo16(io, gba.io_reg.bg0cnt + @as(u32, @intCast(other)) * 2) & 3;
+            if (target_prio < other_prio) return false;
+        }
+    }
+    return true;
+}
+
 pub fn display_render_line(y: c_int) void {
     const io = rt.io_regs orelse return;
     const vr = rt.vram orelse return;
@@ -434,33 +457,73 @@ pub fn display_render_line(y: c_int) void {
     if (y == 0) {
         if (s_runner.headless or !s_widescreen or s_wide_width <= gba.width) {
             s_ppu.setViewport(gba.width, 0, false);
+            s_ppu.setBattleMapWide(null);
+            s_has_prev_battle_cam = false;
         } else {
             const dispcnt = readIo16(io, gba.io_reg.dispcnt);
             const disp_mode = dispcnt & 7;
             var wide_bg_mask: u4 = 0;
+            var bm_cfg: ?core.ppu.BattleMapWide = null;
+            var keep_prev_cam = false;
             if (disp_mode == 0) {
                 const main_scene_fn = peek32(0x0300_4478);
-                const is_frontend_scene = (main_scene_fn != 0 and main_scene_fn != 0x0803_849D);
-                const bg3_en = (dispcnt & 0x0800) != 0;
-                const bg3_prio = readIo16(io, gba.io_reg.bg3cnt) & 3;
-                var bg3_is_backmost = bg3_en;
-                if (bg3_is_backmost) {
-                    for (0..3) |other| {
-                        const bit = @as(u16, 0x0100) << @intCast(other);
-                        if ((dispcnt & bit) != 0) {
-                            const other_prio = readIo16(io, gba.io_reg.bg0cnt + @as(u32, @intCast(other)) * 2) & 3;
-                            if (bg3_prio < other_prio) {
-                                bg3_is_backmost = false;
-                                break;
+                if (main_scene_fn != 0 and main_scene_fn != 0x0803_849D) {
+                    if (isBgBackmost(io, dispcnt, 3)) {
+                        wide_bg_mask = 0b1000;
+                    } else if (isBgBackmost(io, dispcnt, 2)) {
+                        wide_bg_mask = 0b0100;
+                    }
+                } else if (main_scene_fn == 0x0803_849D and (dispcnt & 0x0080) == 0) {
+                    const in_battle_menu = hasActiveProc(0x082E_CF68) or
+                        hasActiveProc(0x082E_B550) or
+                        hasActiveProc(0x082E_B114);
+                    const raw_w = peek16(0x0201_57F8);
+                    const raw_h = peek16(0x0201_57FA);
+                    const valid_map = raw_w >= 1 and raw_w <= core.touch.max_map_dim and
+                        raw_h >= 1 and raw_h <= core.touch.max_map_dim;
+                    if (valid_map and isBgBackmost(io, dispcnt, 3)) {
+                        const cam_x: i16 = @bitCast(peek16(0x0201_57FC));
+                        const cam_y: i16 = @bitCast(peek16(0x0201_57FE));
+                        const bg2cnt = readIo16(io, gba.io_reg.bg2cnt);
+                        const bg3cnt = readIo16(io, gba.io_reg.bg3cnt);
+                        const obj_en = (dispcnt & 0x1000) != 0;
+                        const bg2_en = (dispcnt & 0x0400) != 0;
+                        const bg2_ok = bg2_en and ((bg2cnt >> 2) & 3) == 2 and ((bg2cnt >> 8) & 0x1F) == 15;
+                        const bg3_ok = ((bg3cnt >> 2) & 3) == 2 and ((bg3cnt >> 8) & 0x1F) == 31;
+                        const bg2_hofs = readIo16(io, gba.io_reg.bg2hofs) & 0x1FF;
+                        const bg2_vofs = readIo16(io, gba.io_reg.bg2vofs) & 0x1FF;
+                        const bg3_hofs = readIo16(io, gba.io_reg.bg3hofs) & 0x1FF;
+                        const bg3_vofs = readIo16(io, gba.io_reg.bg3vofs) & 0x1FF;
+                        if (obj_en and bg2_ok and bg3_ok and bg2_hofs == bg3_hofs and bg2_vofs == bg3_vofs) {
+                            if (rt.ewram) |ew| {
+                                if (rt.romSlice()) |rom| {
+                                    const view_wx: i32 = if (s_has_prev_battle_cam) s_prev_battle_cam_x else cam_x;
+                                    const view_wy: i32 = if (s_has_prev_battle_cam) s_prev_battle_cam_y else cam_y;
+                                    bm_cfg = .{
+                                        .ewram = ew,
+                                        .iwram = rt.iwram,
+                                        .rom = rom.ptr,
+                                        .rom_len = rom.len,
+                                        .map_width = raw_w,
+                                        .map_height = raw_h,
+                                        .view_wx = view_wx,
+                                        .view_wy = view_wy,
+                                    };
+                                    s_prev_battle_cam_x = cam_x;
+                                    s_prev_battle_cam_y = cam_y;
+                                    keep_prev_cam = true;
+                                }
                             }
                         }
                     }
-                }
-                if (is_frontend_scene and bg3_is_backmost) {
-                    wide_bg_mask = 0b1000;
+                    if (bm_cfg == null and in_battle_menu and isBgBackmost(io, dispcnt, 3)) {
+                        wide_bg_mask = 0b1000;
+                    }
                 }
             }
+            s_has_prev_battle_cam = keep_prev_cam;
             s_ppu.setViewport(s_wide_width, wide_bg_mask, false);
+            s_ppu.setBattleMapWide(bm_cfg);
         }
     }
 

@@ -101,7 +101,7 @@ pub const hud_buttons = [_]HudSpec{
     .{ .button = .a, .rect = .{ .x = 218, .y = 141, .w = 19, .h = 17 } },
 };
 
-pub const max_map_dim: u16 = 32;
+pub const max_map_dim: u16 = 64;
 
 pub const UiMode = enum {
     title,
@@ -136,7 +136,7 @@ pub const GameState = struct {
     menu_y: i16 = 0,
     menu_count: u8 = 0,
     menu_selected: u8 = 0,
-    reach_rows: [max_map_dim]u32 = @splat(0),
+    reach_rows: [max_map_dim]u64 = @splat(0),
 
     pub fn isMapInteractive(self: GameState) bool {
         return self.mode == .battle_free_map or self.mode == .battle_unit_selected;
@@ -151,7 +151,7 @@ pub const GameState = struct {
 
     pub fn setReachable(self: *GameState, tx: u16, ty: u16) void {
         if (tx < max_map_dim and ty < max_map_dim) {
-            self.reach_rows[ty] |= (@as(u32, 1) << @intCast(tx));
+            self.reach_rows[ty] |= (@as(u64, 1) << @intCast(tx));
         }
     }
 };
@@ -298,15 +298,18 @@ pub const TouchController = struct {
     }
 
     pub fn screenToTile(lx: f32, ly: f32, state: GameState) TileCoord {
-        const clamped_x = std.math.clamp(@as(i32, @intFromFloat(@floor(lx))), 0, @as(i32, @intCast(gba.width)) - 1);
         const clamped_y = std.math.clamp(@as(i32, @intFromFloat(@floor(ly))), 0, @as(i32, @intCast(gba.height)) - 1);
-        const wx = @max(clamped_x + @as(i32, state.cam_x), 0);
         const wy = @max(clamped_y + @as(i32, state.cam_y), 0);
-        var tx: i32 = @divTrunc(wx, 16);
-        var ty: i32 = @divTrunc(wy, 16);
+        var tx: i32 = undefined;
         if (state.map_width > 0) {
-            tx = std.math.clamp(tx, @as(i32, 0), @as(i32, state.map_width) - 1);
+            const wx = @as(i32, @intFromFloat(@floor(lx))) + @as(i32, state.cam_x);
+            tx = std.math.clamp(@divFloor(wx, 16), @as(i32, 0), @as(i32, state.map_width) - 1);
+        } else {
+            const clamped_x = std.math.clamp(@as(i32, @intFromFloat(@floor(lx))), 0, @as(i32, @intCast(gba.width)) - 1);
+            const wx = @max(clamped_x + @as(i32, state.cam_x), 0);
+            tx = @divTrunc(wx, 16);
         }
+        var ty: i32 = @divTrunc(wy, 16);
         if (state.map_height > 0) {
             ty = std.math.clamp(ty, @as(i32, 0), @as(i32, state.map_height) - 1);
         }
@@ -314,6 +317,15 @@ pub const TouchController = struct {
             .x = @intCast(tx),
             .y = @intCast(ty),
         };
+    }
+
+    fn isInWideMapBounds(lx: f32, ly: f32, state: GameState) bool {
+        if (ly < 0 or ly >= @as(f32, @floatFromInt(gba.height))) return false;
+        if (state.map_width == 0 or state.map_height == 0) return false;
+        const wx = @as(i32, @intFromFloat(@floor(lx))) + @as(i32, state.cam_x);
+        const wy = @as(i32, @intFromFloat(@floor(ly))) + @as(i32, state.cam_y);
+        return wx >= 0 and wx < @as(i32, state.map_width) * 16 and
+            wy >= 0 and wy < @as(i32, state.map_height) * 16;
     }
 
     fn enqueuePulse(self: *TouchController, mask: u16, on_frames: u8, gap_frames: u8) void {
@@ -452,13 +464,13 @@ pub const TouchController = struct {
         const max_cells: usize = @as(usize, max_map_dim) * @as(usize, max_map_dim);
         var queue: [max_cells]TileCoord = undefined;
         var first_dir: [max_cells]u16 = undefined;
-        var visited: [max_map_dim]u32 = @splat(0);
+        var visited: [max_map_dim]u64 = @splat(0);
 
         var head: usize = 0;
         var tail: usize = 1;
         queue[0] = start;
         first_dir[0] = 0;
-        visited[start.y] |= (@as(u32, 1) << @intCast(start.x));
+        visited[start.y] |= (@as(u64, 1) << @intCast(start.x));
 
         const deltas = [_]struct { dx: i32, dy: i32, mask: u16 }{
             .{ .dx = 1, .dy = 0, .mask = gba.Key.right.mask() },
@@ -482,7 +494,7 @@ pub const TouchController = struct {
                 const step_dir = if (base_dir != 0) base_dir else d.mask;
                 if (nx == goal.x and ny == goal.y) return step_dir;
 
-                visited[ny] |= (@as(u32, 1) << @intCast(nx));
+                visited[ny] |= (@as(u64, 1) << @intCast(nx));
                 queue[tail] = .{ .x = nx, .y = ny };
                 first_dir[tail] = step_dir;
                 tail += 1;
@@ -559,7 +571,8 @@ pub const TouchController = struct {
                 } else if (slot.mode_on_down == .battle_unit_selected) {
                     const gba_w: f32 = @floatFromInt(gba.width);
                     const gba_h: f32 = @floatFromInt(gba.height);
-                    const in_bounds = ev.logical_x >= 0 and ev.logical_y >= 0 and ev.logical_x < gba_w and ev.logical_y < gba_h;
+                    const in_bounds = (ev.logical_x >= 0 and ev.logical_y >= 0 and ev.logical_x < gba_w and ev.logical_y < gba_h) or
+                        isInWideMapBounds(ev.logical_x, ev.logical_y, state);
                     const tile = screenToTile(ev.logical_x, ev.logical_y, state);
                     if (!slot.dragged and (dist_sq >= drag_threshold_sq or tile.x != slot.start_tile.x or tile.y != slot.start_tile.y)) {
                         slot.dragged = true;
@@ -685,7 +698,28 @@ pub const TouchController = struct {
     }
 
     fn handleCanvasTap(self: *TouchController, lx: f32, ly: f32, state: GameState) void {
-        if (lx < 0 or ly < 0 or lx >= @as(f32, @floatFromInt(gba.width)) or ly >= @as(f32, @floatFromInt(gba.height))) {
+        const gba_w_f: f32 = @floatFromInt(gba.width);
+        const gba_h_f: f32 = @floatFromInt(gba.height);
+        const hud_w_f: f32 = @floatFromInt(@max(self.hud_width, @as(u16, @intCast(gba.width))));
+        const pad_l_f: f32 = (hud_w_f - gba_w_f) * 0.5;
+        const map_mode = (state.mode == .battle_free_map or state.mode == .battle_unit_selected);
+        const battle_menu_mode = switch (state.mode) {
+            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info => true,
+            else => false,
+        };
+        const in_standard_bounds = lx >= 0 and ly >= 0 and lx < gba_w_f and ly < gba_h_f;
+        const in_wide_bounds = lx >= -pad_l_f and lx < gba_w_f + pad_l_f and ly >= 0 and ly < gba_h_f;
+        const accept_tap = if (map_mode and state.map_width > 0)
+            isInWideMapBounds(lx, ly, state)
+        else if (battle_menu_mode)
+            in_wide_bounds
+        else
+            in_standard_bounds;
+        if (!accept_tap) return;
+
+        if (battle_menu_mode and state.mode != .battle_popup_menu and !in_standard_bounds) {
+            self.cancelNavigation();
+            self.enqueuePulse(gba.Key.b.mask(), 4, 2);
             return;
         }
 
@@ -915,10 +949,12 @@ pub const TouchController = struct {
                 if (lx >= 4 and lx < 86 and py_i >= 64 and py_i < 160) {
                     const row: u8 = @intCast(@divTrunc(py_i - 64, 16));
                     self.cancelNavigation();
-                    if (row == state.menu_selected) {
-                        self.enqueuePulse(gba.Key.a.mask(), 4, 2);
-                    } else {
-                        self.startMenuNavigation(row, false, state);
+                    if (row < state.menu_count) {
+                        if (row == state.menu_selected) {
+                            self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                        } else {
+                            self.startMenuNavigation(row, false, state);
+                        }
                     }
                 } else if (lx >= 120 and ly >= 48) {
                     self.cancelNavigation();
@@ -2340,4 +2376,74 @@ test "Widescreen reticle renders offset by pad_l in wide buffers" {
     // Tile (1, 1) corner sits at GBA (16, 16) -> wide buffer (pad_l + 16, 16)
     try std.testing.expect(dst[16 * vw + (pad_l + 16)] != 0xFF000000);
     try std.testing.expectEqual(@as(u32, 0xFF000000), dst[16 * vw + 16]);
+}
+
+test "Wide battle map tap targets off-screen tiles inside map and ignores outer black margin" {
+    var tc = TouchController{};
+    const map_state = GameState{
+        .mode = .battle_free_map,
+        .map_width = 20,
+        .map_height = 15,
+        .cursor_x = 10,
+        .cursor_y = 2,
+        .cam_x = 0,
+        .cam_y = 0,
+    };
+
+    // Left margin lx = -10 with cam_x = 0 is outside the map -> ignored cleanly.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = -10, .y = 32, .logical_x = -10, .logical_y = 32 }, map_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = -10, .y = 32, .logical_x = -10, .logical_y = 32 }, map_state);
+    try std.testing.expect(tc.nav_target == null);
+
+    // Right margin lx = 250 with cam_x = 0 on a 20-wide map -> targets tile x = 15, y = 2.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 250, .y = 36, .logical_x = 250, .logical_y = 36 }, map_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 250, .y = 36, .logical_x = 250, .logical_y = 36 }, map_state);
+    try std.testing.expect(tc.nav_target != null);
+    try std.testing.expectEqual(@as(u16, 15), tc.nav_target.?.x);
+    try std.testing.expectEqual(@as(u16, 2), tc.nav_target.?.y);
+}
+
+test "Reachability and pathfinding support maps wider than 32 tiles (e.g. 42x15 Ball Islands)" {
+    var state = GameState{
+        .mode = .battle_unit_selected,
+        .map_width = 42,
+        .map_height = 15,
+        .cursor_x = 39,
+        .cursor_y = 10,
+    };
+    state.setReachable(39, 10);
+    state.setReachable(40, 10);
+    state.setReachable(41, 10);
+    try std.testing.expect(state.isReachable(40, 10));
+    try std.testing.expect(state.isReachable(41, 10));
+    try std.testing.expect(!state.isReachable(42, 10));
+
+    const dir = TouchController.findReachableNextStep(state, .{ .x = 39, .y = 10 }, .{ .x = 41, .y = 10 });
+    try std.testing.expectEqual(@as(?u16, gba.Key.right.mask()), dir);
+}
+
+test "Tapping extended side margins closes battle popup and in-battle menus with B" {
+    var tc = TouchController{};
+    tc.setHudWidth(410);
+    const popup_state = GameState{
+        .mode = .battle_popup_menu,
+        .menu_x = 120,
+        .menu_y = 32,
+        .menu_count = 5,
+        .menu_selected = 0,
+    };
+
+    // Left extended margin tap (lx = -40) is outside the popup box -> enqueues B.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, popup_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, popup_state);
+    tc.stepFrame(popup_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+
+    for (0..6) |_| tc.stepFrame(popup_state);
+
+    // Right extended margin tap (lx = 280) while in popup menu -> enqueues B.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 280, .y = 60, .logical_x = 280, .logical_y = 60 }, popup_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 280, .y = 60, .logical_x = 280, .logical_y = 60 }, popup_state);
+    tc.stepFrame(popup_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
 }
