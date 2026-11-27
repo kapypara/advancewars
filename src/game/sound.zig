@@ -467,6 +467,100 @@ pub fn func_080795A0() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Reset m4a sound driver channels (`0x0803D714`, `0x0803D720`, `0x08078258`) and sound flags `[0x0803D754]`/`[0x0803D75C]` (`0x0803D72C`).
+pub fn func_0803D72C() callconv(.c) void {
+    if (!abi.enter(0x0803D72C)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    abi.setRegNz(&rt.r[4], @as(u32, 0x80) << 1);
+    rt.r[0] = rt.r[4];
+    if (!abi.call(func_0803D714, 0x0803D739)) return;
+
+    abi.fetches(5);
+    rt.r[0] = rt.r[4];
+    if (!abi.call(func_0803D720, 0x0803D73F)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08078258, 0x0803D743)) return;
+
+    abi.fetches(11);
+    const val: u16 = @truncate(abi.read32(0x0803D758));
+    abi.write16(abi.read32(0x0803D754), val);
+    abi.write16(abi.read32(0x0803D75C), val);
+    rt.r[1] = abi.read32(0x0803D758);
+    rt.r[2] = rt.r[1];
+    rt.r[0] = abi.read32(0x0803D75C);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Start music player `[0x0803D980]` (`0x08078488(..., 2)`) and spawn War Room proc `[0x0803D984]` (`0x0803D968`).
+pub fn func_0803D968() callconv(.c) void {
+    if (!abi.enter(0x0803D968)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0803D980);
+    abi.setRegNz(&rt.r[1], 2);
+    if (!abi.call(func_08078488, 0x0803D973)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x0803D984);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x0803D97B)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload audio/menu palette (`0x08011330`), spawn fade overlay `0x080123A8`, and tag byte `+0x3A = 9` (`0x0803DAA0`).
+pub fn func_0803DAA0() callconv(.c) void {
+    if (!abi.enter(0x0803DAA0)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 8;
+    rt.r[0] = abi.read32(0x0803DAD4);
+    abi.setRegNz(&rt.r[1], @as(u32, 0x80) << 1);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0803DAB1)) return;
+
+    abi.fetches(13);
+    abi.write32(rt.r[13], @as(u32, 0x80) << 8);
+    abi.write32(rt.r[13] +% 4, 0);
+    abi.setRegNz(&rt.r[0], 6);
+    abi.setRegNz(&rt.r[1], 2);
+    rt.r[2] = abi.read32(0x0803DAD8);
+    rt.r[3] = abi.read32(0x0803DADC);
+    if (!abi.call(decls.func_080123A8, 0x0803DAC7)) return;
+
+    abi.fetches(8);
+    abi.write8(rt.r[0] +% 0x3A, 9);
+    rt.r[0] +%= 0x3A;
+    abi.setRegNz(&rt.r[1], 9);
+    rt.r[13] +%= 8;
+    abi.popReturn();
+}
+
+/// Query selected slot `0x08015E3C(read8([0x0803DAF8]+1))` and configure sound/preview table `0x0803FB84` (`0x0803DAE0`).
+pub fn func_0803DAE0() callconv(.c) void {
+    if (!abi.enter(0x0803DAE0)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read8(abi.read32(0x0803DAF8) +% 1);
+    if (!abi.call(decls.func_08015E3C, 0x0803DAEB)) return;
+
+    abi.fetches(7);
+    const val: u32 = @bitCast(abi.signExtend8(@truncate(rt.r[0])));
+    abi.setRegNz(&rt.r[0], val);
+    rt.r[1] = abi.read32(0x0803DAFC);
+    if (!abi.call(decls.func_0803FB84, 0x0803DAF5)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
@@ -510,6 +604,10 @@ comptime {
         @export(&func_0807966C, .{ .name = "func_0807966C", .linkage = .strong });
         @export(&func_08079678, .{ .name = "func_08079678", .linkage = .strong });
         @export(&func_0807968C, .{ .name = "func_0807968C", .linkage = .strong });
+        @export(&func_0803D72C, .{ .name = "func_0803D72C", .linkage = .strong });
+        @export(&func_0803D968, .{ .name = "func_0803D968", .linkage = .strong });
+        @export(&func_0803DAA0, .{ .name = "func_0803DAA0", .linkage = .strong });
+        @export(&func_0803DAE0, .{ .name = "func_0803DAE0", .linkage = .strong });
     }
 }
 
