@@ -6,14 +6,14 @@ const platform = @import("backend.zig");
 const is_freestanding = builtin.os.tag == .freestanding;
 
 const env = if (is_freestanding) struct {
-    extern "env" fn host_present(fb_ptr: [*]const u32, fb_len: u32, audio_ptr: [*]const i16, audio_len: u32) void;
+    extern "env" fn host_present(fb_ptr: [*]const u32, fb_w: u32, fb_h: u32, audio_ptr: [*]const i16, audio_len: u32) void;
     extern "env" fn host_present_hud(ptr: [*]const u32, w: u32, h: u32) void;
     extern "env" fn host_poll_input() u32;
     extern "env" fn host_pace() void;
     extern "env" fn host_queued_audio_bytes() u32;
     extern "env" fn host_save_sram(ptr: [*]const u8, len: u32) void;
 } else struct {
-    fn host_present(_: [*]const u32, _: u32, _: [*]const i16, _: u32) void {}
+    fn host_present(_: [*]const u32, _: u32, _: u32, _: [*]const i16, _: u32) void {}
     fn host_present_hud(_: [*]const u32, _: u32, _: u32) void {}
     fn host_poll_input() u32 {
         return 0;
@@ -31,7 +31,7 @@ const max_pointer_queue: usize = 64;
 pub const WasmBackend = struct {
     var s_ptr_buf: [max_pointer_queue]platform.PointerEvent = undefined;
     var s_ptr_count: usize = 0;
-    var rgba_buf: [gba.width * gba.height]u32 = @splat(0);
+    var rgba_buf: [gba.max_wide_width * gba.height]u32 = @splat(0);
     var empty_audio: [2]i16 = .{ 0, 0 };
 
     last_audio_ptr: [*]const i16 = &empty_audio,
@@ -68,14 +68,16 @@ pub const WasmBackend = struct {
         self.last_audio_len = @intCast(samples.len);
     }
 
-    pub fn present(self: *WasmBackend, framebuf: *const [gba.width * gba.height]u32, hud: platform.HudFrame) void {
+    pub fn present(self: *WasmBackend, frame: platform.VideoFrame, hud: platform.HudFrame) void {
+        const total: usize = @as(usize, frame.width) * frame.height;
+        if (frame.pixels.len < total or total > rgba_buf.len) return;
         // Convert 0xAARRGGBB (little-endian BGRA bytes) into 0xAABBGGRR (little-endian RGBA bytes for ImageData).
-        for (framebuf, 0..) |px, i| {
+        for (frame.pixels[0..total], 0..) |px, i| {
             rgba_buf[i] = (px & 0xFF00_FF00) |
                 ((px & 0x00FF_0000) >> 16) |
                 ((px & 0x0000_00FF) << 16);
         }
-        env.host_present(&rgba_buf, gba.width * gba.height, self.last_audio_ptr, self.last_audio_len);
+        env.host_present(&rgba_buf, frame.width, frame.height, self.last_audio_ptr, self.last_audio_len);
         self.last_audio_len = 0;
 
         if (hud.dirty and hud.width >= gba.width and hud.pixels.len >= @as(usize, hud.width) * gba.height) {
@@ -93,13 +95,18 @@ pub const WasmBackend = struct {
 
     pub fn poll(_: *WasmBackend) platform.PollResult {
         const packed_input = env.host_poll_input();
+        const has_overrides = (packed_input & (1 << 19)) != 0;
+        const w: u16 = @truncate((packed_input >> 21) & 0x03FF);
         return .{
             .keys_pressed = @truncate(packed_input & 0x03FF),
             .quit = (packed_input & (1 << 16)) != 0,
             .toggle_hud = (packed_input & (1 << 17)) != 0,
             .toggle_mute = (packed_input & (1 << 18)) != 0,
-            .hud_overlay = if ((packed_input & (1 << 19)) != 0) ((packed_input & (1 << 20)) != 0) else null,
-            .hud_width = @truncate((packed_input >> 21) & 0x03FF),
+            .toggle_widescreen = false,
+            .hud_overlay = if (has_overrides) ((packed_input & (1 << 20)) != 0) else null,
+            .widescreen_override = if (has_overrides) ((packed_input & (@as(u32, 1) << 31)) != 0) else null,
+            .hud_width = w,
+            .wide_width = if (w >= gba.width) w else gba.width,
         };
     }
 
@@ -129,6 +136,6 @@ test "WasmBackend queues pointer events cleanly and swaps BGRA to RGBA" {
     try std.testing.expectEqual(platform.PointerPhase.scroll_up, drained[1].phase);
 
     var fb: [gba.width * gba.height]u32 = @splat(0xFF112233);
-    wb.present(&fb, .{});
+    wb.present(.{ .pixels = &fb, .width = gba.width, .height = gba.height }, .{});
     try std.testing.expectEqual(@as(u32, 0xFF332211), WasmBackend.rgba_buf[0]);
 }

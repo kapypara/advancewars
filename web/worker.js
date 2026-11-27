@@ -27,16 +27,18 @@ self.onmessage = async (ev) => {
 
     const imports = {
       env: {
-        host_present(fbPtr, fbLen, audioPtr, audioLen) {
+        host_present(fbPtr, fbW, fbH, audioPtr, audioLen) {
           const memBuf = wasm.memory.buffer;
-          const pixels = new Uint8ClampedArray(memBuf, fbPtr >>> 0, (fbLen >>> 0) * 4).slice();
+          const width = fbW >>> 0;
+          const height = fbH >>> 0;
+          const pixels = new Uint8ClampedArray(memBuf, fbPtr >>> 0, width * height * 4).slice();
           let audioCopy = null;
           const transfers = [pixels.buffer];
           if ((audioLen >>> 0) > 0) {
             audioCopy = new Int16Array(memBuf, audioPtr >>> 0, audioLen >>> 0).slice();
             transfers.push(audioCopy.buffer);
           }
-          self.postMessage({ type: "frame", pixels, audio: audioCopy }, transfers);
+          self.postMessage({ type: "frame", width, height, pixels, audio: audioCopy }, transfers);
 
           fpsFrames += 1;
           const now = performance.now();
@@ -85,6 +87,7 @@ self.onmessage = async (ev) => {
           mask |= 1 << 19;
           if (Atomics.load(sabI32, 8) !== 0) mask |= 1 << 20;
           mask |= (Atomics.load(sabI32, 9) & 0x03ff) << 21;
+          if (Atomics.load(sabI32, 10) !== 0) mask = (mask | (1 << 31)) >>> 0;
           return mask >>> 0;
         },
         host_pace() {

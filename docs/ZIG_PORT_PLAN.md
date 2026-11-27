@@ -108,8 +108,8 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
 - **Milestone 7D — Direct Campaign & Pre-Battle Menu Clicking (Done):**
   - Hooked universal Yes/No prompts (`0x0828_1CE8` tilemap anchor + selection toggle/confirm), Name Entry character grid (`0x082F_1130` 2D EWRAM cursor navigation + row-4 Left-first guard + `BACK`/`OK!`), Main Menu / Mode Submenu carousel (`0x082F_1BE0` top/center/bottom tap zones), Map Select (`0x082E_BF68` `<L`/`R>` category arrows + 2-tap map rows & minimap confirm), and VS CO / Rules Setup (`0x083B_93C8` / `0x083B_9244`), keeping natural scrolling across every screen.
 
-## Phase 8 — Widescreen / Wider Viewport Mode (Planned)
-- Extend the PPU beyond `240x160` for desktop and mobile widescreen displays (deferred from Phase 7 so outside-frame controls stabilize cleanly first).
+## Phase 8 — Widescreen / Wider Viewport Mode (Done)
+- Extended `src/gba/ppu.zig` (`Ppu.setViewport`, `wide_framebuf` up to `512x160`) to center the native `240x160` screen (`framebuf` preserved for pixel-exact headless parity and `240x160` BMP dumps) while seamlessly extending safe scrolling backdrop `BG` layers (`BG3` on Mode 0 frontend menus) and affine backgrounds into side margins, with `F4` hotkey (SDL2 & Web) + `Wide` toolbar toggle (`web/index.html`, `web/main.js`, `web/worker.js`) defaulting ON and preserving centered `[0, 240)` pointer/reticle coordinates.
 
 ## Deferred / Optional (Skipped for Now)
 - **Android Native Port (`aarch64-linux-android` + Pure Touch APK):** Deferred indefinitely in favor of the Phase 5 WebAssembly port for mobile browser play with touch controls; can be revisited later using `zig build -Dtarget=aarch64-linux-android` + `touch.zig`.

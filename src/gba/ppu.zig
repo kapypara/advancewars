@@ -26,19 +26,43 @@ fn winContains(range: u16, v: i32, limit_in: i32) bool {
     return v >= a and v < b;
 }
 
-/// Software per-scanline GBA PPU renderer producing a 240x160 ARGB8888 framebuffer.
+/// Software per-scanline GBA PPU renderer producing a `240x160` (or toggleable widescreen up to `512x160`) ARGB8888 framebuffer.
 pub const Ppu = struct {
     framebuf: [gba.width * gba.height]u32 = @splat(0),
-    top_c: [gba.width]u16 = @splat(0),
-    bot_c: [gba.width]u16 = @splat(0),
-    top_l: [gba.width]u8 = @splat(0),
-    bot_l: [gba.width]u8 = @splat(0),
-    top_semi: [gba.width]u8 = @splat(0),
-    win: [gba.width]u8 = @splat(0),
+    wide_framebuf: [gba.max_wide_width * gba.height]u32 = @splat(0),
+    view_width: usize = gba.width,
+    wide_bg_mask: u4 = 0,
+    wide_obj: bool = false,
+    top_c: [gba.max_wide_width]u16 = @splat(0),
+    bot_c: [gba.max_wide_width]u16 = @splat(0),
+    top_l: [gba.max_wide_width]u8 = @splat(0),
+    bot_l: [gba.max_wide_width]u8 = @splat(0),
+    top_semi: [gba.max_wide_width]u8 = @splat(0),
+    win: [gba.max_wide_width]u8 = @splat(0),
     aff_x: [2]i32 = .{ 0, 0 },
     aff_y: [2]i32 = .{ 0, 0 },
     aff_raw_x: [2]u32 = .{ 0, 0 },
     aff_raw_y: [2]u32 = .{ 0, 0 },
+    aff_mos_x: [2]i32 = .{ 0, 0 },
+    aff_mos_y: [2]i32 = .{ 0, 0 },
+
+    /// Configure output viewport width (clamped to even `[240, 512]`) and which layers extend into widescreen margins.
+    pub fn setViewport(self: *Ppu, width: usize, wide_bg_mask: u4, wide_obj: bool) void {
+        const clamped = std.math.clamp(width, gba.width, gba.max_wide_width);
+        self.view_width = clamped - (clamped & 1);
+        self.wide_bg_mask = wide_bg_mask;
+        self.wide_obj = wide_obj;
+    }
+
+    /// Return the active framebuffer slice (`240x160` in native mode, `view_width x 160` in widescreen mode).
+    pub fn activeFrameSlice(self: *const Ppu) []const u32 {
+        if (self.view_width <= gba.width) return &self.framebuf;
+        return self.wide_framebuf[0 .. self.view_width * gba.height];
+    }
+
+    inline fn padLeft(self: *const Ppu) usize {
+        return (self.view_width - gba.width) / 2;
+    }
 
     inline fn plot(self: *Ppu, x: usize, color: u16, layer: u8, semi: u8) void {
         if (((self.win[x] >> @intCast(layer)) & 1) == 0) return;
@@ -63,41 +87,63 @@ pub const Ppu = struct {
         }
     }
 
-    fn lineMode3(self: *Ppu, mem: gba.PpuMemory, y: usize) void {
+    fn lineMode3(self: *Ppu, mem: gba.PpuMemory, y: usize, pad_l: usize, bg_h: usize, bg_v: usize) void {
+        const bg_mos = (mem.ioRead16(gba.io_reg.bg2cnt) & 0x0040) != 0;
+        const eff_y = if (bg_mos and bg_v > 1) y - (y % bg_v) else y;
         for (0..gba.width) |x| {
-            const addr: u32 = @intCast((y * gba.width + x) * 2);
-            self.plot(x, mem.vramRead16(addr), 2, 0);
+            const eff_x = if (bg_mos and bg_h > 1) x - (x % bg_h) else x;
+            const addr: u32 = @intCast((eff_y * gba.width + eff_x) * 2);
+            self.plot(pad_l + x, mem.vramRead16(addr), 2, 0);
         }
     }
 
-    fn lineMode4(self: *Ppu, mem: gba.PpuMemory, y: usize, dispcnt: u16) void {
+    fn lineMode4(self: *Ppu, mem: gba.PpuMemory, y: usize, dispcnt: u16, pad_l: usize, bg_h: usize, bg_v: usize) void {
         const page: u32 = if ((dispcnt & 0x0010) != 0) 0xA000 else 0;
+        const bg_mos = (mem.ioRead16(gba.io_reg.bg2cnt) & 0x0040) != 0;
+        const eff_y = if (bg_mos and bg_v > 1) y - (y % bg_v) else y;
         for (0..gba.width) |x| {
-            const idx = mem.vramRead8(page + @as(u32, @intCast(y * gba.width + x)));
+            const eff_x = if (bg_mos and bg_h > 1) x - (x % bg_h) else x;
+            const idx = mem.vramRead8(page + @as(u32, @intCast(eff_y * gba.width + eff_x)));
             if (idx != 0) {
-                self.plot(x, mem.palRead16(@as(u32, idx) * 2), 2, 0);
+                self.plot(pad_l + x, mem.palRead16(@as(u32, idx) * 2), 2, 0);
             }
         }
     }
 
-    fn lineTextBg(self: *Ppu, mem: gba.PpuMemory, bg: u32, y: usize) void {
+    fn lineTextBg(self: *Ppu, mem: gba.PpuMemory, bg: u32, y: usize, vw: usize, pad_l: usize, bg_h: usize, bg_v: usize) void {
         const bgcnt = mem.ioRead16(gba.io_reg.bg0cnt + bg * 2);
         const hofs: u32 = mem.ioRead16(gba.io_reg.bg0hofs + bg * 4) & 0x1FF;
         const vofs: u32 = mem.ioRead16(gba.io_reg.bg0vofs + bg * 4) & 0x1FF;
         const char_base: u32 = @as(u32, (bgcnt >> 2) & 3) * 0x4000;
         const screen_base: u32 = @as(u32, (bgcnt >> 8) & 0x1F) * 0x800;
+        const bg_mos = ((bgcnt >> 6) & 1) != 0;
         const bpp8 = ((bgcnt >> 7) & 1) != 0;
         const size: u32 = (bgcnt >> 14) & 3;
         const w_px: u32 = if ((size & 1) != 0) 512 else 256;
         const h_px: u32 = if ((size & 2) != 0) 512 else 256;
 
-        const by: u32 = (vofs + @as(u32, @intCast(y))) % h_px;
+        const eff_y: usize = if (bg_mos and bg_v > 1) y - (y % bg_v) else y;
+        const by: u32 = (vofs + @as(u32, @intCast(eff_y))) % h_px;
         const ty: u32 = by >> 3;
         const py: u32 = by & 7;
         const wide_stride: u32 = if ((size & 1) != 0) 2 else 1;
+        const extend_wide = vw > gba.width and ((self.wide_bg_mask & (@as(u4, 1) << @intCast(bg))) != 0);
+        const loop_len: usize = if (extend_wide) vw else gba.width;
+        const pad_i: i32 = @intCast(pad_l);
+        const hofs_i: i32 = @intCast(hofs);
+        const w_px_i: i32 = @intCast(w_px);
+        const bg_h_i: i32 = @intCast(bg_h);
 
-        for (0..gba.width) |x| {
-            const bx: u32 = (hofs + @as(u32, @intCast(x))) % w_px;
+        for (0..loop_len) |idx| {
+            const dst_x: usize = if (extend_wide) idx else (pad_l + idx);
+            const bx: u32 = if (extend_wide) blk: {
+                const gx: i32 = @as(i32, @intCast(idx)) - pad_i;
+                const eff_gx: i32 = if (bg_mos and bg_h > 1) gx - @mod(gx, bg_h_i) else gx;
+                break :blk @intCast(@mod(hofs_i + eff_gx, w_px_i));
+            } else blk: {
+                const eff_x: usize = if (bg_mos and bg_h > 1) idx - (idx % bg_h) else idx;
+                break :blk (hofs + @as(u32, @intCast(eff_x))) % w_px;
+            };
             const tx: u32 = bx >> 3;
             const px: u32 = bx & 7;
             const block: u32 = (tx >> 5) + ((ty >> 5) * wide_stride);
@@ -108,20 +154,20 @@ pub const Ppu = struct {
             if (bpp8) {
                 const ci = mem.vramRead8(char_base + tile * 64 + fy * 8 + fx);
                 if (ci != 0) {
-                    self.plot(x, mem.palRead16(@as(u32, ci) * 2), @intCast(bg), 0);
+                    self.plot(dst_x, mem.palRead16(@as(u32, ci) * 2), @intCast(bg), 0);
                 }
             } else {
                 const b = mem.vramRead8(char_base + tile * 32 + fy * 4 + (fx >> 1));
                 const ci: u32 = if ((fx & 1) != 0) (b >> 4) else (b & 15);
                 if (ci != 0) {
                     const pal_bank: u32 = (e >> 12) & 15;
-                    self.plot(x, mem.palRead16((pal_bank * 16 + ci) * 2), @intCast(bg), 0);
+                    self.plot(dst_x, mem.palRead16((pal_bank * 16 + ci) * 2), @intCast(bg), 0);
                 }
             }
         }
     }
 
-    fn lineAffineBg(self: *Ppu, mem: gba.PpuMemory, bg: u32) void {
+    fn lineAffineBg(self: *Ppu, mem: gba.PpuMemory, bg: u32, y: usize, vw: usize, pad_l: usize, bg_h: usize, bg_v: usize) void {
         const i: usize = @intCast(bg - 2);
         const base: u32 = gba.io_reg.bg2pa + @as(u32, @intCast(i)) * 0x10;
         const pa: i32 = @as(i16, @bitCast(mem.ioRead16(base)));
@@ -129,6 +175,7 @@ pub const Ppu = struct {
         const pc: i32 = @as(i16, @bitCast(mem.ioRead16(base + 4)));
         const pd: i32 = @as(i16, @bitCast(mem.ioRead16(base + 6)));
         const bgcnt = mem.ioRead16(gba.io_reg.bg0cnt + bg * 2);
+        const bg_mos = ((bgcnt >> 6) & 1) != 0;
         const char_base: u32 = @as(u32, (bgcnt >> 2) & 3) * 0x4000;
         const screen_base: u32 = @as(u32, (bgcnt >> 8) & 0x1F) * 0x800;
         const shift: u5 = @intCast((bgcnt >> 14) & 3);
@@ -136,23 +183,43 @@ pub const Ppu = struct {
         const wrap = ((bgcnt >> 13) & 1) != 0;
 
         self.affineLatch(mem, i, false);
-        var cx: i32 = self.aff_x[i];
-        var cy: i32 = self.aff_y[i];
-        for (0..gba.width) |x| {
-            var tx: i32 = cx >> 8;
-            var ty: i32 = cy >> 8;
-            if (wrap) {
-                tx &= size - 1;
-                ty &= size - 1;
-            } else if (tx < 0 or ty < 0 or tx >= size or ty >= size) {
-                cx +%= pa;
-                cy +%= pc;
-                continue;
+        if (y == 0 or bg_v == 1 or (y % bg_v) == 0) {
+            self.aff_mos_x[i] = self.aff_x[i];
+            self.aff_mos_y[i] = self.aff_y[i];
+        }
+        const base_x = if (bg_mos and bg_v > 1) self.aff_mos_x[i] else self.aff_x[i];
+        const base_y = if (bg_mos and bg_v > 1) self.aff_mos_y[i] else self.aff_y[i];
+        var cx: i32 = base_x -% pa *% @as(i32, @intCast(pad_l));
+        var cy: i32 = base_y -% pc *% @as(i32, @intCast(pad_l));
+        const pad_i: i32 = @intCast(pad_l);
+        const bg_h_i: i32 = @intCast(bg_h);
+        var held_valid = false;
+        var held_color: u16 = 0;
+
+        for (0..vw) |x| {
+            const need_sample = !(bg_mos and bg_h > 1) or x == 0 or @mod(@as(i32, @intCast(x)) - pad_i, bg_h_i) == 0;
+            if (need_sample) {
+                held_valid = false;
+                var tx: i32 = cx >> 8;
+                var ty: i32 = cy >> 8;
+                var in_bounds = true;
+                if (wrap) {
+                    tx &= size - 1;
+                    ty &= size - 1;
+                } else if (tx < 0 or ty < 0 or tx >= size or ty >= size) {
+                    in_bounds = false;
+                }
+                if (in_bounds) {
+                    const tile = mem.vramRead8(screen_base + @as(u32, @intCast((ty >> 3) * (size >> 3) + (tx >> 3))));
+                    const ci = mem.vramRead8(char_base + @as(u32, tile) * 64 + @as(u32, @intCast((ty & 7) * 8 + (tx & 7))));
+                    if (ci != 0) {
+                        held_valid = true;
+                        held_color = mem.palRead16(@as(u32, ci) * 2);
+                    }
+                }
             }
-            const tile = mem.vramRead8(screen_base + @as(u32, @intCast((ty >> 3) * (size >> 3) + (tx >> 3))));
-            const ci = mem.vramRead8(char_base + @as(u32, tile) * 64 + @as(u32, @intCast((ty & 7) * 8 + (tx & 7))));
-            if (ci != 0) {
-                self.plot(x, mem.palRead16(@as(u32, ci) * 2), @intCast(bg), 0);
+            if (held_valid) {
+                self.plot(x, held_color, @intCast(bg), 0);
             }
             cx +%= pa;
             cy +%= pc;
@@ -161,12 +228,16 @@ pub const Ppu = struct {
         self.aff_y[i] +%= pd;
     }
 
-    fn lineObjs(self: *Ppu, mem: gba.PpuMemory, y: usize, dispcnt: u16, prio: i32) void {
+    fn lineObjs(self: *Ppu, mem: gba.PpuMemory, y: usize, dispcnt: u16, prio: i32, vw: usize, pad_l: usize, obj_h: usize, obj_v: usize) void {
         if ((dispcnt & 0x1000) == 0) return;
         const mapping_1d = ((dispcnt >> 6) & 1) != 0;
         const bitmap_mode = (dispcnt & 7) >= 3;
         const objwin_ctl: u8 = @truncate(mem.ioRead16(gba.io_reg.winout) >> 8);
         const y_i32: i32 = @intCast(y);
+        const clip_wide = prio >= 0 and vw > gba.width and self.wide_obj;
+        const max_sx: i32 = @intCast(if (clip_wide) vw else gba.width);
+        const pad_i: i32 = @intCast(pad_l);
+        const obj_h_i: i32 = @intCast(obj_h);
 
         var idx_rev: usize = 128;
         while (idx_rev > 0) {
@@ -188,6 +259,7 @@ pub const Ppu = struct {
 
             const w = obj_width[shape][size];
             const h = obj_height[shape][size];
+            const obj_mos = (a0 & 0x1000) != 0;
             const oy: i32 = @intCast(a0 & 0xFF);
             var ox: i32 = @intCast(a1 & 0x1FF);
             if (ox >= 240) ox -= 512;
@@ -198,7 +270,8 @@ pub const Ppu = struct {
                 bw *= 2;
                 bh *= 2;
             }
-            const py: i32 = (y_i32 - oy) & 0xFF;
+            const eff_y: i32 = if (obj_mos and obj_v > 1) @intCast(y - (y % obj_v)) else y_i32;
+            const py: i32 = (eff_y - oy) & 0xFF;
             if (py >= bh) continue;
 
             var pa: i32 = 256;
@@ -224,18 +297,24 @@ pub const Ppu = struct {
 
             var px: i32 = 0;
             while (px < bw) : (px += 1) {
-                const sx: i32 = ox + px;
-                if (sx < 0 or sx >= @as(i32, @intCast(gba.width))) continue;
+                const sx: i32 = if (clip_wide) ox + px + pad_i else ox + px;
+                if (sx < 0 or sx >= max_sx) continue;
+
+                const eff_px: i32 = if (prio >= 0 and obj_mos and obj_h > 1) blk: {
+                    const sx_gba = ox + px;
+                    const mos_sx = sx_gba - @mod(sx_gba, obj_h_i);
+                    break :blk std.math.clamp(mos_sx - ox, 0, bw - 1);
+                } else px;
 
                 var fx: i32 = undefined;
                 var fy: i32 = undefined;
                 if (affine) {
-                    const ix: i32 = px - @divTrunc(bw, 2);
+                    const ix: i32 = eff_px - @divTrunc(bw, 2);
                     fx = ((pa * ix + pb * iy) >> 8) + @divTrunc(w, 2);
                     fy = ((pc * ix + pd * iy) >> 8) + @divTrunc(h, 2);
                     if (fx < 0 or fx >= w or fy < 0 or fy >= h) continue;
                 } else {
-                    fx = if ((a1 & 0x1000) != 0) w - 1 - px else px;
+                    fx = if ((a1 & 0x1000) != 0) w - 1 - eff_px else eff_px;
                     fy = if ((a1 & 0x2000) != 0) h - 1 - py else py;
                 }
 
@@ -258,30 +337,30 @@ pub const Ppu = struct {
                 }
                 if (ci == 0) continue;
 
-                const sx_u: usize = @intCast(sx);
+                const dst_x: usize = if (clip_wide) @intCast(sx) else pad_l + @as(usize, @intCast(sx));
                 if (prio < 0) {
-                    self.win[sx_u] = objwin_ctl;
+                    self.win[dst_x] = objwin_ctl;
                     continue;
                 }
                 const c = if (bpp8)
                     mem.palRead16(0x200 + ci * 2)
                 else
                     mem.palRead16(0x200 + (pal * 16 + ci) * 2);
-                self.plot(sx_u, c, 4, if (mode == 1) 1 else 0);
+                self.plot(dst_x, c, 4, if (mode == 1) 1 else 0);
             }
         }
     }
 
-    fn windowLine(self: *Ppu, mem: gba.PpuMemory, y: usize, dispcnt: u16) void {
+    fn windowLine(self: *Ppu, mem: gba.PpuMemory, y: usize, dispcnt: u16, vw: usize, pad_l: usize, obj_h: usize, obj_v: usize) void {
         if ((dispcnt & 0xE000) == 0) {
-            @memset(&self.win, 0x3F);
+            @memset(self.win[0..vw], 0x3F);
             return;
         }
         const winin = mem.ioRead16(gba.io_reg.winin);
         const winout = mem.ioRead16(gba.io_reg.winout);
-        @memset(&self.win, @truncate(winout & 0x3F));
+        @memset(self.win[0..vw], @truncate(winout & 0x3F));
         if ((dispcnt & 0x8000) != 0) {
-            self.lineObjs(mem, y, dispcnt, -1);
+            self.lineObjs(mem, y, dispcnt, -1, vw, pad_l, obj_h, obj_v);
         }
 
         const y_i32: i32 = @intCast(y);
@@ -295,37 +374,56 @@ pub const Ppu = struct {
             const ctl: u8 = @truncate((winin >> @intCast(w_rev * 8)) & 0x3F);
             for (0..gba.width) |x| {
                 if (winContains(h, @intCast(x), @intCast(gba.width))) {
-                    self.win[x] = ctl;
+                    self.win[pad_l + x] = ctl;
                 }
             }
         }
+        if (pad_l > 0) {
+            @memset(self.win[0..pad_l], self.win[pad_l]);
+            @memset(self.win[pad_l + gba.width .. vw], self.win[pad_l + gba.width - 1]);
+        }
     }
 
-    /// Compose scanline `y` (`0 <= y < 160`) from live PPU memory into `framebuf`.
+    /// Compose scanline `y` (`0 <= y < 160`) from live PPU memory into `framebuf` (and `wide_framebuf` when `view_width > 240`).
     pub fn renderLine(self: *Ppu, mem: gba.PpuMemory, y: usize) void {
         if (y >= gba.height) return;
 
+        const vw = self.view_width;
+        const pad_l = self.padLeft();
         const dispcnt = mem.ioRead16(gba.io_reg.dispcnt);
         const mode: u32 = dispcnt & 7;
-        const out = self.framebuf[y * gba.width .. (y + 1) * gba.width];
+        const mosaic = mem.ioRead16(gba.io_reg.mosaic);
+        const bg_h: usize = @as(usize, mosaic & 0xF) + 1;
+        const bg_v: usize = @as(usize, (mosaic >> 4) & 0xF) + 1;
+        const obj_h: usize = @as(usize, (mosaic >> 8) & 0xF) + 1;
+        const obj_v: usize = @as(usize, (mosaic >> 12) & 0xF) + 1;
+        const out = if (vw > gba.width)
+            self.wide_framebuf[y * vw .. (y + 1) * vw]
+        else
+            self.framebuf[y * gba.width .. (y + 1) * gba.width];
 
         if (y == 0) {
             self.affineLatch(mem, 0, true);
             self.affineLatch(mem, 1, true);
+            self.aff_mos_x = self.aff_x;
+            self.aff_mos_y = self.aff_y;
         }
         if ((dispcnt & 0x80) != 0) {
             @memset(out, 0xFFFFFFFF);
+            if (vw > gba.width) {
+                @memset(self.framebuf[y * gba.width .. (y + 1) * gba.width], 0xFFFFFFFF);
+            }
             return;
         }
 
         const backdrop = mem.palRead16(0);
-        @memset(&self.top_c, backdrop);
-        @memset(&self.bot_c, backdrop);
-        @memset(&self.top_l, 5);
-        @memset(&self.bot_l, 5);
-        @memset(&self.top_semi, 0);
+        @memset(self.top_c[0..vw], backdrop);
+        @memset(self.bot_c[0..vw], backdrop);
+        @memset(self.top_l[0..vw], 5);
+        @memset(self.bot_l[0..vw], 5);
+        @memset(self.top_semi[0..vw], 0);
 
-        self.windowLine(mem, y, dispcnt);
+        self.windowLine(mem, y, dispcnt, vw, pad_l, obj_h, obj_v);
 
         var prio_rev: u32 = 4;
         while (prio_rev > 0) {
@@ -338,16 +436,16 @@ pub const Ppu = struct {
                 if ((mem.ioRead16(gba.io_reg.bg0cnt + bg_rev * 2) & 3) != prio_rev) continue;
 
                 if (mode == 0 or (mode == 1 and bg_rev < 2)) {
-                    self.lineTextBg(mem, bg_rev, y);
+                    self.lineTextBg(mem, bg_rev, y, vw, pad_l, bg_h, bg_v);
                 } else if ((mode == 1 and bg_rev == 2) or (mode == 2 and bg_rev >= 2)) {
-                    self.lineAffineBg(mem, bg_rev);
+                    self.lineAffineBg(mem, bg_rev, y, vw, pad_l, bg_h, bg_v);
                 } else if (bg_rev == 2 and mode == 3) {
-                    self.lineMode3(mem, y);
+                    self.lineMode3(mem, y, pad_l, bg_h, bg_v);
                 } else if (bg_rev == 2 and mode == 4) {
-                    self.lineMode4(mem, y, dispcnt);
+                    self.lineMode4(mem, y, dispcnt, pad_l, bg_h, bg_v);
                 }
             }
-            self.lineObjs(mem, y, dispcnt, @intCast(prio_rev));
+            self.lineObjs(mem, y, dispcnt, @intCast(prio_rev), vw, pad_l, obj_h, obj_v);
         }
 
         for (0..2) |i| {
@@ -372,7 +470,7 @@ pub const Ppu = struct {
         const evb: i32 = @min(@as(i32, (bldalpha >> 8) & 0x1F), 16);
         const evy: i32 = @min(@as(i32, mem.ioRead16(gba.io_reg.bldy) & 0x1F), 16);
 
-        for (0..gba.width) |x| {
+        for (0..vw) |x| {
             const c = self.top_c[x];
             const top_in_t1 = ((t1 >> @intCast(self.top_l[x])) & 1) != 0;
             const bot_in_t2 = ((t2 >> @intCast(self.bot_l[x])) & 1) != 0;
@@ -402,6 +500,9 @@ pub const Ppu = struct {
 
             const blended: u16 = @intCast(r | (g << 5) | (b << 10));
             out[x] = gba.rgb555ToArgb8888(blended);
+        }
+        if (vw > gba.width) {
+            @memcpy(self.framebuf[y * gba.width .. (y + 1) * gba.width], out[pad_l .. pad_l + gba.width]);
         }
     }
 };
@@ -525,4 +626,117 @@ test "Ppu affine BG reference latches on y=0 and advances per line" {
     try std.testing.expectEqual(@as(i32, 256), ppu.aff_y[0]);
     ppu.renderLine(mem.view(), 1);
     try std.testing.expectEqual(@as(i32, 512), ppu.aff_y[0]);
+}
+
+test "Ppu widescreen Mode 0 extends flagged BG3 while centering BG0 and framebuf" {
+    var mem = TestMem{};
+    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x0900); // Mode 0 + BG0 + BG3
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg0cnt, 0x0100); // prio=0, sbb=1
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg3cnt, 0x0203); // prio=3, sbb=2, 256x256
+    TestMem.write16(&mem.palette, 0, 0x0000); // Backdrop black
+    TestMem.write16(&mem.palette, 1 * 2, 0x001F); // Color 1 = red
+    TestMem.write16(&mem.palette, 2 * 2, 0x03E0); // Color 2 = green
+
+    // Solid tile 1 = color 1 (red), solid tile 2 = color 2 (green)
+    @memset(mem.vram[32..64], 0x11);
+    @memset(mem.vram[64..96], 0x22);
+    // BG0 tilemap (sbb=1, 0x800): all tile 2 at col 0
+    TestMem.write16(&mem.vram, 0x800, 2);
+    // BG3 tilemap (sbb=2, 0x1000): fill row 0 (all 32 cols) with tile 1
+    for (0..32) |tx| {
+        TestMem.write16(&mem.vram, 0x1000 + tx * 2, 1);
+    }
+
+    var ppu = Ppu{};
+    ppu.setViewport(320, 0b1000, false); // Only BG3 widens to 320px (pad_l=40)
+    ppu.renderLine(mem.view(), 0);
+
+    const wide = ppu.activeFrameSlice();
+    try std.testing.expectEqual(@as(usize, 320 * gba.height), wide.len);
+    // Margin x=0 renders BG3 red, not BG0 or black backdrop
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[0]);
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[319]);
+    // Core GBA x=0 (at wide[40]) has BG0 green above BG3 red
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), wide[40]);
+    // 240x160 centered framebuf stays exact
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), ppu.framebuf[0]);
+}
+
+test "Ppu widescreen affine BG renders side margins with centered aff_x parity" {
+    var mem = TestMem{};
+    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x0402); // Mode 2 + BG2
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg2cnt, 0x2000); // wrap=1, 128x128
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg2pa, 0x0100); // PA=1.0
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg2pa + 6, 0x0100); // PD=1.0
+    TestMem.write16(&mem.palette, 0, 0x0000);
+    TestMem.write16(&mem.palette, 1 * 2, 0x7C00); // Color 1 = blue
+    @memset(mem.vram[64..128], 1); // Tile 1 = solid color 1 (8bpp)
+    for (0..16) |tx| mem.vram[tx] = 1; // Fill row 0 tiles in 128x128 map
+
+    var ppu = Ppu{};
+    ppu.setViewport(320, 0, false);
+    ppu.renderLine(mem.view(), 0);
+    const wide = ppu.activeFrameSlice();
+    try std.testing.expectEqual(@as(u32, 0xFF0000FF), wide[0]);
+    try std.testing.expectEqual(@as(u32, 0xFF0000FF), wide[40]);
+    try std.testing.expectEqual(@as(u32, 0xFF0000FF), wide[319]);
+    try std.testing.expectEqual(@as(i32, 256), ppu.aff_y[0]);
+}
+
+test "Ppu Mode 0 horizontal and vertical mosaic snaps BG0 only when bit 6 set" {
+    var mem = TestMem{};
+    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x0100); // Mode 0 + BG0
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg0cnt, 0x0140); // mosaic=1 (bit 6), sbb=1
+    TestMem.write16(&mem.io_regs, gba.io_reg.mosaic, 0x0012); // bg_h = 3 (N=2), bg_v = 2 (N=1)
+    TestMem.write16(&mem.palette, 0, 0x0000);
+    TestMem.write16(&mem.palette, 1 * 2, 0x001F); // red
+    TestMem.write16(&mem.palette, 2 * 2, 0x03E0); // green
+    TestMem.write16(&mem.palette, 3 * 2, 0x7C00); // blue
+
+    // Tile 1 row 0: px 0=red, px 3=green; row 1: px 0=blue
+    mem.vram[32 + 0] = 0x01; // px 0=1, px 1=0
+    mem.vram[32 + 1] = 0x20; // px 2=0, px 3=2
+    mem.vram[32 + 4] = 0x03; // row 1 px 0=3
+    TestMem.write16(&mem.vram, 0x800, 1);
+
+    var ppu = Ppu{};
+    ppu.renderLine(mem.view(), 0);
+    ppu.renderLine(mem.view(), 1);
+    // Horizontal block size 3 -> x=0,1,2 all sample x=0 (red); x=3 samples x=3 (green)
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[0]);
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[1]);
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[2]);
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), ppu.framebuf[3]);
+    // Vertical block size 2 -> y=1 repeats y=0 (red), not row 1 (blue)
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[gba.width + 0]);
+
+    // Clearing BG0CNT bit 6 disables mosaic even while MOSAIC register stays non-zero
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg0cnt, 0x0100);
+    ppu.renderLine(mem.view(), 1);
+    try std.testing.expectEqual(@as(u32, 0xFF0000FF), ppu.framebuf[gba.width + 0]);
+}
+
+test "Ppu OBJ horizontal and vertical mosaic snaps sprites with attr0 bit 12 set" {
+    var mem = TestMem{};
+    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x1000); // OBJ enabled
+    TestMem.write16(&mem.io_regs, gba.io_reg.mosaic, 0x1100); // obj_h = 2 (N=1), obj_v = 2 (N=1)
+    TestMem.write16(&mem.palette, 0, 0x0000);
+    TestMem.write16(&mem.palette, 0x200 + 1 * 2, 0x001F); // OBJ color 1 = red
+    TestMem.write16(&mem.palette, 0x200 + 2 * 2, 0x03E0); // OBJ color 2 = green
+
+    // Sprite at (0, 0), 8x8, mosaic bit 12 set (0x1000), tile 0
+    TestMem.write16(&mem.oam, 0, 0x1000);
+    TestMem.write16(&mem.oam, 2, 0x0000);
+    TestMem.write16(&mem.oam, 4, 0x0000);
+    // Tile 0 (4bpp at 0x10000): row 0 px 0=1, row 1 px 0=2
+    mem.vram[0x10000 + 0] = 0x01; // row 0: px 0=1, px 1=0
+    mem.vram[0x10000 + 4] = 0x02; // row 1: px 0=2
+
+    var ppu = Ppu{};
+    ppu.renderLine(mem.view(), 0);
+    ppu.renderLine(mem.view(), 1);
+    // obj_h=2 repeats x=0 color (red) onto x=1; obj_v=2 repeats y=0 onto y=1
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[0]);
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[1]);
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), ppu.framebuf[gba.width + 0]);
 }

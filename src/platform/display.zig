@@ -8,6 +8,7 @@ const audio = core.audio;
 const Ppu = core.ppu.Ppu;
 const Runner = core.headless.Runner;
 const Backend = core.platform.Backend;
+const VideoFrame = core.platform.VideoFrame;
 const HudFrame = core.platform.HudFrame;
 const PointerEvent = core.platform.PointerEvent;
 const TouchController = core.touch.TouchController;
@@ -22,12 +23,14 @@ var s_runner: Runner = .{};
 var s_backend: Backend = .{};
 var s_touch: TouchController = .{};
 var s_audio: audio.Mixer = .{};
-var s_present_buf: [gba.width * gba.height]u32 = @splat(0);
+var s_present_buf: [gba.max_wide_width * gba.height]u32 = @splat(0);
 var s_hud_buf: [core.touch.max_hud_width * gba.height]u32 = @splat(0);
 var s_hud_rendered: bool = false;
 var s_last_hud_visible: bool = false;
 var s_last_hud_width: u16 = gba.width;
 var s_last_hud_held: u16 = 0;
+var s_widescreen: bool = true;
+var s_wide_width: u16 = gba.width;
 var s_pcm_a: [audio.max_frame_samples]i8 = @splat(0);
 var s_pcm_b: [audio.max_frame_samples]i8 = @splat(0);
 var s_stereo_out: [audio.max_out_stereo_i16]i16 = @splat(0);
@@ -428,6 +431,39 @@ pub fn display_render_line(y: c_int) void {
     if (y < 0 or y >= @as(c_int, @intCast(gba.height))) return;
     if (!s_runner.shouldRenderScanline()) return;
 
+    if (y == 0) {
+        if (s_runner.headless or !s_widescreen or s_wide_width <= gba.width) {
+            s_ppu.setViewport(gba.width, 0, false);
+        } else {
+            const dispcnt = readIo16(io, gba.io_reg.dispcnt);
+            const disp_mode = dispcnt & 7;
+            var wide_bg_mask: u4 = 0;
+            if (disp_mode == 0) {
+                const main_scene_fn = peek32(0x0300_4478);
+                const is_frontend_scene = (main_scene_fn != 0 and main_scene_fn != 0x0803_849D);
+                const bg3_en = (dispcnt & 0x0800) != 0;
+                const bg3_prio = readIo16(io, gba.io_reg.bg3cnt) & 3;
+                var bg3_is_backmost = bg3_en;
+                if (bg3_is_backmost) {
+                    for (0..3) |other| {
+                        const bit = @as(u16, 0x0100) << @intCast(other);
+                        if ((dispcnt & bit) != 0) {
+                            const other_prio = readIo16(io, gba.io_reg.bg0cnt + @as(u32, @intCast(other)) * 2) & 3;
+                            if (bg3_prio < other_prio) {
+                                bg3_is_backmost = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (is_frontend_scene and bg3_is_backmost) {
+                    wide_bg_mask = 0b1000;
+                }
+            }
+            s_ppu.setViewport(s_wide_width, wide_bg_mask, false);
+        }
+    }
+
     s_ppu.renderLine(.{
         .io_regs = io,
         .palette = pal,
@@ -446,8 +482,11 @@ pub fn display_render_frame() void {
     pumpLiveAudio();
     const state = sampleGameState();
     s_touch.stepFrame(state);
-    s_touch.renderGameWithReticle(&s_ppu.framebuf, &s_present_buf);
-    dumpContinuousFrame(&s_present_buf, state);
+    const active_fb = s_ppu.activeFrameSlice();
+    const view_w = s_ppu.view_width;
+    const present_len = view_w * gba.height;
+    s_touch.renderGameWithReticleWide(active_fb, s_present_buf[0..present_len], view_w);
+    dumpContinuousFrame(&s_ppu.framebuf, state);
 
     const hud_w = s_touch.hud_width;
     const hud_len: usize = @as(usize, hud_w) * gba.height;
@@ -462,13 +501,18 @@ pub fn display_render_frame() void {
         s_last_hud_width = hud_w;
         s_last_hud_held = s_touch.hud_held_mask;
     }
+    const video_frame = VideoFrame{
+        .pixels = s_present_buf[0..present_len],
+        .width = @intCast(view_w),
+        .height = gba.height,
+    };
     const hud_frame = HudFrame{
         .visible = s_touch.hud_visible,
         .width = hud_w,
         .dirty = hud_dirty,
         .pixels = s_hud_buf[0..hud_len],
     };
-    s_backend.present(&s_present_buf, hud_frame);
+    s_backend.present(video_frame, hud_frame);
 }
 
 pub fn display_poll_events() c_int {
@@ -479,6 +523,19 @@ pub fn display_poll_events() c_int {
     s_live_keys_pressed = res.keys_pressed;
     if (res.hud_width >= gba.width) {
         s_touch.setHudWidth(res.hud_width);
+    }
+    if (res.wide_width >= gba.width) {
+        const clamped = std.math.clamp(
+            res.wide_width,
+            @as(u16, @intCast(gba.width)),
+            @as(u16, @intCast(gba.max_wide_width)),
+        );
+        s_wide_width = clamped - @mod(clamped, 2);
+    }
+    if (res.widescreen_override) |want_wide| {
+        s_widescreen = want_wide;
+    } else if (res.toggle_widescreen) {
+        s_widescreen = !s_widescreen;
     }
     if (res.hud_overlay) |want_hud| {
         s_touch.setHudVisible(want_hud);

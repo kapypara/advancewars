@@ -2,27 +2,23 @@
 
 ## Next
 
-- **Campaign and save/load**: script the next missions on from
-  `tools/field_training_m2.txt`, and load the save it writes.
-- **RAM overlays in the toolkit**, which would retire the two m4a entries in
-  `entries.txt` and run the sound mixer natively.
-- **Audio**, once the toolkit has a mixer.
-- **Rendering**: mosaic, from the toolkit's PPU work.
-- **Frame timing**: the toolkit times code as mGBA does (gbarecomp#21,
-  #22, #25). Boot matches mGBA to the frame and the first mission stays
-  within 4 frames, but it isn't cycle-exact: by the end of the second
-  mission the build is about 16 frames ahead (a frame or two per battle
-  load and enemy turn). Script presses stay clear of the frames where a
-  text box opens or finishes.
-- **CI**: build the toolkit and this repo's scripts on push; conformance
+- **Campaign scripting**: script the next missions on from
+  `replays/field_training_m2.txt`.
+- **Frame timing**: the recompiler times code similarly to mGBA (`gbarecomp`
+  #21, #22, #25). Boot matches mGBA to the frame and Mission 1 stays within
+  4 frames, but execution isn't cycle-exact yet: by the end of Mission 2 the
+  build is about 16 frames ahead due to approximate waitstates/prefetch/DMA
+  stalls.
+- **CI**: build and run unit/wasm/headless checks on push; conformance
   reports SKIP there (no ROM).
+- **RAM overlays in the recompiler (optional)**: retire the remaining
+  runtime-interpreted RAM entries cleanly.
 
 ## Deferred
 
-- Save states and the ImGui menu from the hybrid era: back once the game is
-  playable on the static build.
+- Save states.
 - Advance Wars 2: Black Hole Rising.
 
 ## Out of scope
 
-- Distributing the ROM, generated C, or builds made from them.
+- Distributing the ROM, generated source, or builds made from them.

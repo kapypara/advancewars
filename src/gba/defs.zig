@@ -9,6 +9,8 @@ pub fn logPrint(comptime fmt: []const u8, args: anytype) void {
 
 /// GBA native display width in pixels.
 pub const width: usize = 240;
+/// Maximum toggleable widescreen viewport width in pixels (even, centered around 240px).
+pub const max_wide_width: usize = 512;
 /// GBA native display height in pixels.
 pub const height: usize = 160;
 /// 64 KB Flash backup size (`FLASH_V121` in Advance Wars).
@@ -40,6 +42,7 @@ pub const io_reg = struct {
     pub const win0v: u32 = 0x044;
     pub const winin: u32 = 0x048;
     pub const winout: u32 = 0x04A;
+    pub const mosaic: u32 = 0x04C;
     pub const bldcnt: u32 = 0x050;
     pub const bldalpha: u32 = 0x052;
     pub const bldy: u32 = 0x054;

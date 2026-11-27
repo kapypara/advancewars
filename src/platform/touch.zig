@@ -1231,11 +1231,25 @@ pub const TouchController = struct {
         src: *const [gba.width * gba.height]u32,
         dst: *[gba.width * gba.height]u32,
     ) void {
-        @memcpy(dst, src);
+        self.renderGameWithReticleWide(src, dst, gba.width);
+    }
+
+    /// Composite the in-game target reticle into a `view_w x 160` framebuffer centered around the 240px GBA screen.
+    pub fn renderGameWithReticleWide(
+        self: *const TouchController,
+        src: []const u32,
+        dst: []u32,
+        view_w: usize,
+    ) void {
+        const safe_w = @max(view_w, gba.width);
+        const total = safe_w * gba.height;
+        if (src.len < total or dst.len < total) return;
+        @memcpy(dst[0..total], src[0..total]);
 
         if (self.nav_target != null or self.reticle_timer > 0) {
             if (self.reticle_tile) |tile| {
-                drawTargetReticle(dst, tile, self.reticle_cam_x, self.reticle_cam_y);
+                const pad_l: i32 = @intCast((safe_w - gba.width) / 2);
+                drawTargetReticleWide(dst[0..total], safe_w, pad_l, tile, self.reticle_cam_x, self.reticle_cam_y);
             }
         }
     }
@@ -1305,13 +1319,15 @@ fn blendPixel(dst: *u32, r: u32, g: u32, b: u32, alpha: u32, rgba_order: bool) v
         (out_a << 24) | (nr << 16) | (ng << 8) | nb;
 }
 
-fn drawTargetReticle(
-    dst: *[gba.width * gba.height]u32,
+fn drawTargetReticleWide(
+    dst: []u32,
+    buf_w: usize,
+    pad_l: i32,
     tile: TileCoord,
     cam_x: i16,
     cam_y: i16,
 ) void {
-    const x0: i32 = @as(i32, tile.x) * 16 - @as(i32, cam_x);
+    const x0: i32 = @as(i32, tile.x) * 16 - @as(i32, cam_x) + pad_l;
     const y0: i32 = @as(i32, tile.y) * 16 - @as(i32, cam_y);
 
     var dy: i32 = 0;
@@ -1321,10 +1337,10 @@ fn drawTargetReticle(
         var dx: i32 = 0;
         while (dx < 16) : (dx += 1) {
             const px = x0 + dx;
-            if (px < 0 or px >= @as(i32, @intCast(gba.width))) continue;
+            if (px < 0 or px >= @as(i32, @intCast(buf_w))) continue;
             const on_edge = (dx == 0 or dx == 15 or dy == 0 or dy == 15);
             const on_corner = on_edge and ((dx < 4 or dx > 11) and (dy < 4 or dy > 11));
-            const idx: usize = @intCast(@as(usize, @intCast(py)) * gba.width + @as(usize, @intCast(px)));
+            const idx: usize = @intCast(@as(usize, @intCast(py)) * buf_w + @as(usize, @intCast(px)));
             if (on_corner) {
                 blendPixel(&dst[idx], 255, 210, 64, 210, false);
             } else if (!on_edge) {
@@ -2306,4 +2322,22 @@ test "Battle Intel Status and CO Dossier direct buttons and natural scroll" {
     tc.handlePointer(.{ .id = 8, .phase = .move, .x = 68, .y = 52, .logical_x = 68, .logical_y = 52 }, co_state);
     tc.stepFrame(co_state);
     try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+}
+
+test "Widescreen reticle renders offset by pad_l in wide buffers" {
+    var tc = TouchController{};
+    tc.reticle_tile = .{ .x = 1, .y = 1 };
+    tc.reticle_cam_x = 0;
+    tc.reticle_cam_y = 0;
+    tc.reticle_timer = 10;
+
+    const vw: usize = 320;
+    const pad_l: usize = (vw - gba.width) / 2;
+    var src: [vw * gba.height]u32 = @splat(0xFF000000);
+    var dst: [vw * gba.height]u32 = @splat(0);
+    tc.renderGameWithReticleWide(&src, &dst, vw);
+
+    // Tile (1, 1) corner sits at GBA (16, 16) -> wide buffer (pad_l + 16, 16)
+    try std.testing.expect(dst[16 * vw + (pad_l + 16)] != 0xFF000000);
+    try std.testing.expectEqual(@as(u32, 0xFF000000), dst[16 * vw + 16]);
 }

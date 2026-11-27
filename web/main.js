@@ -57,6 +57,7 @@ const romInput = document.getElementById("rom-input");
 const romInputHero = document.getElementById("rom-input-hero");
 const savInput = document.getElementById("sav-input");
 const btnHud = document.getElementById("btn-hud");
+const btnWide = document.getElementById("btn-wide");
 const btnMute = document.getElementById("btn-mute");
 const btnExportSav = document.getElementById("btn-export-sav");
 const btnHideBar = document.getElementById("btn-hide-bar");
@@ -74,10 +75,13 @@ let currentRomName = null;
 let currentRomBytes = null;
 let lastSaveBytes = null;
 let muted = false;
+let widescreen = true;
+let currentFrameW = GBA_W;
 let hudVisible = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
 let hudUserToggled = false;
 let inFrameHud = false;
 let hudWidth = GBA_W;
+let stageWideWidth = GBA_W;
 let audioCtx = null;
 let audioNode = null;
 let audioInitPromise = null;
@@ -200,6 +204,11 @@ function updateHudButton() {
   btnHud.classList.toggle("active", hudVisible);
 }
 
+function updateWideButton() {
+  btnWide.textContent = widescreen ? "Wide On" : "Wide";
+  btnWide.classList.toggle("active", widescreen);
+}
+
 const extButtonPointers = new Map();
 const latchedExtTimers = new Map();
 let dpadPointerId = null;
@@ -294,18 +303,24 @@ function fitCanvas() {
     inFrameHud = hudVisible;
   }
 
+  const dispW =
+    widescreen && !isPortraitHud && targetH > 0
+      ? computeHudWidthPx(targetW, Math.floor(targetH))
+      : GBA_W;
+
   let w = targetW;
-  let h = (w * GBA_H) / GBA_W;
+  let h = (w * GBA_H) / dispW;
   if (h > targetH) {
     h = targetH;
-    w = (h * GBA_W) / GBA_H;
+    w = (h * dispW) / GBA_H;
   }
   const cw = Math.floor(Math.max(0, w));
   const ch = Math.floor(Math.max(0, h));
   canvas.style.width = `${cw}px`;
   canvas.style.height = `${ch}px`;
 
-  hudWidth = inFrameHud && ch > 0 ? computeHudWidthPx(availW, ch) : GBA_W;
+  stageWideWidth = !isPortraitHud && ch > 0 ? computeHudWidthPx(availW, ch) : GBA_W;
+  hudWidth = inFrameHud && ch > 0 ? stageWideWidth : GBA_W;
   if (inFrameHud && cw > 0 && ch > 0) {
     const hudCssW = hudWidth === GBA_W ? cw : Math.round((hudWidth * ch) / GBA_H);
     hudCanvas.hidden = false;
@@ -317,7 +332,8 @@ function fitCanvas() {
 
   if (sabI32) {
     Atomics.store(sabI32, 8, inFrameHud ? 1 : 0);
-    Atomics.store(sabI32, 9, hudWidth | 0);
+    Atomics.store(sabI32, 9, (inFrameHud ? hudWidth : stageWideWidth) | 0);
+    Atomics.store(sabI32, 10, widescreen ? 1 : 0);
   }
 }
 
@@ -327,6 +343,7 @@ if (typeof ResizeObserver !== "undefined") {
 window.addEventListener("resize", fitCanvas);
 document.addEventListener("fullscreenchange", fitCanvas);
 updateHudButton();
+updateWideButton();
 fitCanvas();
 
 function pushPointerEvent(id, phase, lx, ly) {
@@ -365,8 +382,9 @@ function releaseAllInputs() {
 function clientToLogical(ev) {
   const rect = canvas.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return { lx: 0, ly: 0 };
+  const padL = (currentFrameW - GBA_W) * 0.5;
   return {
-    lx: ((ev.clientX - rect.left) * GBA_W) / rect.width,
+    lx: ((ev.clientX - rect.left) * currentFrameW) / rect.width - padL,
     ly: ((ev.clientY - rect.top) * GBA_H) / rect.height,
   };
 }
@@ -422,16 +440,30 @@ async function startSession({ name, key, romBytes }) {
   sabF32 = new Float32Array(sab);
   if (muted) Atomics.store(sabI32, 3, 1);
   Atomics.store(sabI32, 8, inFrameHud ? 1 : 0);
-  Atomics.store(sabI32, 9, hudWidth | 0);
+  Atomics.store(sabI32, 9, (inFrameHud ? hudWidth : stageWideWidth) | 0);
+  Atomics.store(sabI32, 10, widescreen ? 1 : 0);
 
   worker = new Worker("worker.js", { type: "module" });
-  const imgData = ctx.createImageData(GBA_W, GBA_H);
+  currentFrameW = GBA_W;
+  if (canvas.width !== GBA_W || canvas.height !== GBA_H) {
+    canvas.width = GBA_W;
+    canvas.height = GBA_H;
+  }
+  let imgData = ctx.createImageData(GBA_W, GBA_H);
   let hudImgData = null;
 
   worker.onmessage = async (ev) => {
     const msg = ev.data;
     if (!msg) return;
     if (msg.type === "frame") {
+      const fw = msg.width || GBA_W;
+      const fh = msg.height || GBA_H;
+      if (fw !== currentFrameW || canvas.width !== fw || canvas.height !== fh) {
+        currentFrameW = fw;
+        canvas.width = fw;
+        canvas.height = fh;
+        imgData = ctx.createImageData(fw, fh);
+      }
       imgData.data.set(msg.pixels);
       ctx.putImageData(imgData, 0, 0);
       if (msg.audio && audioNode && audioCtx && audioCtx.state === "running" && !muted) {
@@ -635,6 +667,11 @@ window.addEventListener("keydown", (ev) => {
     toggleMute();
     return;
   }
+  if (ev.code === "F4") {
+    ev.preventDefault();
+    toggleWidescreen();
+    return;
+  }
   if (ev.code === "F11") {
     ev.preventDefault();
     toggleFullscreen();
@@ -773,6 +810,12 @@ function toggleHud() {
   fitCanvas();
 }
 
+function toggleWidescreen() {
+  widescreen = !widescreen;
+  updateWideButton();
+  fitCanvas();
+}
+
 function toggleMute() {
   muted = !muted;
   btnMute.textContent = muted ? "Unmute" : "Mute";
@@ -790,6 +833,7 @@ function toggleFullscreen() {
 }
 
 btnHud.addEventListener("click", toggleHud);
+btnWide.addEventListener("click", toggleWidescreen);
 btnMute.addEventListener("click", toggleMute);
 btnHideBar.addEventListener("click", () => {
   toolbar.hidden = true;

@@ -21,6 +21,12 @@ pub const PointerEvent = struct {
     logical_y: f32,
 };
 
+pub const VideoFrame = struct {
+    pixels: []const u32,
+    width: u16 = gba.width,
+    height: u16 = gba.height,
+};
+
 pub const HudFrame = struct {
     visible: bool = false,
     width: u16 = gba.width,
@@ -33,8 +39,11 @@ pub const PollResult = struct {
     keys_pressed: u16 = 0,
     toggle_hud: bool = false,
     toggle_mute: bool = false,
+    toggle_widescreen: bool = false,
     hud_overlay: ?bool = null,
+    widescreen_override: ?bool = null,
     hud_width: u16 = 0,
+    wide_width: u16 = gba.width,
 };
 
 const NoopBackend = struct {
@@ -42,7 +51,7 @@ const NoopBackend = struct {
         return true;
     }
 
-    pub fn present(_: *NoopBackend, _: *const [gba.width * gba.height]u32, _: HudFrame) void {}
+    pub fn present(_: *NoopBackend, _: VideoFrame, _: HudFrame) void {}
 
     pub fn pushAudio(_: *NoopBackend, _: []const i16) void {}
 
