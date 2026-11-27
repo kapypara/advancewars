@@ -367,9 +367,117 @@ pub fn func_08051868() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Forward audio init to `0x080775B0` (`0x080782E4`).
+pub fn func_080782E4() callconv(.c) void {
+    if (!abi.enter(0x080782E4)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_080775B0, 0x080782EB)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Look up music track entry `u16(r0)` (`8`-byte header + `12`-byte player slot) and play via `0x080789E8` (`0x080782F0`).
+pub fn func_080782F0() callconv(.c) void {
+    if (!abi.enter(0x080782F0)) return;
+    abi.fetches(18);
+    abi.pushLr();
+    const tbl = abi.read32(0x08078314);
+    const entry = (rt.r[0] << 16 >> 13) +% abi.read32(0x08078318);
+    const player_idx: u32 = abi.read16(entry +% 4);
+    const slot_off = ((player_idx << 1) +% player_idx) << 2;
+    const player_ptr = abi.read32(slot_off +% tbl);
+    rt.r[3] = player_idx;
+    rt.r[2] = player_ptr;
+    rt.r[1] = abi.read32(entry);
+    rt.r[0] = player_ptr;
+    if (!abi.call(decls.func_080789E8, 0x08078311)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Forward audio reset/stop to `0x0807821C` (`0x08078450`).
+pub fn func_08078450() callconv(.c) void {
+    if (!abi.enter(0x08078450)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0807821C, 0x08078457)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Forward masked channel count `u16(r1)` to `0x08078238` (`0x08078488`).
+pub fn func_08078488() callconv(.c) void {
+    if (!abi.enter(0x08078488)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[1] &= 0xFFFF;
+    if (!abi.call(decls.func_08078238, 0x08078493)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Dispatch audio helper `[0x08078618]` via `0x0807B450` (`0x08078608`).
+pub fn func_08078608() callconv(.c) void {
+    if (!abi.enter(0x08078608)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[1] = abi.read32(abi.read32(0x08078618));
+    if (!abi.call(decls.func_0807B450, 0x08078613)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Dispatch audio helper `[0x0807862C]` via `0x0807B450` (`0x0807861C`).
+pub fn func_0807861C() callconv(.c) void {
+    if (!abi.enter(0x0807861C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[1] = abi.read32(abi.read32(0x0807862C));
+    if (!abi.call(decls.func_0807B450, 0x08078627)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Fetch extended MML track command byte from `r1+0x40` and dispatch table `0x0807959C` via `0x0807B454` (`0x08079580`).
+pub fn func_08079580() callconv(.c) void {
+    if (!abi.enter(0x08079580)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    const cur = abi.read32(rt.r[1] +% 0x40);
+    const op: u32 = abi.read8(cur);
+    rt.r[2] = cur +% 1;
+    abi.write32(rt.r[1] +% 0x40, rt.r[2]);
+    const slot = (op << 2) +% abi.read32(0x0807959C);
+    rt.r[3] = slot;
+    rt.r[2] = abi.read32(slot);
+    if (!abi.call(decls.func_0807B454, 0x08079597)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Invoke DMA/PCM callback `[0x080795B0]` via `0x0807B454` (`0x080795A0`).
+pub fn func_080795A0() callconv(.c) void {
+    if (!abi.enter(0x080795A0)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[2] = abi.read32(abi.read32(0x080795B0));
+    if (!abi.call(decls.func_0807B454, 0x080795AB)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
+        @export(&func_080782E4, .{ .name = "func_080782E4", .linkage = .strong });
+        @export(&func_080782F0, .{ .name = "func_080782F0", .linkage = .strong });
+        @export(&func_08078450, .{ .name = "func_08078450", .linkage = .strong });
+        @export(&func_08078488, .{ .name = "func_08078488", .linkage = .strong });
+        @export(&func_08078608, .{ .name = "func_08078608", .linkage = .strong });
+        @export(&func_0807861C, .{ .name = "func_0807861C", .linkage = .strong });
+        @export(&func_08079580, .{ .name = "func_08079580", .linkage = .strong });
+        @export(&func_080795A0, .{ .name = "func_080795A0", .linkage = .strong });
         @export(&func_08050C5C, .{ .name = "func_08050C5C", .linkage = .strong });
         @export(&func_08051868, .{ .name = "func_08051868", .linkage = .strong });
         @export(&func_08038034, .{ .name = "func_08038034", .linkage = .strong });

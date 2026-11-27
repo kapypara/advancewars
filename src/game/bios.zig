@@ -133,6 +133,34 @@ pub fn func_080796DC() callconv(.c) void {
     abi.retLr();
 }
 
+/// Decompress RLE stream directly to VRAM via GBA BIOS `RLUnCompVram` (`SWI 0x15`, `0x080796E8`).
+pub fn rlUnCompVram(src: u32, dst: u32) void {
+    rt.r[0] = src;
+    rt.r[1] = dst;
+    abi.swi(0x15);
+}
+
+pub fn func_080796E8() callconv(.c) void {
+    if (!abi.enter(0x080796E8)) return;
+    abi.fetches(6);
+    abi.swi(0x15);
+    abi.retLr();
+}
+
+/// Decompress RLE stream to WRAM via GBA BIOS `RLUnCompWram` (`SWI 0x14`, `0x080796EC`).
+pub fn rlUnCompWram(src: u32, dst: u32) void {
+    rt.r[0] = src;
+    rt.r[1] = dst;
+    abi.swi(0x14);
+}
+
+pub fn func_080796EC() callconv(.c) void {
+    if (!abi.enter(0x080796EC)) return;
+    abi.fetches(6);
+    abi.swi(0x14);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080796A0, .{ .name = "func_080796A0", .linkage = .strong });
@@ -144,6 +172,8 @@ comptime {
         @export(&func_080796D4, .{ .name = "func_080796D4", .linkage = .strong });
         @export(&func_080796D8, .{ .name = "func_080796D8", .linkage = .strong });
         @export(&func_080796DC, .{ .name = "func_080796DC", .linkage = .strong });
+        @export(&func_080796E8, .{ .name = "func_080796E8", .linkage = .strong });
+        @export(&func_080796EC, .{ .name = "func_080796EC", .linkage = .strong });
     }
 }
 
