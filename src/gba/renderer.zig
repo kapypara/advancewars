@@ -25,7 +25,18 @@ pub const WideScene = struct {
     view_wx: i32,
     view_wy: i32,
     show_reachability: bool = false,
+    hud_shift_l: usize = 0,
+    hud_shift_r: usize = 0,
 };
+
+/// Identify in-battle OAM prio=0 HUD elements (CO Funds badge, Terrain Info box, and HUD numerals)
+/// vs. map cursors and other sprites so wide mode can anchor HUD widgets to the outer screen edges.
+pub fn isBattleHudSprite(tile_idx: u32, ox: i32) bool {
+    if (tile_idx <= 0x03F) return true;
+    if (tile_idx >= 0x118 and tile_idx <= 0x18F) return true;
+    if (tile_idx >= 0x3C0 and (ox < 88 or ox >= 152)) return true;
+    return false;
+}
 
 fn computeMarginCoord(
     sx: usize,
@@ -87,8 +98,9 @@ pub fn renderTerrainFull(
     }
 }
 
-/// Render off-screen movement/attack reachability highlights into left/right widescreen side margins on BG2.
-pub fn renderReachabilityMargins(
+/// Render full-width movement/attack reachability highlights across `0..vw` on BG2,
+/// preserving existing native BG2 pixels (such as red movement path arrows) in the center region.
+pub fn renderReachabilityFull(
     ppu: *Ppu,
     scene: WideScene,
     vw: usize,
@@ -109,19 +121,14 @@ pub fn renderReachabilityMargins(
     const pad_i: i32 = @intCast(pad_l);
     const highlight_color: u16 = 0x7FFF; // Bright highlight blended via PPU semi-transparent BG2 alpha
 
-    const spans = [2][2]usize{
-        .{ 0, pad_l },
-        .{ pad_l + gba.width, vw },
-    };
-    for (spans) |span| {
-        for (span[0]..span[1]) |sx| {
-            const wx: i32 = scene.view_wx + (@as(i32, @intCast(sx)) - pad_i);
-            if (wx < 0 or wx >= max_wx) continue;
-            const mx: usize = @intCast(wx >> 4);
-            const cost: i8 = @bitCast(scene.ewram[row_off + mx]);
-            if (cost >= 0) {
-                ppu.plot(sx, highlight_color, 2, 1);
-            }
+    for (0..vw) |sx| {
+        if (ppu.top_l[sx] == 2) continue;
+        const wx: i32 = scene.view_wx + (@as(i32, @intCast(sx)) - pad_i);
+        if (wx < 0 or wx >= max_wx) continue;
+        const mx: usize = @intCast(wx >> 4);
+        const cost: i8 = @bitCast(scene.ewram[row_off + mx]);
+        if (cost >= 0) {
+            ppu.plot(sx, highlight_color, 2, 1);
         }
     }
 }
@@ -561,7 +568,90 @@ test "WideScene blends reachability highlights into side margins only for reacha
     ppu.renderLine(mem.view(), 0);
     const wide = ppu.activeFrameSlice();
 
-    // mx=16 (sx=296) is blended with yellow (0x03FF) over red -> green channel > 0; mx=17 (sx=312) stays pure red.
+    // mx=16 (sx=296) and mx=0 (center sx=40) are blended; mx=17 (sx=312) stays pure red.
     try std.testing.expect(wide[296] != 0xFFFF0000);
+    try std.testing.expect(wide[40] != 0xFFFF0000);
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[312]);
+}
+
+test "WideScene preserves BG2 arrow in center and anchors battle HUD sprites and WIN0 to outer corners" {
+    const allocator = std.testing.allocator;
+    const ewram = try allocator.alloc(u8, 0x40000);
+    defer allocator.free(ewram);
+    @memset(ewram, 0);
+    const iwram = try allocator.alloc(u8, 0x8000);
+    defer allocator.free(iwram);
+    @memset(iwram, 0);
+    const rom = try allocator.alloc(u8, 0x0D2020);
+    defer allocator.free(rom);
+    @memset(rom, 0);
+
+    const map_base: usize = 0x157F8;
+    ewram[map_base + 0x4682] = 0;
+    ewram[map_base + 0x4683] = 0;
+    ewram[map_base + 0x234A + 0] = 1;
+    ewram[map_base + 0x0A22 + 0] = 1;
+    rom[0x0D1FC0 + 1 * 8 + 0] = 1;
+    TestMem.write32(iwram, 0x3600, 0x0202_0000);
+    ewram[0x20000 + 0] = 1; // mx=0 reachable
+
+    var mem = TestMem{};
+    // Mode 0 + WIN0 (0x2000) + OBJ (0x1000) + BG2 (0x0400) + BG3 (0x0800)
+    TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x3C00);
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg2cnt, 0x0F09);
+    TestMem.write16(&mem.io_regs, gba.io_reg.bg3cnt, 0x1F0B);
+    TestMem.write16(&mem.io_regs, gba.io_reg.win0h, (170 << 8) | 236); // Right-side terrain box with GBA 4px edge margin
+    TestMem.write16(&mem.io_regs, gba.io_reg.win0v, (0 << 8) | 160);
+    TestMem.write16(&mem.io_regs, gba.io_reg.winin, 0x001F); // WIN0: all layers enabled, no SFX (bit5=0)
+    TestMem.write16(&mem.io_regs, gba.io_reg.winout, 0x003F); // Outside WIN0: SFX enabled
+    TestMem.write16(&mem.io_regs, gba.io_reg.bldcnt, 0x0844);
+    TestMem.write16(&mem.io_regs, gba.io_reg.bldalpha, 0x0808);
+    TestMem.write16(&mem.palette, 0, 0x0000);
+    TestMem.write16(&mem.palette, 1 * 2, 0x001F); // Red BG3 terrain
+    TestMem.write16(&mem.palette, 2 * 2, 0x03E0); // Green BG2 path arrow
+    TestMem.write16(&mem.palette, 0x200 + 1 * 2, 0x7FFF); // White CO Funds sprite
+    TestMem.write16(&mem.palette, 0x200 + 2 * 2, 0x03FF); // Yellow cursor sprite
+
+    // BG3 terrain tile 1 (idx=1) and BG2 arrow at tx=1 (screen x=8..15 -> center sx=48..55)
+    @memset(mem.vram[0x8000 + 32 .. 0x8000 + 64], 0x11);
+    @memset(mem.vram[0x8000 + 64 .. 0x8000 + 96], 0x22);
+    TestMem.write16(&mem.vram, 15 * 0x800 + 1 * 2, 2);
+
+    // OAM[0]: prio=0 CO Funds sprite (tile=0x000) at ox=8, oy=0 -> shifted left by pad_l=40 to sx=8!
+    TestMem.write16(&mem.oam, 0, 0x0000);
+    TestMem.write16(&mem.oam, 2, 8);
+    TestMem.write16(&mem.oam, 4, 0x0000);
+    @memset(mem.vram[0x10000 .. 0x10000 + 32], 0x11);
+
+    // OAM[1]: prio=0 map cursor sprite (tile=0x368) at ox=80, oy=0 -> stays centered at sx=40+80=120!
+    TestMem.write16(&mem.oam, 8, 0x0000);
+    TestMem.write16(&mem.oam, 10, 80);
+    TestMem.write16(&mem.oam, 12, 0x0368);
+    @memset(mem.vram[0x10000 + 0x368 * 32 .. 0x10000 + 0x368 * 32 + 32], 0x22);
+
+    var ppu = Ppu{};
+    ppu.setViewport(320, 0, false); // pad_l = 40
+    ppu.setWideScene(.{
+        .ewram = ewram.ptr,
+        .iwram = iwram.ptr,
+        .rom = rom.ptr,
+        .rom_len = rom.len,
+        .map_width = 20,
+        .map_height = 10,
+        .view_wx = 0,
+        .view_wy = 0,
+        .show_reachability = true,
+        .hud_shift_l = 40,
+        .hud_shift_r = 40,
+    });
+    ppu.renderLine(mem.view(), 0);
+    const wide = ppu.activeFrameSlice();
+
+    // CO Funds shifted to sx=8; old pos sx=48 preserves green BG2 path arrow; map cursor stays at sx=120;
+    // WIN0 right-side backdrop shifted +40 (from pad_l+170=210 to 250) cleanly (`win[250] == 0x1F` vs `win[249] == 0x3F`).
+    try std.testing.expectEqual(@as(u32, 0xFFFFFFFF), wide[8]);
+    try std.testing.expectEqual(@as(u32, 0xFF00FF00), wide[48]);
+    try std.testing.expectEqual(@as(u32, 0xFFFFFF00), wide[120]);
+    try std.testing.expectEqual(@as(u8, 0x3F), ppu.win[249]);
+    try std.testing.expectEqual(@as(u8, 0x1F), ppu.win[250]);
 }

@@ -201,7 +201,7 @@ pub const Ppu = struct {
 
         if (bg == 2 and vw > gba.width and !extend_wide) {
             if (self.wide_scene) |scene| {
-                renderer.renderReachabilityMargins(self, scene, vw, pad_l, eff_y);
+                renderer.renderReachabilityFull(self, scene, vw, pad_l, eff_y);
             }
         }
     }
@@ -334,6 +334,14 @@ pub const Ppu = struct {
             const pal: u32 = a2 >> 12;
             const tile_step: u32 = if (bpp8) 2 else 1;
             const tiles_per_row: u32 = @intCast(@divTrunc(w, 8));
+            const hud_dx: i32 = if (!clip_wide and prio == 0 and vw > gba.width) blk: {
+                if (self.wide_scene) |ws| {
+                    if ((ws.hud_shift_l > 0 or ws.hud_shift_r > 0) and renderer.isBattleHudSprite(tile_idx, ox)) {
+                        break :blk if (ox < 120) -@as(i32, @intCast(ws.hud_shift_l)) else @as(i32, @intCast(ws.hud_shift_r));
+                    }
+                }
+                break :blk 0;
+            } else 0;
 
             var px: i32 = 0;
             while (px < bw) : (px += 1) {
@@ -377,7 +385,9 @@ pub const Ppu = struct {
                 }
                 if (ci == 0) continue;
 
-                const dst_x: usize = if (clip_wide) @intCast(sx) else pad_l + @as(usize, @intCast(sx));
+                const dst_x_i: i32 = if (clip_wide) sx else @as(i32, @intCast(pad_l)) + sx + hud_dx;
+                if (dst_x_i < 0 or dst_x_i >= @as(i32, @intCast(vw))) continue;
+                const dst_x: usize = @intCast(dst_x_i);
                 if (prio < 0) {
                     self.win[dst_x] = objwin_ctl;
                     continue;
@@ -410,6 +420,7 @@ pub const Ppu = struct {
         }
 
         const y_i32: i32 = @intCast(y);
+        var win0_shifted = false;
         var w_rev: u32 = 2;
         while (w_rev > 0) {
             w_rev -= 1;
@@ -418,13 +429,44 @@ pub const Ppu = struct {
             if (!winContains(mem.ioRead16(gba.io_reg.win0v + w_rev * 2), y_i32, @intCast(gba.height))) continue;
             const h = mem.ioRead16(gba.io_reg.win0h + w_rev * 2);
             const ctl: u8 = @truncate((winin >> @intCast(w_rev * 8)) & 0x3F);
-            for (0..gba.width) |x| {
-                if (winContains(h, @intCast(x), @intCast(gba.width))) {
-                    self.win[pad_l + x] = ctl;
+
+            var shift_dir: i32 = 0;
+            if (w_rev == 0 and vw > gba.width) {
+                if (self.wide_scene) |ws| {
+                    const wx0: usize = h >> 8;
+                    const wx1: usize = h & 0xFF;
+                    if (ws.hud_shift_l > 0 and wx0 <= 12 and wx1 > wx0 and wx1 <= 112) {
+                        shift_dir = -@as(i32, @intCast(ws.hud_shift_l));
+                        win0_shifted = true;
+                    } else if (ws.hud_shift_r > 0 and wx0 >= 128 and wx0 < gba.width and ((wx1 > wx0 and wx1 <= gba.width) or wx1 == 0)) {
+                        shift_dir = @as(i32, @intCast(ws.hud_shift_r));
+                        win0_shifted = true;
+                    }
+                }
+            }
+
+            if (shift_dir != 0) {
+                for (0..gba.width) |x| {
+                    if (winContains(h, @intCast(x), @intCast(gba.width))) {
+                        const dst_x_i: i32 = @as(i32, @intCast(pad_l + x)) + shift_dir;
+                        if (dst_x_i >= 0 and dst_x_i < @as(i32, @intCast(vw))) {
+                            self.win[@intCast(dst_x_i)] = ctl;
+                        }
+                    }
+                }
+            } else {
+                for (0..gba.width) |x| {
+                    if (winContains(h, @intCast(x), @intCast(gba.width))) {
+                        self.win[pad_l + x] = ctl;
+                    }
+                }
+                if (pad_l > 0) {
+                    @memset(self.win[0..pad_l], self.win[pad_l]);
+                    @memset(self.win[pad_l + gba.width .. vw], self.win[pad_l + gba.width - 1]);
                 }
             }
         }
-        if (pad_l > 0) {
+        if (pad_l > 0 and !win0_shifted) {
             @memset(self.win[0..pad_l], self.win[pad_l]);
             @memset(self.win[pad_l + gba.width .. vw], self.win[pad_l + gba.width - 1]);
         }

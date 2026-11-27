@@ -128,9 +128,9 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
 - **Milestone 10B — Remaining Screens Touch Audit (Done):**
   - Audited War Room (`0x082E_BF68` map select), Battle Animations / CO Power cut-ins (`.battle_overlay`), Victory / Day banners / Results (`0x0830_9790`), and Design Maps slot menu.
   - Enabled full wide-bounds tap-to-advance across `.battle_overlay`, `.dialog`, `.title`, and `.frontend_menu`, added extended-margin `B` support to `.frontend_map_select` (covering both War Room and VS map selection), and flushed queued `A` pulses on overlay/dialog → tactical map transitions to prevent accidental tap leakage onto units or tiles. *(Fine-grained Design Maps grid painting deferred until an unlocked editor save fixture is available.)*
-- **Milestone 10C — Outer-Corner In-Battle HUD & Full-Width Reachability (Planned):**
-  - Upgrade `renderReachabilityMargins` → `renderReachabilityFull` across `0..vw` in `src/gba/renderer.zig`.
-  - Anchor the in-battle CO Funds badge and Terrain Info box to the outer wide corners in wide mode while preserving 100% bit-exact `240x160` fallback.
+- **Milestone 10C — Outer-Corner In-Battle HUD & Full-Width Reachability (Done):**
+  - Upgraded `renderReachabilityMargins` → `renderReachabilityFull` across `0..vw` in `src/gba/renderer.zig`, preserving GBA `BG2` movement path arrows while drawing seamless reachability tiles everywhere.
+  - Anchored the in-battle CO Funds badge, Terrain Info box (`OAM` prio=0 sprites + `WIN0` backdrop), and HUD numerals to outer wide corners (respecting on-screen touch pill clearances when HUD is visible) while keeping `240x160` native output bit-exact.
 - **Milestone 10D — Vertical Widescreen (`vw x vh`), Pinch/Wheel Zoom & Decoupled Camera Panning (Planned):**
   - Extend `wide_framebuf` and `WideScene` vertically beyond `160px` height (`vw x vh`) to reveal additional map rows, add pinch-to-zoom / wheel zoom on the tactical map, and separate map scrolling from static UI overlays in the WebGL2 compositor (`web/gl_presenter.js`).
 

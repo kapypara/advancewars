@@ -76,6 +76,24 @@ inline fn peek32(addr: u32) u32 {
         (@as(u32, peek8(aligned + 3)) << 24);
 }
 
+inline fn poke8(addr: u32, val: u8) void {
+    switch (addr >> 24) {
+        0x02 => if (rt.ewram) |ptr| {
+            ptr[addr & 0x3FFFF] = val;
+        },
+        0x03 => if (rt.iwram) |ptr| {
+            ptr[addr & 0x7FFF] = val;
+        },
+        else => {},
+    }
+}
+
+inline fn poke16(addr: u32, val: u16) void {
+    const aligned = addr & ~@as(u32, 1);
+    poke8(aligned, @truncate(val));
+    poke8(aligned + 1, @truncate(val >> 8));
+}
+
 fn readRamSignedBytes(addr: u32, dst: []i8) void {
     var i: usize = 0;
     if ((addr & 3) == 0) {
@@ -535,6 +553,22 @@ pub fn display_render_line(y: c_int) void {
                                         peek16(0x0300_357C) == 5 and
                                         battle_lock == 0 and
                                         battle_lock2 == 0;
+                                    const anchor_hud = !in_battle_menu and
+                                        !hasActiveProc(0x0828_0E0C) and
+                                        !hasActiveProc(0x0828_1D60) and
+                                        !hasActiveProc(0x0828_1CE8) and
+                                        !hasActiveProc(0x0828_BC1C) and
+                                        battle_lock == 0 and
+                                        battle_lock2 == 0 and
+                                        peek16(0x0300_357C) == 5;
+                                    const pad_l_hud: usize = (s_wide_width - gba.width) / 2;
+                                    const map_w_px: i32 = @as(i32, raw_w) * 16;
+                                    const max_map_shift_l: usize = @min(pad_l_hud, @as(usize, @intCast(@max(view_wx, 0))));
+                                    const max_map_shift_r: usize = @min(pad_l_hud, @as(usize, @intCast(@max(map_w_px - (view_wx + @as(i32, @intCast(gba.width))), 0))));
+                                    const base_shift_l: usize = if (s_touch.hud_visible) pad_l_hud -| 30 else pad_l_hud;
+                                    const base_shift_r: usize = if (s_touch.hud_visible) pad_l_hud -| 60 else pad_l_hud;
+                                    const hud_shift_l: usize = if (anchor_hud) @min(base_shift_l, max_map_shift_l) else 0;
+                                    const hud_shift_r: usize = if (anchor_hud) @min(base_shift_r, max_map_shift_r) else 0;
                                     wide_scene = .{
                                         .ewram = ew,
                                         .iwram = rt.iwram,
@@ -545,6 +579,8 @@ pub fn display_render_line(y: c_int) void {
                                         .view_wx = view_wx,
                                         .view_wy = view_wy,
                                         .show_reachability = show_reach,
+                                        .hud_shift_l = hud_shift_l,
+                                        .hud_shift_r = hud_shift_r,
                                     };
                                     s_prev_battle_cam_x = cam_x;
                                     s_prev_battle_cam_y = cam_y;
@@ -672,6 +708,16 @@ pub fn display_poll_events() c_int {
         const state = sampleGameState();
         for (ptrs) |ev| {
             s_touch.handlePointer(ev, state);
+        }
+        if (s_touch.takeCursorJump()) |jump| {
+            if (state.mode == .battle_free_map and jump.x < state.map_width and jump.y < state.map_height) {
+                poke16(0x0300_36A0, jump.x * 16);
+                poke16(0x0300_36A2, jump.y * 16);
+                poke16(0x0300_36A4, jump.x);
+                poke16(0x0300_36A6, jump.y);
+                poke16(0x0300_36A8, 0);
+                poke16(0x0300_36AA, 0);
+            }
         }
     }
 

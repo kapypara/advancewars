@@ -256,6 +256,7 @@ pub const TouchController = struct {
     reticle_cam_x: i16 = 0,
     reticle_cam_y: i16 = 0,
     reticle_timer: u8 = 0,
+    pending_cursor_jump: ?TileCoord = null,
     last_mode: UiMode = .frontend_menu,
 
     pub fn setHudVisible(self: *TouchController, visible: bool) void {
@@ -294,6 +295,12 @@ pub const TouchController = struct {
             self.atk_cycle_key_mask |
             self.name_nav_key_mask |
             (if (self.right_held) gba.Key.b.mask() else 0);
+    }
+
+    pub fn takeCursorJump(self: *TouchController) ?TileCoord {
+        const jump = self.pending_cursor_jump;
+        self.pending_cursor_jump = null;
+        return jump;
     }
 
     pub fn hitTestHud(lx: f32, ly: f32) ?HudButton {
@@ -445,6 +452,7 @@ pub const TouchController = struct {
         self.nav_key_mask = 0;
         self.nav_timer = 0;
         self.nav_in_gap = false;
+        self.pending_cursor_jump = null;
         self.clearMenuNavigation();
         self.clearAttackTargetCycle();
         self.clearNameEntryNavigation();
@@ -774,7 +782,31 @@ pub const TouchController = struct {
                     self.reticle_timer = 18;
                     self.enqueuePulse(gba.Key.a.mask(), 4, 2);
                 } else {
-                    self.startNavigation(tile, state);
+                    const max_mx: i32 = if (state.map_width > 0) @as(i32, state.map_width) - 1 else 14;
+                    const max_my: i32 = if (state.map_height > 0) @as(i32, state.map_height) - 1 else 9;
+                    const min_vx: i32 = std.math.clamp(@divFloor(@as(i32, state.cam_x) + 15, 16), 0, max_mx);
+                    const max_vx: i32 = std.math.clamp(@divFloor(@as(i32, state.cam_x) + 224, 16), min_vx, max_mx);
+                    const min_vy: i32 = std.math.clamp(@divFloor(@as(i32, state.cam_y) + 15, 16), 0, max_my);
+                    const max_vy: i32 = std.math.clamp(@divFloor(@as(i32, state.cam_y) + 144, 16), min_vy, max_my);
+                    const jump_tile = TileCoord{
+                        .x = @intCast(std.math.clamp(@as(i32, tile.x), min_vx, max_vx)),
+                        .y = @intCast(std.math.clamp(@as(i32, tile.y), min_vy, max_vy)),
+                    };
+                    self.cancelNavigation();
+                    if (jump_tile.x != state.cursor_x or jump_tile.y != state.cursor_y) {
+                        self.pending_cursor_jump = jump_tile;
+                    }
+                    if (jump_tile.x != tile.x or jump_tile.y != tile.y) {
+                        var jumped_state = state;
+                        jumped_state.cursor_x = jump_tile.x;
+                        jumped_state.cursor_y = jump_tile.y;
+                        self.startNavigation(tile, jumped_state);
+                    } else {
+                        self.reticle_tile = tile;
+                        self.reticle_cam_x = state.cam_x;
+                        self.reticle_cam_y = state.cam_y;
+                        self.reticle_timer = 18;
+                    }
                 }
             },
             .battle_unit_selected => {
@@ -1582,7 +1614,7 @@ test "HUD buttons hit-test and hold/release keys cleanly" {
     }
 }
 
-test "Tier 2 map tap navigates cursor to target tile and second tap emits A" {
+test "Tier 2 map tap jumps cursor immediately to target tile and second tap emits A" {
     var tc = TouchController{};
     var state = GameState{
         .mode = .battle_free_map,
@@ -1594,26 +1626,19 @@ test "Tier 2 map tap navigates cursor to target tile and second tap emits A" {
         .cam_y = 0,
     };
 
-    // Tap tile (5, 5) -> pixel (88, 88).
+    // Tap tile (5, 5) -> pixel (88, 88) schedules an immediate cursor jump without D-pad navigation.
     tc.handlePointer(.{ .id = 1, .phase = .down, .x = 88, .y = 88, .logical_x = 88, .logical_y = 88 }, state);
     tc.handlePointer(.{ .id = 1, .phase = .up, .x = 88, .y = 88, .logical_x = 88, .logical_y = 88 }, state);
-    try std.testing.expect(tc.nav_target != null);
-
-    var ticks: usize = 0;
-    while (tc.nav_target != null and ticks < 40) : (ticks += 1) {
-        tc.stepFrame(state);
-        const k = tc.activeKeys();
-        // Simulate GBA advancing cursor once per new pulse edge.
-        if (tc.nav_timer == nav_pulse_frames - 1 and !tc.nav_in_gap) {
-            if ((k & gba.Key.left.mask()) != 0) state.cursor_x -= 1;
-            if ((k & gba.Key.right.mask()) != 0) state.cursor_x += 1;
-            if ((k & gba.Key.up.mask()) != 0) state.cursor_y -= 1;
-            if ((k & gba.Key.down.mask()) != 0) state.cursor_y += 1;
-        }
-    }
     try std.testing.expect(tc.nav_target == null);
-    try std.testing.expectEqual(@as(u16, 5), state.cursor_x);
-    try std.testing.expectEqual(@as(u16, 5), state.cursor_y);
+    const jump = tc.takeCursorJump() orelse return error.TestUnexpectedNull;
+    try std.testing.expectEqual(@as(u16, 5), jump.x);
+    try std.testing.expectEqual(@as(u16, 5), jump.y);
+    try std.testing.expect(tc.takeCursorJump() == null);
+
+    state.cursor_x = jump.x;
+    state.cursor_y = jump.y;
+    tc.stepFrame(state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 
     // Tapping the current cursor tile (5, 5) again emits A.
     tc.handlePointer(.{ .id = 1, .phase = .down, .x = 88, .y = 88, .logical_x = 88, .logical_y = 88 }, state);
@@ -1624,11 +1649,15 @@ test "Tier 2 map tap navigates cursor to target tile and second tap emits A" {
 
 test "Navigation stall guard aborts cleanly if cursor cannot move" {
     var tc = TouchController{};
-    const state = GameState{
-        .mode = .battle_free_map,
+    var state = GameState{
+        .mode = .battle_unit_selected,
+        .map_width = 15,
+        .map_height = 10,
         .cursor_x = 7,
         .cursor_y = 4,
     };
+    state.setReachable(7, 4);
+    state.setReachable(2, 2);
 
     tc.handlePointer(.{ .id = 1, .phase = .down, .x = 32, .y = 32, .logical_x = 32, .logical_y = 32 }, state);
     tc.handlePointer(.{ .id = 1, .phase = .up, .x = 32, .y = 32, .logical_x = 32, .logical_y = 32 }, state);
@@ -1838,13 +1867,14 @@ test "renderOverlay draws HUD pixels into dst without altering src" {
 
 test "Mouse right-click holds B and scroll wheel emits Up/Down while cancelling map nav" {
     var tc = TouchController{};
-    const map_state = GameState{
-        .mode = .battle_free_map,
+    var map_state = GameState{
+        .mode = .battle_unit_selected,
         .map_width = 15,
         .map_height = 10,
         .cursor_x = 2,
         .cursor_y = 2,
     };
+    for (2..7) |x| map_state.setReachable(@intCast(x), 2);
 
     // Start map navigation to tile (6, 2)
     tc.handlePointer(.{ .id = 1, .phase = .down, .x = 96, .y = 32, .logical_x = 96, .logical_y = 32 }, map_state);
@@ -2546,11 +2576,15 @@ test "Wide battle map tap targets off-screen tiles inside map and ignores outer 
     // Left margin lx = -10 with cam_x = 0 is outside the map -> ignored cleanly.
     tc.handlePointer(.{ .id = 1, .phase = .down, .x = -10, .y = 32, .logical_x = -10, .logical_y = 32 }, map_state);
     tc.handlePointer(.{ .id = 1, .phase = .up, .x = -10, .y = 32, .logical_x = -10, .logical_y = 32 }, map_state);
-    try std.testing.expect(tc.nav_target == null);
+    try std.testing.expect(tc.takeCursorJump() == null);
 
-    // Right margin lx = 250 with cam_x = 0 on a 20-wide map -> targets tile x = 15, y = 2.
+    // Right margin lx = 250 with cam_x = 0 on a 20-wide map -> jumps cursor immediately to visible edge x = 14
+    // and smoothly pans via navigation the remaining step to x = 15, y = 2.
     tc.handlePointer(.{ .id = 2, .phase = .down, .x = 250, .y = 36, .logical_x = 250, .logical_y = 36 }, map_state);
     tc.handlePointer(.{ .id = 2, .phase = .up, .x = 250, .y = 36, .logical_x = 250, .logical_y = 36 }, map_state);
+    const jump = tc.takeCursorJump() orelse return error.TestUnexpectedNull;
+    try std.testing.expectEqual(@as(u16, 14), jump.x);
+    try std.testing.expectEqual(@as(u16, 2), jump.y);
     try std.testing.expect(tc.nav_target != null);
     try std.testing.expectEqual(@as(u16, 15), tc.nav_target.?.x);
     try std.testing.expectEqual(@as(u16, 2), tc.nav_target.?.y);
