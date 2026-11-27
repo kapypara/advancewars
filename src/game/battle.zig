@@ -392,6 +392,95 @@ pub fn func_0802C4B4() callconv(.c) void {
     call2C368WithId(2, 0x0802C4BD);
 }
 
+fn call2E508WithPool(comptime pool_ref: u32, comptime ret_addr: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(pool_ref);
+    if (!abi.call(decls.func_0802E508, ret_addr)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Forward directly to `0x08019608` battle UI refresh (`0x0802D724`).
+pub fn func_0802D724() callconv(.c) void {
+    if (!abi.enter(0x0802D724)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, 0x0802D72B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Record battle animation parameter `u8(r1)`, refresh via `0x08019608`, and set phase `2` (`0x0802D968`).
+pub fn func_0802D968() callconv(.c) void {
+    if (!abi.enter(0x0802D968)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    abi.write32(abi.read32(0x0802D980), rt.r[1] & 0xFF);
+    if (!abi.call(decls.func_08019608, 0x0802D977)) return;
+    abi.fetches(7);
+    abi.write16(abi.read32(0x0802D984), 2);
+    abi.popReturn();
+}
+
+/// Dispatch combat sprite/overlay descriptor `0x0802E5C0` via `0x0802E508` (`0x0802E5B4`).
+pub fn func_0802E5B4() callconv(.c) void {
+    if (!abi.enter(0x0802E5B4)) return;
+    call2E508WithPool(0x0802E5C0, 0x0802E5BD);
+}
+
+/// Dispatch combat sprite/overlay descriptor `0x0802E5D0` via `0x0802E508` (`0x0802E5C4`).
+pub fn func_0802E5C4() callconv(.c) void {
+    if (!abi.enter(0x0802E5C4)) return;
+    call2E508WithPool(0x0802E5D0, 0x0802E5CD);
+}
+
+/// Dispatch combat sprite/overlay descriptor `0x0802E5E0` via `0x0802E508` (`0x0802E5D4`).
+pub fn func_0802E5D4() callconv(.c) void {
+    if (!abi.enter(0x0802E5D4)) return;
+    call2E508WithPool(0x0802E5E0, 0x0802E5DD);
+}
+
+/// Dispatch combat sprite/overlay descriptor `0x0802E5F0` via `0x0802E508` (`0x0802E5E4`).
+pub fn func_0802E5E4() callconv(.c) void {
+    if (!abi.enter(0x0802E5E4)) return;
+    call2E508WithPool(0x0802E5F0, 0x0802E5ED);
+}
+
+/// Flush pending combat overlay effects via `0x0802E558` (`0x0802E5F4`).
+pub fn func_0802E5F4() callconv(.c) void {
+    if (!abi.enter(0x0802E5F4)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0802E558, 0x0802E5FB)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Enqueue battle message/effect script `0x0802EF28` at `(0, 0)` (`0x0802EF18`).
+pub fn func_0802EF18() callconv(.c) void {
+    if (!abi.enter(0x0802EF18)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0802EF28);
+    abi.setRegNz(&rt.r[1], 0);
+    abi.setRegNz(&rt.r[2], 0);
+    if (!abi.call(decls.func_08018C1C, 0x0802EF25)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Advance unit/battle state via `0x08022148` and enter phase `8` (`0x0802F634`).
+pub fn func_0802F634() callconv(.c) void {
+    if (!abi.enter(0x0802F634)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08022148, 0x0802F63B)) return;
+    abi.fetches(7);
+    abi.write16(abi.read32(0x0802F644), 8);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08022220, .{ .name = "func_08022220", .linkage = .strong });
@@ -420,6 +509,15 @@ comptime {
         @export(&func_0802C49C, .{ .name = "func_0802C49C", .linkage = .strong });
         @export(&func_0802C4A8, .{ .name = "func_0802C4A8", .linkage = .strong });
         @export(&func_0802C4B4, .{ .name = "func_0802C4B4", .linkage = .strong });
+        @export(&func_0802D724, .{ .name = "func_0802D724", .linkage = .strong });
+        @export(&func_0802D968, .{ .name = "func_0802D968", .linkage = .strong });
+        @export(&func_0802E5B4, .{ .name = "func_0802E5B4", .linkage = .strong });
+        @export(&func_0802E5C4, .{ .name = "func_0802E5C4", .linkage = .strong });
+        @export(&func_0802E5D4, .{ .name = "func_0802E5D4", .linkage = .strong });
+        @export(&func_0802E5E4, .{ .name = "func_0802E5E4", .linkage = .strong });
+        @export(&func_0802E5F4, .{ .name = "func_0802E5F4", .linkage = .strong });
+        @export(&func_0802EF18, .{ .name = "func_0802EF18", .linkage = .strong });
+        @export(&func_0802F634, .{ .name = "func_0802F634", .linkage = .strong });
     }
 }
 

@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 8 — Battle Damage Formula, Combat Overlays & Turn Spawners
+- **Stage:** Stage 9 — Turn Flow, Overlay Controls & Combat Helpers
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 316 / 7,577 (4.17%)
+- **Lifted to Clean Zig (`src/game/`):** 374 / 7,577 (4.94%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (9): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`)
@@ -19,10 +19,11 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/map.zig` (9): `0x080191E8`, `0x0801FD98`, `0x080202A0`, `0x08020510`, `0x0802055C`, `0x08020568`, `0x08033108`, `0x08033E28`, `0x0803B73C` (tilemap, palette, viewport & cursor helpers)
 - `src/game/campaign.zig` (13): `0x0803E37C`/`0x0803E39C` (save flag shadow copy), `0x0803E538..0x08040310`, `0x0803EEBC..0x0803F148` (`0x0201_F9A8` unlock bitsets, `0x0201_F9F0` mission records)
 - `src/game/state.zig` (60): `0x08018AAC..0x0803FD78` (`0x0300_4310` battle/UI substate setters & counters, `0x0201_AB34` entity flags, `0x0300_3200`/`0x0300_43C8` battle flags)
-- `src/game/ui.zig` (53): `0x08018DE4..0x08019F90`, `0x0803D038..0x0807660C` (result summaries, menu grids, dialogue box forwarders, BG screen entry encoders, fade/blend transitions)
+- `src/game/ui.zig` (78): `0x08018DE4..0x08019F90`, `0x08030D90..0x080347A8`, `0x0803D038..0x0807660C` (result summaries, menu grids, dialogue box forwarders, overlay procs, BG screen entry encoders, fade/blend transitions)
 - `src/game/co.zig` (6): `0x0801BDDC..0x0801BEE4` (CO selection reset & portrait/palette/data ROM lookups)
 - `src/game/unit.zig` (38): `0x08019970`, `0x0801C150..0x08021DF8`, `0x08026724..0x0802C5B0` (unit palette upload, marker/badge/overlay helpers & spawners)
-- `src/game/battle.zig` (26): `0x08022220..0x0802C4B4` (`computeScaledDamage`, unit health checks, battle previews, VRAM icon uploads & turn phase spawners)
+- `src/game/battle.zig` (35): `0x08022220..0x0802F634` (`computeScaledDamage`, unit health checks, battle previews, VRAM icon uploads & combat overlays/markers)
+- `src/game/turn.zig` (24): `0x08032200..0x080378B8` (turn transitions, day/CO phase state setters, proc slot panel lifecycle & prompt centering)
 
 ## Subsystem Roadmap
 - [x] **Stage 0:** Weak-linkage generator, `src/game/` scaffold, native + WASM + test wiring, baseline verified (`bd32afd`).
@@ -33,8 +34,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 5:** Map tilemap/viewport helpers, script pointer copies & battle controls (`c917ede`, 153 total).
 - [x] **Stage 6:** Sound driver, campaign save shadow, UI panels, Q12 matrix math & DMA/IRQ helpers (`d98ffbb`, 223 total).
 - [x] **Stage 7:** CO portrait lookups, unit/overlay helpers & structured dispatchers (`1821832`/`2f6ee53`, 266 total).
-- [x] **Stage 8:** Battle damage formula, combat overlays & turn spawners (316 total).
-- [ ] **Stage 9:** Remaining `0x0802D..0x08040` battle/unit/AI logic & early ROM helpers (`0x0800..0x08018`)
+- [x] **Stage 8:** Battle damage formula, combat overlays & turn spawners (`c1dd358`, 316 total).
+- [x] **Stage 9:** Turn transitions, overlay proc lifecycles & combat marker helpers (`374 total`).
+- [ ] **Stage 10:** Remaining `0x08037..0x08040` and `0x08002..0x08018` subsystems, followed by 2-3 call functions across battle/map/AI.
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`
