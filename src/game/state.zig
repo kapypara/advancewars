@@ -579,8 +579,85 @@ pub fn func_08018CB4() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Read signed byte at flag/slot `i8(r0)` resolved via `0x08015DD4` (`0x08015E10`).
+pub fn func_08015E10() callconv(.c) void {
+    if (!abi.enter(0x08015E10)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = @bitCast(abi.signExtend8(@truncate(rt.r[0])));
+    if (!abi.call(decls.func_08015DD4, 0x08015E1B)) return;
+    abi.fetches(7);
+    abi.setRegNz(&rt.r[0], @bitCast(abi.signExtend8(abi.read8(rt.r[0]))));
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Write byte `u8(r1)` to flag/slot `i8(r0)` resolved via `0x08015DD4` (`0x08015E24`).
+pub fn func_08015E24() callconv(.c) void {
+    if (!abi.enter(0x08015E24)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[1] & 0xFF;
+    rt.r[0] = @bitCast(abi.signExtend8(@truncate(rt.r[0])));
+    if (!abi.call(decls.func_08015DD4, 0x08015E35)) return;
+
+    abi.fetches(6);
+    abi.write8(rt.r[0], @truncate(rt.r[4]));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Spawn `0x08016930` proc storing `u16(r0)` at `+0x1E` (`0x08016918`).
+pub fn func_08016918() callconv(.c) void {
+    if (!abi.enter(0x08016918)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0] & 0xFFFF;
+    rt.r[0] = abi.read32(0x08016930);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801320C, 0x08016929)) return;
+
+    abi.fetches(6);
+    abi.write16(rt.r[0] +% 0x1E, @truncate(rt.r[4]));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Trigger transition via `0x08010C70` with `(0x08016F64, 0, 0, 0x1E, stack: 6, 0x174)` (`0x08016F44`).
+pub fn func_08016F44() callconv(.c) void {
+    if (!abi.enter(0x08016F44)) return;
+    abi.fetches(15);
+    abi.pushLr();
+    rt.r[13] -%= 8;
+    rt.r[0] = abi.read32(0x08016F64);
+    abi.write32(rt.r[13], 6);
+    abi.write32(rt.r[13] +% 4, 0xBA << 1);
+    abi.setRegNz(&rt.r[1], 0);
+    abi.setRegNz(&rt.r[2], 0);
+    abi.setRegNz(&rt.r[3], 0x1E);
+    if (!abi.call(decls.func_08010C70, 0x08016F5F)) return;
+    abi.fetches(5);
+    rt.r[13] +%= 8;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_08015E10, .{ .name = "func_08015E10", .linkage = .strong });
+        @export(&func_08015E24, .{ .name = "func_08015E24", .linkage = .strong });
+        @export(&func_08016918, .{ .name = "func_08016918", .linkage = .strong });
+        @export(&func_08016F44, .{ .name = "func_08016F44", .linkage = .strong });
         @export(&func_08018AAC, .{ .name = "func_08018AAC", .linkage = .strong });
         @export(&func_08018C60, .{ .name = "func_08018C60", .linkage = .strong });
         @export(&func_08018C6C, .{ .name = "func_08018C6C", .linkage = .strong });

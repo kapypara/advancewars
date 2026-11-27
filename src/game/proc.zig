@@ -556,11 +556,398 @@ pub fn func_08010F10() callconv(.c) void {
     abi.popReturn();
 }
 
+fn popReturnValue() void {
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+const ProcScriptArgKind = enum {
+    proc_31E0,
+    word0_r0,
+    sext16_4_r0,
+    u16_4_r0,
+    word0_r1,
+    u16_4_r1,
+};
+
+fn runProcScriptStep(
+    comptime pool_ref: u32,
+    comptime kind: ProcScriptArgKind,
+    comptime target: fn () callconv(.c) void,
+    comptime ret_val: u32,
+    comptime ret_addr: u32,
+) void {
+    const fetches_before: u32 = switch (kind) {
+        .proc_31E0, .sext16_4_r0 => 16,
+        .word0_r0, .u16_4_r0, .word0_r1, .u16_4_r1 => 15,
+    };
+    abi.fetches(fetches_before);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const idx = rt.r[0] & 0xFF;
+    const base = abi.read32(pool_ref);
+    const entry_ptr = base +% 4 +% (((idx << 1) +% idx) << 5);
+    rt.r[4] = entry_ptr;
+    const script = abi.read32(entry_ptr);
+    switch (kind) {
+        .proc_31E0 => {
+            rt.r[0] = abi.read32(script);
+            rt.r[1] = abi.read8(script +% 4);
+        },
+        .word0_r0 => rt.r[0] = abi.read32(script),
+        .sext16_4_r0 => rt.r[0] = @bitCast(abi.signExtend16(abi.read16(script +% 4))),
+        .u16_4_r0 => rt.r[0] = abi.read16(script +% 4),
+        .word0_r1 => {
+            rt.r[0] = idx;
+            rt.r[1] = abi.read32(script);
+        },
+        .u16_4_r1 => {
+            rt.r[0] = idx;
+            rt.r[1] = abi.read16(script +% 4);
+        },
+    }
+    if (!abi.call(target, ret_addr)) return;
+
+    abi.fetches(9);
+    abi.write32(entry_ptr, abi.read32(entry_ptr) +% 8);
+    abi.setRegNz(&rt.r[0], ret_val);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+const CutsceneStepPrep = enum {
+    pass_slot_u16,
+    set_flag5_zero_call,
+    set_flag5_one_call,
+    set_byte8_read_u16,
+    read_u16,
+    zero_r0,
+};
+
+fn runCutsceneStep10(
+    comptime prep: CutsceneStepPrep,
+    comptime extra_a: u32,
+    comptime extra_b: u32,
+    comptime target: fn () callconv(.c) void,
+    comptime script_pool_ref: u32,
+    comptime ret_addr: u32,
+) void {
+    const fetches_before: u32 = switch (prep) {
+        .pass_slot_u16 => 8,
+        .set_flag5_zero_call, .set_flag5_one_call => 11,
+        .set_byte8_read_u16 => 13,
+        .read_u16 => 10,
+        .zero_r0 => 9,
+    };
+    abi.fetches(fetches_before);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = rt.r[0] & 0xFFFF;
+    switch (prep) {
+        .pass_slot_u16 => rt.r[0] = rt.r[4],
+        .set_flag5_zero_call => abi.write8(abi.read32(extra_a) +% 5, 0),
+        .set_flag5_one_call => abi.write8(abi.read32(extra_a) +% 5, 1),
+        .set_byte8_read_u16 => {
+            abi.write8(abi.read32(extra_a), 8);
+            rt.r[0] = abi.read16(abi.read32(extra_b));
+        },
+        .read_u16 => rt.r[0] = abi.read16(abi.read32(extra_a)),
+        .zero_r0 => abi.setRegNz(&rt.r[0], 0),
+    }
+    if (!abi.call(target, ret_addr)) return;
+
+    abi.fetches(17);
+    const slot: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[4])));
+    const entry_ptr = abi.read32(script_pool_ref) +% 4 +% (slot * 24);
+    abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
+    abi.setRegNz(&rt.r[0], 1);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+fn attachCutsceneWaitCb(
+    comptime base_ref: u32,
+    comptime cb_ref: u32,
+    comptime has_half_a: bool,
+    comptime ret_addr: u32,
+) void {
+    abi.fetches(if (has_half_a) 24 else 21);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const base = abi.read32(base_ref);
+    const slot: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    const slot_ptr = base +% (slot * 24);
+    const entry_ptr = slot_ptr +% 4;
+    rt.r[4] = entry_ptr;
+    const script = abi.read32(entry_ptr);
+    abi.write8(slot_ptr +% 0x11, @truncate(abi.read16(script +% 8)));
+    if (has_half_a) {
+        abi.write16(slot_ptr +% 0x12, abi.read16(script +% 0xA));
+    }
+    const cb_ptr = slot_ptr +% 8;
+    const cb_fn = abi.read32(cb_ref);
+    abi.write32(cb_ptr, cb_fn);
+    rt.r[0] = slot_ptr;
+    rt.r[1] = cb_ptr;
+    rt.r[2] = cb_fn;
+    if (!abi.call(decls.func_0807B454, ret_addr)) return;
+
+    abi.fetches(9);
+    abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+/// Release proc slot `u8(r0)` via `0x08013248` and return `0` (`0x08013C84`).
+pub fn func_08013C84() callconv(.c) void {
+    if (!abi.enter(0x08013C84)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] &= 0xFF;
+    if (!abi.call(decls.func_08013248, 0x08013C8F)) return;
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 0);
+    popReturnValue();
+}
+
+/// Proc script opcode: spawn child proc `(word0, byte4)` via `0x080131E0` (`0x08013C94`).
+pub fn func_08013C94() callconv(.c) void {
+    if (!abi.enter(0x08013C94)) return;
+    runProcScriptStep(0x08013CC0, .proc_31E0, decls.func_080131E0, 1, 0x08013CB1);
+}
+
+/// Proc script opcode: load resource string/ID `word0` via `0x08018400` (`0x08013E1C`).
+pub fn func_08013E1C() callconv(.c) void {
+    if (!abi.enter(0x08013E1C)) return;
+    runProcScriptStep(0x08013E44, .word0_r0, decls.func_08018400, 1, 0x08013E37);
+}
+
+/// Proc script opcode: release proc `i16(half4)` via `0x08013248` (`0x08013E7C`).
+pub fn func_08013E7C() callconv(.c) void {
+    if (!abi.enter(0x08013E7C)) return;
+    runProcScriptStep(0x08013EA8, .sext16_4_r0, decls.func_08013248, 1, 0x08013E99);
+}
+
+/// Proc script opcode: unpause/wake proc def `word0` via `0x080132D8` (`0x08013EAC`).
+pub fn func_08013EAC() callconv(.c) void {
+    if (!abi.enter(0x08013EAC)) return;
+    runProcScriptStep(0x08013ED4, .word0_r0, decls.func_080132D8, 1, 0x08013EC7);
+}
+
+/// Proc script opcode: end proc def `word0` via `0x0801329C` (`0x08013ED8`).
+pub fn func_08013ED8() callconv(.c) void {
+    if (!abi.enter(0x08013ED8)) return;
+    runProcScriptStep(0x08013F00, .word0_r0, decls.func_0801329C, 1, 0x08013EF3);
+}
+
+/// Proc script opcode: spawn menu proc `0x0800F63C(half4)` (`0x08013F80`).
+pub fn func_08013F80() callconv(.c) void {
+    if (!abi.enter(0x08013F80)) return;
+    runProcScriptStep(0x08013FA8, .u16_4_r0, decls.func_0800F63C, 0, 0x08013F9B);
+}
+
+/// Proc script opcode: spawn menu proc `0x0800F66C(half4)` (`0x08013FAC`).
+pub fn func_08013FAC() callconv(.c) void {
+    if (!abi.enter(0x08013FAC)) return;
+    runProcScriptStep(0x08013FD4, .u16_4_r0, decls.func_0800F66C, 0, 0x08013FC7);
+}
+
+/// Proc script opcode: spawn menu proc `0x0800F69C(half4)` (`0x08013FD8`).
+pub fn func_08013FD8() callconv(.c) void {
+    if (!abi.enter(0x08013FD8)) return;
+    runProcScriptStep(0x08014000, .u16_4_r0, decls.func_0800F69C, 0, 0x08013FF3);
+}
+
+/// Proc script opcode: spawn menu proc `0x0800F6DC(half4)` (`0x08014004`).
+pub fn func_08014004() callconv(.c) void {
+    if (!abi.enter(0x08014004)) return;
+    runProcScriptStep(0x0801402C, .u16_4_r0, decls.func_0800F6DC, 0, 0x0801401F);
+}
+
+/// Proc script opcode: play music track `i16(half4)` via `0x0803D8C8` (`0x080140A0`).
+pub fn func_080140A0() callconv(.c) void {
+    if (!abi.enter(0x080140A0)) return;
+    runProcScriptStep(0x080140CC, .sext16_4_r0, decls.func_0803D8C8, 0, 0x080140BD);
+}
+
+/// Proc script opcode: play sound effect `i16(half4)` via `0x0803D880` (`0x080140D0`).
+pub fn func_080140D0() callconv(.c) void {
+    if (!abi.enter(0x080140D0)) return;
+    runProcScriptStep(0x080140FC, .sext16_4_r0, decls.func_0803D880, 0, 0x080140ED);
+}
+
+/// Proc script opcode: spawn menu proc `0x0800F71C(half4)` (`0x08014100`).
+pub fn func_08014100() callconv(.c) void {
+    if (!abi.enter(0x08014100)) return;
+    runProcScriptStep(0x08014128, .u16_4_r0, decls.func_0800F71C, 0, 0x0801411B);
+}
+
+/// Proc script opcode: spawn menu proc `0x0800F738(half4)` (`0x0801412C`).
+pub fn func_0801412C() callconv(.c) void {
+    if (!abi.enter(0x0801412C)) return;
+    runProcScriptStep(0x08014154, .u16_4_r0, decls.func_0800F738, 0, 0x08014147);
+}
+
+/// Proc script opcode: bind animator callback `word0` via `0x08013678` (`0x08014760`).
+pub fn func_08014760() callconv(.c) void {
+    if (!abi.enter(0x08014760)) return;
+    runProcScriptStep(0x08014788, .word0_r1, decls.func_08013678, 1, 0x0801477B);
+}
+
+/// Proc script opcode: set animator frame `half4` via `0x080136A4` (`0x0801478C`).
+pub fn func_0801478C() callconv(.c) void {
+    if (!abi.enter(0x0801478C)) return;
+    runProcScriptStep(0x080147B4, .u16_4_r1, decls.func_080136A4, 1, 0x080147A7);
+}
+
+/// Cutscene script opcode: query flag via `0x0801DE88(word4)` and write `state+2` (`0x08017070`).
+pub fn func_08017070() callconv(.c) void {
+    if (!abi.enter(0x08017070)) return;
+    abi.fetches(15);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const slot: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    const entry_ptr = abi.read32(0x0801709C) +% 4 +% (slot * 24);
+    rt.r[4] = entry_ptr;
+    const script = abi.read32(entry_ptr);
+    rt.r[0] = abi.read32(script +% 4);
+    if (!abi.call(decls.func_0801DE88, 0x0801708B)) return;
+
+    abi.fetches(11);
+    abi.write8(abi.read32(0x080170A0) +% 2, @truncate(rt.r[0]));
+    abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+/// Cutscene script opcode: spawn unit/effect `(i16 +8, i16 +10, i16 +12)` via `0x080242B8` (`0x08017254`).
+pub fn func_08017254() callconv(.c) void {
+    if (!abi.enter(0x08017254)) return;
+    abi.fetches(20);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const slot: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    const entry_ptr = abi.read32(0x08017288) +% 4 +% (slot * 24);
+    rt.r[4] = entry_ptr;
+    const script = abi.read32(entry_ptr);
+    rt.r[0] = @bitCast(abi.signExtend16(abi.read16(script +% 8)));
+    rt.r[1] = @bitCast(abi.signExtend16(abi.read16(script +% 0xA)));
+    rt.r[2] = @bitCast(abi.signExtend16(abi.read16(script +% 0xC)));
+    if (!abi.call(decls.func_080242B8, 0x08017279)) return;
+
+    abi.fetches(9);
+    abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnValue();
+}
+
+/// Cutscene script opcode: dispatch `0x080172F0(slot)` and advance cursor `+0x10` (`0x080172FC`).
+pub fn func_080172FC() callconv(.c) void {
+    if (!abi.enter(0x080172FC)) return;
+    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172F0, 0x08017328, 0x08017309);
+}
+
+/// Cutscene script opcode: dispatch `0x080172E4(slot)` and advance cursor `+0x10` (`0x0801732C`).
+pub fn func_0801732C() callconv(.c) void {
+    if (!abi.enter(0x0801732C)) return;
+    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172E4, 0x08017358, 0x08017339);
+}
+
+/// Cutscene script opcode: set flag `[state+5] = 1`, call `0x0802EFD8`, advance `+0x10` (`0x08017AB0`).
+pub fn func_08017AB0() callconv(.c) void {
+    if (!abi.enter(0x08017AB0)) return;
+    runCutsceneStep10(.set_flag5_one_call, 0x08017AE0, 0, decls.func_0802EFD8, 0x08017AE4, 0x08017AC3);
+}
+
+/// Cutscene script opcode: clear `[state+5] = 0`, call `0x0802EFD8`, advance `+0x10` (`0x08017AE8`).
+pub fn func_08017AE8() callconv(.c) void {
+    if (!abi.enter(0x08017AE8)) return;
+    runCutsceneStep10(.set_flag5_zero_call, 0x08017B18, 0, decls.func_0802EFD8, 0x08017B1C, 0x08017AFB);
+}
+
+/// Cutscene script opcode: mark byte `8`, focus cursor via `0x08019970`, advance `+0x10` (`0x08017B80`).
+pub fn func_08017B80() callconv(.c) void {
+    if (!abi.enter(0x08017B80)) return;
+    runCutsceneStep10(.set_byte8_read_u16, 0x08017BB4, 0x08017BB8, decls.func_08019970, 0x08017BBC, 0x08017B97);
+}
+
+/// Cutscene script opcode: focus cursor via `0x0801990C`, advance `+0x10` (`0x08017C3C`).
+pub fn func_08017C3C() callconv(.c) void {
+    if (!abi.enter(0x08017C3C)) return;
+    runCutsceneStep10(.read_u16, 0x08017C6C, 0, decls.func_0801990C, 0x08017C70, 0x08017C4D);
+}
+
+/// Cutscene script opcode: arm wait callback `0x08017D90` storing `(half8, halfA)` (`0x08017D50`).
+pub fn func_08017D50() callconv(.c) void {
+    if (!abi.enter(0x08017D50)) return;
+    attachCutsceneWaitCb(0x08017D8C, 0x08017D90, true, 0x08017D7D);
+}
+
+/// Cutscene script opcode: arm wait callback `0x08017E00` storing `half8` (`0x08017DC8`).
+pub fn func_08017DC8() callconv(.c) void {
+    if (!abi.enter(0x08017DC8)) return;
+    attachCutsceneWaitCb(0x08017DFC, 0x08017E00, false, 0x08017DEF);
+}
+
+/// Cutscene script opcode: reset state via `0x08018AAC(0)` and advance `+0x10` (`0x08017FD0`).
+pub fn func_08017FD0() callconv(.c) void {
+    if (!abi.enter(0x08017FD0)) return;
+    runCutsceneStep10(.zero_r0, 0, 0, decls.func_08018AAC, 0x08017FFC, 0x08017FDF);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010F04, .{ .name = "func_08010F04", .linkage = .strong });
         @export(&func_08010F10, .{ .name = "func_08010F10", .linkage = .strong });
+        @export(&func_08013C84, .{ .name = "func_08013C84", .linkage = .strong });
+        @export(&func_08013C94, .{ .name = "func_08013C94", .linkage = .strong });
         @export(&func_08013D14, .{ .name = "func_08013D14", .linkage = .strong });
+        @export(&func_08013E1C, .{ .name = "func_08013E1C", .linkage = .strong });
+        @export(&func_08013E7C, .{ .name = "func_08013E7C", .linkage = .strong });
+        @export(&func_08013EAC, .{ .name = "func_08013EAC", .linkage = .strong });
+        @export(&func_08013ED8, .{ .name = "func_08013ED8", .linkage = .strong });
+        @export(&func_08013F80, .{ .name = "func_08013F80", .linkage = .strong });
+        @export(&func_08013FAC, .{ .name = "func_08013FAC", .linkage = .strong });
+        @export(&func_08013FD8, .{ .name = "func_08013FD8", .linkage = .strong });
+        @export(&func_08014004, .{ .name = "func_08014004", .linkage = .strong });
+        @export(&func_080140A0, .{ .name = "func_080140A0", .linkage = .strong });
+        @export(&func_080140D0, .{ .name = "func_080140D0", .linkage = .strong });
+        @export(&func_08014100, .{ .name = "func_08014100", .linkage = .strong });
+        @export(&func_0801412C, .{ .name = "func_0801412C", .linkage = .strong });
+        @export(&func_08014760, .{ .name = "func_08014760", .linkage = .strong });
+        @export(&func_0801478C, .{ .name = "func_0801478C", .linkage = .strong });
+        @export(&func_08017070, .{ .name = "func_08017070", .linkage = .strong });
+        @export(&func_08017254, .{ .name = "func_08017254", .linkage = .strong });
+        @export(&func_080172FC, .{ .name = "func_080172FC", .linkage = .strong });
+        @export(&func_0801732C, .{ .name = "func_0801732C", .linkage = .strong });
+        @export(&func_08017AB0, .{ .name = "func_08017AB0", .linkage = .strong });
+        @export(&func_08017AE8, .{ .name = "func_08017AE8", .linkage = .strong });
+        @export(&func_08017B80, .{ .name = "func_08017B80", .linkage = .strong });
+        @export(&func_08017C3C, .{ .name = "func_08017C3C", .linkage = .strong });
+        @export(&func_08017D50, .{ .name = "func_08017D50", .linkage = .strong });
+        @export(&func_08017DC8, .{ .name = "func_08017DC8", .linkage = .strong });
+        @export(&func_08017FD0, .{ .name = "func_08017FD0", .linkage = .strong });
         @export(&func_08013D3C, .{ .name = "func_08013D3C", .linkage = .strong });
         @export(&func_08013DA0, .{ .name = "func_08013DA0", .linkage = .strong });
         @export(&func_08013DF0, .{ .name = "func_08013DF0", .linkage = .strong });

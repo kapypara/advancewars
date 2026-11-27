@@ -461,6 +461,203 @@ pub fn func_08013630() callconv(.c) void {
     finishPoppedLr(1);
 }
 
+/// Query and consume signed animator state for proc slot `i16(r0)->+0x26` via `0x0801A1BC` (`0x08013654`).
+pub fn func_08013654() callconv(.c) void {
+    if (!abi.enter(0x08013654)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    rt.r[0] = procSlotAnimHandle(0x08013674, rt.r[0]);
+    if (!abi.call(decls.func_0801A1BC, 0x0801366B)) return;
+    abi.fetches(6);
+    abi.setRegNz(&rt.r[0], @bitCast(abi.signExtend16(@truncate(rt.r[0]))));
+    finishPoppedLr(1);
+}
+
+/// Clear all `0x80` OAM slots via `0x08014B14` and zero counter `0x08014B50` (`0x08014B3C`).
+pub fn func_08014B3C() callconv(.c) void {
+    if (!abi.enter(0x08014B3C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0);
+    abi.setRegNz(&rt.r[1], 0x80);
+    if (!abi.call(decls.func_08014B14, 0x08014B47)) return;
+    abi.fetches(7);
+    const dst = abi.read32(0x08014B50);
+    rt.r[1] = dst;
+    abi.write16(dst, 0);
+    abi.popReturn();
+}
+
+/// Set `(x=r1, y=r2, attr=r3)` on 16-byte sprite entry `r0` and refresh via `0x08014BF8` (`0x08014C98`).
+pub fn func_08014C98() callconv(.c) void {
+    if (!abi.enter(0x08014C98)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[5] = abi.read32(0x08014CB0);
+    rt.r[4] = (rt.r[0] << 4) +% rt.r[5];
+    abi.write16(rt.r[4], @truncate(rt.r[1]));
+    abi.write16(rt.r[4] +% 2, @truncate(rt.r[2]));
+    abi.write16(rt.r[4] +% 4, @truncate(rt.r[3]));
+    if (!abi.call(decls.func_08014BF8, 0x08014CAB)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Set `(x=r1, y=r2)` on 16-byte sprite entry `r0` and refresh via `0x08014BF8` (`0x08014CB4`).
+pub fn func_08014CB4() callconv(.c) void {
+    if (!abi.enter(0x08014CB4)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[4] = abi.read32(0x08014CCC);
+    const entry = (rt.r[0] << 4) +% rt.r[4];
+    abi.write16(entry, @truncate(rt.r[1]));
+    abi.write16(entry +% 2, @truncate(rt.r[2]));
+    if (!abi.call(decls.func_08014BF8, 0x08014CC5)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Set `attr=r1` on 16-byte sprite entry `r0` and refresh via `0x08014BF8` (`0x08014CD0`).
+pub fn func_08014CD0() callconv(.c) void {
+    if (!abi.enter(0x08014CD0)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const entry = (rt.r[0] << 4) +% abi.read32(0x08014CE4);
+    abi.write16(entry +% 4, @truncate(rt.r[1]));
+    if (!abi.call(decls.func_08014BF8, 0x08014CDF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Push default blend/depth args `(0, 0, -1)` and invoke `0x08014DA4` (`0x0801539C`).
+pub fn func_0801539C() callconv(.c) void {
+    if (!abi.enter(0x0801539C)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0xC;
+
+    abi.write32(rt.r[13], 0);
+    abi.write32(rt.r[13] +% 4, 0);
+    abi.write32(rt.r[13] +% 8, @bitCast(@as(i32, -1)));
+    if (!abi.call(decls.func_08014DA4, 0x080153B3)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 0xC;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    finishPoppedLr(1);
+}
+
+/// Cache active animator's word `+0x44` to `0x08015408` and dispatch `0x0807B454` (`0x080153D4`).
+pub fn func_080153D4() callconv(.c) void {
+    if (!abi.enter(0x080153D4)) return;
+    abi.fetches(25);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[5] = abi.read32(0x08015408);
+    const anim_base = abi.read32(0x0801540C);
+    const proc_base = abi.read32(0x08015410);
+    rt.r[4] = abi.read32(0x08015414);
+    const proc_slot: u32 = @bitCast(abi.signExtend16(abi.read16(rt.r[4])));
+    const anim_slot = abi.read16(proc_base +% (proc_slot * 96) +% 0x26);
+    const word_addr = anim_base +% 0x44 +% (@as(u32, anim_slot) * 0x4C);
+    abi.write32(rt.r[5], abi.read32(word_addr));
+    rt.r[0] = @bitCast(abi.signExtend16(abi.read16(rt.r[4])));
+    rt.r[1] = abi.read32(0x08015418);
+    if (!abi.call(decls.func_0807B454, 0x08015403)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Forward sprite queue call to `0x080157E4` with stack args `(0, i16(r3))` (`0x0801585C`).
+pub fn func_0801585C() callconv(.c) void {
+    if (!abi.enter(0x0801585C)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[13] -%= 8;
+    abi.write32(rt.r[13] +% 4, @bitCast(abi.signExtend16(@truncate(rt.r[3]))));
+    abi.write32(rt.r[13], 0);
+    if (!abi.call(decls.func_080157E4, 0x0801586F)) return;
+    abi.fetches(5);
+    rt.r[13] +%= 8;
+    finishPoppedLr(1);
+}
+
+/// Reset full `0x80`-entry OAM table, set limit `0x10` and zero count (`0x080159CC`).
+pub fn func_080159CC() callconv(.c) void {
+    if (!abi.enter(0x080159CC)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0);
+    abi.setRegNz(&rt.r[1], 0x80);
+    if (!abi.call(decls.func_08014B14, 0x080159D7)) return;
+    abi.fetches(10);
+    abi.write16(abi.read32(0x080159E8), 0x10);
+    const cnt_addr = abi.read32(0x080159EC);
+    rt.r[1] = cnt_addr;
+    abi.write16(cnt_addr, 0);
+    abi.popReturn();
+}
+
+/// Reset upper `0x70` OAM slots `(0x10..0x80)` and set limit `0x10` (`0x080159F0`).
+pub fn func_080159F0() callconv(.c) void {
+    if (!abi.enter(0x080159F0)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0x10);
+    abi.setRegNz(&rt.r[1], 0x70);
+    if (!abi.call(decls.func_08014B14, 0x080159FB)) return;
+    abi.fetches(7);
+    const lim_addr = abi.read32(0x08015A04);
+    rt.r[1] = lim_addr;
+    abi.write16(lim_addr, 0x10);
+    abi.popReturn();
+}
+
+/// Upload `1024`-byte OAM buffer `0x08015A34` to GBA hardware OAM `0x0700_0000` (`0x08015A20`).
+pub fn func_08015A20() callconv(.c) void {
+    if (!abi.enter(0x08015A20)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08015A34);
+    abi.setRegNz(&rt.r[1], 0x0700_0000);
+    abi.setRegNz(&rt.r[2], 0x400);
+    if (!abi.call(decls.func_0800FDCC, 0x08015A31)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08011CF0, .{ .name = "func_08011CF0", .linkage = .strong });
@@ -475,6 +672,17 @@ comptime {
         @export(&func_08013578, .{ .name = "func_08013578", .linkage = .strong });
         @export(&func_08013598, .{ .name = "func_08013598", .linkage = .strong });
         @export(&func_08013630, .{ .name = "func_08013630", .linkage = .strong });
+        @export(&func_08013654, .{ .name = "func_08013654", .linkage = .strong });
+        @export(&func_08014B3C, .{ .name = "func_08014B3C", .linkage = .strong });
+        @export(&func_08014C98, .{ .name = "func_08014C98", .linkage = .strong });
+        @export(&func_08014CB4, .{ .name = "func_08014CB4", .linkage = .strong });
+        @export(&func_08014CD0, .{ .name = "func_08014CD0", .linkage = .strong });
+        @export(&func_0801539C, .{ .name = "func_0801539C", .linkage = .strong });
+        @export(&func_080153D4, .{ .name = "func_080153D4", .linkage = .strong });
+        @export(&func_0801585C, .{ .name = "func_0801585C", .linkage = .strong });
+        @export(&func_080159CC, .{ .name = "func_080159CC", .linkage = .strong });
+        @export(&func_080159F0, .{ .name = "func_080159F0", .linkage = .strong });
+        @export(&func_08015A20, .{ .name = "func_08015A20", .linkage = .strong });
         @export(&func_080135C8, .{ .name = "func_080135C8", .linkage = .strong });
         @export(&func_080135FC, .{ .name = "func_080135FC", .linkage = .strong });
         @export(&func_08013678, .{ .name = "func_08013678", .linkage = .strong });

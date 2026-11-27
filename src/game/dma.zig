@@ -99,6 +99,19 @@ pub fn func_08011354() callconv(.c) void {
     copyMaskedHalfwords(0x0801136C, 0x08011370, 0x08011369);
 }
 
+/// Copy `0x200` bytes from `0x08017908` to `0x0801790C` via `0x0800FFA8` (`0x080178F4`).
+pub fn func_080178F4() callconv(.c) void {
+    if (!abi.enter(0x080178F4)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08017908);
+    rt.r[1] = abi.read32(0x0801790C);
+    abi.setRegNz(&rt.r[2], 0x200);
+    if (!abi.call(decls.func_0800FFA8, 0x08017903)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_0800F894, .{ .name = "func_0800F894", .linkage = .strong });
@@ -107,6 +120,7 @@ comptime {
         @export(&func_08010AC8, .{ .name = "func_08010AC8", .linkage = .strong });
         @export(&func_08011310, .{ .name = "func_08011310", .linkage = .strong });
         @export(&func_08011354, .{ .name = "func_08011354", .linkage = .strong });
+        @export(&func_080178F4, .{ .name = "func_080178F4", .linkage = .strong });
     }
 }
 
