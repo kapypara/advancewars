@@ -54,6 +54,7 @@ pub fn func_08010AC8() callconv(.c) void {
     const prev = abi.read8(target_addr);
     const next: u32 = 0x10 | @as(u32, prev);
     rt.r[1] = target_addr;
+    rt.r[2] = prev;
     abi.setRegNz(&rt.r[0], next);
     abi.write8(target_addr, @truncate(next));
     abi.retLr();

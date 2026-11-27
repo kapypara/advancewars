@@ -184,6 +184,141 @@ pub fn func_08017154() callconv(.c) void {
     scriptWrite16Or32(32, 0x08017174);
 }
 
+/// Clear secondary script flag halfword `[0x0300_2F44] = 0` (`0x08016F18`).
+pub fn func_08016F18() callconv(.c) void {
+    if (!abi.enter(0x08016F18)) return;
+    abi.fetches(6);
+    const dst = abi.read32(0x08016F20);
+    abi.write16(dst, 0);
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+fn scriptCopyFromPtr(comptime width: u8, comptime pool_ref: u32) void {
+    abi.fetches(if (width == 8) 20 else 19);
+    const base = abi.read32(pool_ref);
+    const idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const off: u32 = @bitCast(@as(i32, idx) *% @as(i32, types.script_slot_stride));
+    const cur_ptr_addr = off +% (base +% 4);
+    const cmd = abi.read32(cur_ptr_addr);
+    const dst = abi.read32(cmd +% 4);
+    const src = abi.read32(cmd +% 0xC);
+    switch (width) {
+        8 => {
+            const v = abi.read8(src);
+            abi.write8(dst, v);
+            rt.r[2] = dst;
+        },
+        16 => {
+            const v = abi.read16(src);
+            abi.write16(dst, v);
+            rt.r[2] = v;
+            rt.r[3] = dst;
+        },
+        32 => {
+            const v = abi.read32(src);
+            abi.write32(dst, v);
+            rt.r[2] = v;
+            rt.r[3] = dst;
+        },
+        else => unreachable,
+    }
+    abi.write32(cur_ptr_addr, cmd +% 0x10);
+    rt.r[1] = cur_ptr_addr;
+    abi.setRegNz(&rt.r[0], 1);
+    abi.retLr();
+}
+
+/// Secondary script command: copy 8-bit `*([cmd+0xC]) -> [cmd+4]`, step `cmd += 0x10` (`0x08017178`).
+pub fn func_08017178() callconv(.c) void {
+    if (!abi.enter(0x08017178)) return;
+    scriptCopyFromPtr(8, 0x0801719C);
+}
+
+/// Secondary script command: copy 16-bit `*([cmd+0xC]) -> [cmd+4]`, step `cmd += 0x10` (`0x080171A0`).
+pub fn func_080171A0() callconv(.c) void {
+    if (!abi.enter(0x080171A0)) return;
+    scriptCopyFromPtr(16, 0x080171C4);
+}
+
+/// Secondary script command: copy 32-bit `*([cmd+0xC]) -> [cmd+4]`, step `cmd += 0x10` (`0x080171C8`).
+pub fn func_080171C8() callconv(.c) void {
+    if (!abi.enter(0x080171C8)) return;
+    scriptCopyFromPtr(32, 0x080171EC);
+}
+
+/// Secondary script command: write byte `[cmd+0xA]` into `battle_ui_state[+0x38 + slot]` and `entity[slot]+0x1B` (`0x08017EF8`).
+pub fn func_08017EF8() callconv(.c) void {
+    if (!abi.enter(0x08017EF8)) return;
+    abi.fetches(30);
+    const pool = abi.read32(0x08017F30);
+    const idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const off: u32 = @bitCast(@as(i32, idx) *% @as(i32, types.script_slot_stride));
+    const cur_ptr_addr = off +% (pool +% 4);
+    const cmd = abi.read32(cur_ptr_addr);
+    const slot_byte = abi.read8(cmd +% 8);
+    const val16 = abi.read16(cmd +% 0xA);
+    const ui_base = abi.read32(0x08017F34);
+    abi.write8(slot_byte +% (ui_base +% 0x38), @truncate(val16));
+    const entity_base = abi.read32(abi.read32(0x08017F38));
+    abi.write8((@as(u32, slot_byte) *% 0x68) +% entity_base +% 0x1B, @truncate(val16));
+    abi.write32(cur_ptr_addr, cmd +% 0x10);
+    rt.r[2] = cur_ptr_addr;
+    rt.r[3] = slot_byte;
+    rt.r[1] = val16;
+    abi.setRegNz(&rt.r[0], 1);
+    abi.retLr();
+}
+
+/// Secondary script command: write byte `[cmd+0xA]` into `entity[read8(cmd+8)]+0x1D`, step `cmd += 0x10` (`0x08017F68`).
+pub fn func_08017F68() callconv(.c) void {
+    if (!abi.enter(0x08017F68)) return;
+    abi.fetches(27);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const pool = abi.read32(0x08017F9C);
+    const idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const off: u32 = @bitCast(@as(i32, idx) *% @as(i32, types.script_slot_stride));
+    const cur_ptr_addr = off +% (pool +% 4);
+    const cmd = abi.read32(cur_ptr_addr);
+    const entity_base = abi.read32(abi.read32(0x08017FA0));
+    const slot_byte = abi.read8(cmd +% 8);
+    const val16 = abi.read16(cmd +% 0xA);
+    abi.write8((@as(u32, slot_byte) *% 0x68) +% entity_base +% 0x1D, @truncate(val16));
+    abi.write32(cur_ptr_addr, cmd +% 0x10);
+
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[2] = val16;
+    rt.r[3] = cmd;
+    abi.setRegNz(&rt.r[0], 1);
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Clear `proc.state38 = 0` on active proc `[0x0300_1D18]` (`0x0802ABF0`).
+pub fn func_0802ABF0() callconv(.c) void {
+    if (!abi.enter(0x0802ABF0)) return;
+    abi.fetches(13);
+    const proc_base = abi.read32(0x0802AC08);
+    const idx_ptr = abi.read32(0x0802AC0C);
+    const proc_idx: i16 = @bitCast(abi.read16(idx_ptr));
+    const proc_off: u32 = @bitCast(@as(i32, proc_idx) *% @as(i32, types.proc_slot_stride));
+    const slot = proc_off +% proc_base;
+    abi.write16(slot +% 0x38, 0);
+    rt.r[3] = 0;
+    rt.r[2] = proc_base;
+    rt.r[0] = slot;
+    abi.setRegNz(&rt.r[1], 0);
+    abi.retLr();
+}
+
 /// Clear secondary script lock halfword `[0x0300_0DA4] = 0` (`0x080172F0`).
 pub fn func_080172F0() callconv(.c) void {
     if (!abi.enter(0x080172F0)) return;
@@ -318,18 +453,25 @@ comptime {
         @export(&func_08013DF0, .{ .name = "func_08013DF0", .linkage = .strong });
         @export(&func_08013DF4, .{ .name = "func_08013DF4", .linkage = .strong });
         @export(&func_08014078, .{ .name = "func_08014078", .linkage = .strong });
+        @export(&func_08016F18, .{ .name = "func_08016F18", .linkage = .strong });
         @export(&func_08017104, .{ .name = "func_08017104", .linkage = .strong });
         @export(&func_08017108, .{ .name = "func_08017108", .linkage = .strong });
         @export(&func_08017130, .{ .name = "func_08017130", .linkage = .strong });
         @export(&func_08017154, .{ .name = "func_08017154", .linkage = .strong });
+        @export(&func_08017178, .{ .name = "func_08017178", .linkage = .strong });
+        @export(&func_080171A0, .{ .name = "func_080171A0", .linkage = .strong });
+        @export(&func_080171C8, .{ .name = "func_080171C8", .linkage = .strong });
         @export(&func_080172F0, .{ .name = "func_080172F0", .linkage = .strong });
         @export(&func_0801735C, .{ .name = "func_0801735C", .linkage = .strong });
         @export(&func_08017E04, .{ .name = "func_08017E04", .linkage = .strong });
         @export(&func_08017E2C, .{ .name = "func_08017E2C", .linkage = .strong });
+        @export(&func_08017EF8, .{ .name = "func_08017EF8", .linkage = .strong });
+        @export(&func_08017F68, .{ .name = "func_08017F68", .linkage = .strong });
         @export(&func_08018094, .{ .name = "func_08018094", .linkage = .strong });
         @export(&func_080180EC, .{ .name = "func_080180EC", .linkage = .strong });
         @export(&func_0801811C, .{ .name = "func_0801811C", .linkage = .strong });
         @export(&func_08018240, .{ .name = "func_08018240", .linkage = .strong });
+        @export(&func_0802ABF0, .{ .name = "func_0802ABF0", .linkage = .strong });
     }
 }
 

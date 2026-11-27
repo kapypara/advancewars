@@ -6,16 +6,28 @@ const std = @import("std");
 /// Verified RAM addresses in Advance Wars (USA Rev 1).
 pub const addr = struct {
     pub const vs_player_select_state: u32 = 0x0200_0036;
+    pub const sys_state_ptr: u32 = 0x0201_00B0;
+    pub const oam_attr_table: u32 = 0x0201_1924;
     pub const oam_queue: u32 = 0x0201_1D24;
+    pub const bg_tilemap_buffer: u32 = 0x0201_3340;
     pub const map_workspace: u32 = 0x0201_57F8;
     pub const save_flags: u32 = 0x0201_F9A8;
     pub const save_records: u32 = 0x0201_F9F0;
+    pub const ui_cursor_src_byte: u32 = 0x0201_FD1D;
+    pub const camera_state_ptr: u32 = 0x0828_2CB4;
     pub const entity_table_ptr: u32 = 0x0828_2CBC;
+    pub const map_overlay_ptr: u32 = 0x0828_C05C;
 
+    pub const main_callback_slot: u32 = 0x0300_0D8C;
     pub const script_flag_0da4: u32 = 0x0300_0DA4;
+    pub const camera_scroll_y_off: u32 = 0x0300_0DBC;
     pub const proc_table: u32 = 0x0300_0E10;
+    pub const active_proc_idx: u32 = 0x0300_1D18;
+    pub const camera_scroll_x_off: u32 = 0x0300_1D48;
     pub const script_pool: u32 = 0x0300_1D50;
     pub const anim_pool: u32 = 0x0300_2320;
+    pub const hw_init_flag_2f24: u32 = 0x0300_2F24;
+    pub const script_flag_2f44: u32 = 0x0300_2F44;
     pub const script_var_31f8: u32 = 0x0300_31F8;
     pub const script_var_31fc: u32 = 0x0300_31FC;
     pub const battle_cmd_flag: u32 = 0x0300_3200;
@@ -32,7 +44,9 @@ pub const addr = struct {
     pub const battle_ui_state: u32 = 0x0300_4310;
     pub const battle_lock_a: u32 = 0x0300_43C8;
     pub const battle_lock_b: u32 = 0x0300_4470;
+    pub const battle_turn_counter: u32 = 0x0300_4474;
     pub const main_scene_fn: u32 = 0x0300_4478;
+    pub const ui_scroll_state: u32 = 0x0300_47E4;
 };
 
 /// Map workspace header at `addr.map_workspace` (`0x0201_57F8`).

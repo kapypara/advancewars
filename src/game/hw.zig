@@ -141,13 +141,79 @@ pub fn func_08015A54() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Initialize 4 system timer/counter bytes `[+0x72..+0x75] = 0x32` on `*(0x0201_00B0)` (`0x08002E88`).
+pub fn func_08002E88() callconv(.c) void {
+    if (!abi.enter(0x08002E88)) return;
+    abi.fetches(17);
+    const ptr_loc = abi.read32(0x08002EA8);
+    const sys_base = abi.read32(ptr_loc);
+    var off: u32 = 0x72;
+    while (off <= 0x75) : (off += 1) {
+        abi.write8(sys_base +% off, 0x32);
+    }
+    rt.r[2] = ptr_loc;
+    abi.setRegNz(&rt.r[1], 0x32);
+    rt.r[0] = sys_base +% 0x75;
+    abi.retLr();
+}
+
+/// System predicate returning `0` (`0x080045A8`).
+pub fn func_080045A8() callconv(.c) void {
+    if (!abi.enter(0x080045A8)) return;
+    abi.fetches(4);
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Clear system byte `[*(0x0201_00B0) + 0x9C] = 0` (`0x08004F34`).
+pub fn func_08004F34() callconv(.c) void {
+    if (!abi.enter(0x08004F34)) return;
+    abi.fetches(8);
+    const dst = abi.read32(abi.read32(0x08004F40)) +% 0x9C;
+    abi.write8(dst, 0);
+    rt.r[0] = dst;
+    abi.setRegNz(&rt.r[1], 0);
+    abi.retLr();
+}
+
+/// Reset system hardware/timing halfwords `+0x6E = 0x0780`, `+0x70 = 0x0970`, `+0x6C = 0` on `*(0x0201_00B0)` (`0x080076FC`).
+pub fn func_080076FC() callconv(.c) void {
+    if (!abi.enter(0x080076FC)) return;
+    abi.fetches(18);
+    const sys_base = abi.read32(abi.read32(0x0800771C));
+    abi.write16(sys_base +% 0x6E, 0x0780);
+    abi.write16(sys_base +% 0x70, 0x0970);
+    abi.write8(sys_base +% 0x6C, 0);
+    rt.r[3] = sys_base;
+    rt.r[2] = 0;
+    rt.r[1] = sys_base +% 0x70;
+    rt.r[0] = sys_base +% 0x6C;
+    abi.retLr();
+}
+
+/// Clear hardware init flag `[0x0300_2F24] = 0` (`u8`) (`0x08012BAC`).
+pub fn func_08012BAC() callconv(.c) void {
+    if (!abi.enter(0x08012BAC)) return;
+    abi.fetches(6);
+    const dst = abi.read32(0x08012BB4);
+    abi.write8(dst, 0);
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
+        @export(&func_080045A8, .{ .name = "func_080045A8", .linkage = .strong });
+        @export(&func_08004F34, .{ .name = "func_08004F34", .linkage = .strong });
+        @export(&func_080076FC, .{ .name = "func_080076FC", .linkage = .strong });
         @export(&func_0800F094, .{ .name = "func_0800F094", .linkage = .strong });
         @export(&func_0800F170, .{ .name = "func_0800F170", .linkage = .strong });
         @export(&func_0800F578, .{ .name = "func_0800F578", .linkage = .strong });
         @export(&func_08010444, .{ .name = "func_08010444", .linkage = .strong });
         @export(&func_080104B0, .{ .name = "func_080104B0", .linkage = .strong });
+        @export(&func_08012BAC, .{ .name = "func_08012BAC", .linkage = .strong });
         @export(&func_080134E0, .{ .name = "func_080134E0", .linkage = .strong });
         @export(&func_080134EC, .{ .name = "func_080134EC", .linkage = .strong });
         @export(&func_08015A08, .{ .name = "func_08015A08", .linkage = .strong });

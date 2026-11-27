@@ -205,6 +205,67 @@ pub fn func_08014CE8() callconv(.c) void {
     rt.recompReturn(rt.r[14]);
 }
 
+/// Clear sprite entry `+0x3A = 0` and reset flag `+0x39 = 0xFE` (`0x08011CF0`).
+pub fn func_08011CF0() callconv(.c) void {
+    if (!abi.enter(0x08011CF0)) return;
+    abi.fetches(10);
+    abi.write8(rt.r[0] +% 0x3A, 0);
+    abi.write8(rt.r[0] +% 0x39, 0xFE);
+    rt.r[2] = rt.r[0] +% 0x3A;
+    abi.setRegNz(&rt.r[1], 0xFE);
+    rt.r[0] +%= 0x39;
+    abi.retLr();
+}
+
+/// Write 4 sprite OAM halfwords `(r1, r2, r3, sp[0])` into `0x0201_1924[(r0 << 4) + 3/7/11/15]` (`0x08014B54`).
+pub fn func_08014B54() callconv(.c) void {
+    if (!abi.enter(0x08014B54)) return;
+    abi.fetches(42);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[8]);
+
+    const arg3: u16 = @truncate(abi.read32(rt.r[13] +% 0x18));
+    const table_base = abi.read32(0x08014BA4);
+    const base_slot = rt.r[0] << 4;
+
+    abi.write16(table_base +% ((base_slot +% 3) << 1), @truncate(rt.r[1]));
+    abi.write16(table_base +% ((base_slot +% 7) << 1), @truncate(rt.r[2]));
+    const old2 = abi.read16(table_base +% ((base_slot +% 11) << 1));
+    abi.write16(table_base +% ((base_slot +% 11) << 1), @truncate(rt.r[3]));
+    const old3 = abi.read16(table_base +% ((base_slot +% 15) << 1));
+    abi.write16(table_base +% ((base_slot +% 15) << 1), arg3);
+
+    rt.r[1] = old3;
+    rt.r[2] = old2;
+    rt.r[8] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[3] = rt.r[8];
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.updateNz(((base_slot +% 15) << 1));
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
 /// Set animator 24.8 fixed-point offset `(i16(r1) << 8, i16(r2) << 8)` at `+0x14/+0x18` (`0x0801A0EC`).
 pub fn func_0801A0EC() callconv(.c) void {
     if (!abi.enter(0x0801A0EC)) return;
@@ -251,6 +312,7 @@ pub fn func_0801A1BC() callconv(.c) void {
 
 comptime {
     if (!builtin.is_test) {
+        @export(&func_08011CF0, .{ .name = "func_08011CF0", .linkage = .strong });
         @export(&func_08013598, .{ .name = "func_08013598", .linkage = .strong });
         @export(&func_080135C8, .{ .name = "func_080135C8", .linkage = .strong });
         @export(&func_080135FC, .{ .name = "func_080135FC", .linkage = .strong });
@@ -262,6 +324,7 @@ comptime {
         @export(&func_080137E4, .{ .name = "func_080137E4", .linkage = .strong });
         @export(&func_08013878, .{ .name = "func_08013878", .linkage = .strong });
         @export(&func_080138CC, .{ .name = "func_080138CC", .linkage = .strong });
+        @export(&func_08014B54, .{ .name = "func_08014B54", .linkage = .strong });
         @export(&func_08014CE8, .{ .name = "func_08014CE8", .linkage = .strong });
         @export(&func_0801A0EC, .{ .name = "func_0801A0EC", .linkage = .strong });
         @export(&func_0801A1AC, .{ .name = "func_0801A1AC", .linkage = .strong });

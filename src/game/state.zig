@@ -300,6 +300,272 @@ pub fn func_0803FD78() callconv(.c) void {
     abi.retLr();
 }
 
+/// Sync `[0x0300_4310 + 0x3E]` byte from `[0x0201_FD1D]` (`0x0801BDF0`).
+pub fn func_0801BDF0() callconv(.c) void {
+    if (!abi.enter(0x0801BDF0)) return;
+    abi.fetches(8);
+    const base = abi.read32(0x0801BDFC);
+    const val = abi.read8(abi.read32(0x0801BE00));
+    const dst = base +% 0x3E;
+    abi.write8(dst, val);
+    rt.r[0] = dst;
+    rt.r[1] = val;
+    abi.retLr();
+}
+
+/// Read byte `+0x1E` of entity slot `u8(r0)` (`*(0x0828_2CBC)`) (`0x0801BFD0`).
+pub fn func_0801BFD0() callconv(.c) void {
+    if (!abi.enter(0x0801BFD0)) return;
+    abi.fetches(11);
+    const slot_idx: u8 = @truncate(rt.r[0]);
+    const table_base = abi.read32(abi.read32(0x0801BFE4));
+    rt.r[2] = table_base;
+    rt.r[1] = entity_stride;
+    rt.r[0] = abi.read8(entityFieldAddr(table_base, slot_idx, 0x1E));
+    abi.retLr();
+}
+
+fn returnConstOne() void {
+    abi.fetches(4);
+    abi.setRegNz(&rt.r[0], 1);
+    abi.retLr();
+}
+
+/// Constant predicate returning `1` (`0x0801C1C4`).
+pub fn func_0801C1C4() callconv(.c) void {
+    if (!abi.enter(0x0801C1C4)) return;
+    returnConstOne();
+}
+
+/// Constant predicate returning `1` (`0x0801C1C8`).
+pub fn func_0801C1C8() callconv(.c) void {
+    if (!abi.enter(0x0801C1C8)) return;
+    returnConstOne();
+}
+
+/// Set `[0x0300_0D8C] = 0x0801_CD01` callback pointer (`0x0801CCF0`).
+pub fn func_0801CCF0() callconv(.c) void {
+    if (!abi.enter(0x0801CCF0)) return;
+    abi.fetches(6);
+    const dst = abi.read32(0x0801CCF8);
+    const cb = abi.read32(0x0801CCFC);
+    abi.write32(dst, cb);
+    rt.r[1] = dst;
+    rt.r[0] = cb;
+    abi.retLr();
+}
+
+/// Clear `[0x0300_4310 + 0x32] = 0` (`0x08034C64`).
+pub fn func_08034C64() callconv(.c) void {
+    if (!abi.enter(0x08034C64)) return;
+    writeByteAtPoolPtr(7, 0x08034C70, 0x32, 0);
+}
+
+/// Set turn phase `[0x0300_357C] = 0x0F` (`u16`) (`0x080351BC`).
+pub fn func_080351BC() callconv(.c) void {
+    if (!abi.enter(0x080351BC)) return;
+    abi.fetches(6);
+    const dst = abi.read32(0x080351C4);
+    abi.write16(dst, 0xF);
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], 0xF);
+    abi.retLr();
+}
+
+fn incU16AtPool(comptime pool_ref: u32) void {
+    abi.fetches(7);
+    const dst = abi.read32(pool_ref);
+    const next: u32 = @as(u32, abi.read16(dst)) +% 1;
+    abi.write16(dst, @truncate(next));
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], next);
+    abi.retLr();
+}
+
+/// Increment `[0x0300_43C8]` (`u16`) (`0x08035220`).
+pub fn func_08035220() callconv(.c) void {
+    if (!abi.enter(0x08035220)) return;
+    incU16AtPool(0x0803522C);
+}
+
+/// Increment `[0x0300_4474]` (`u16`) (`0x0803524C`).
+pub fn func_0803524C() callconv(.c) void {
+    if (!abi.enter(0x0803524C)) return;
+    incU16AtPool(0x08035258);
+}
+
+/// Set `[0x0300_4310 + 0x2D] = 1` (`0x08035804`).
+pub fn func_08035804() callconv(.c) void {
+    if (!abi.enter(0x08035804)) return;
+    writeByteAtPoolPtr(7, 0x08035810, 0x2D, 1);
+}
+
+/// No-op state callback (`0x0803626C`).
+pub fn func_0803626C() callconv(.c) void {
+    if (!abi.enter(0x0803626C)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// No-op state callback (`0x08036270`).
+pub fn func_08036270() callconv(.c) void {
+    if (!abi.enter(0x08036270)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08036AE4`).
+pub fn func_08036AE4() callconv(.c) void {
+    if (!abi.enter(0x08036AE4)) return;
+    writeWordOneAtPool(0x08036AEC);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08036B38`).
+pub fn func_08036B38() callconv(.c) void {
+    if (!abi.enter(0x08036B38)) return;
+    writeWordOneAtPool(0x08036B40);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08036E44`).
+pub fn func_08036E44() callconv(.c) void {
+    if (!abi.enter(0x08036E44)) return;
+    writeWordOneAtPool(0x08036E4C);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08037048`).
+pub fn func_08037048() callconv(.c) void {
+    if (!abi.enter(0x08037048)) return;
+    writeWordOneAtPool(0x08037050);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x080370A4`).
+pub fn func_080370A4() callconv(.c) void {
+    if (!abi.enter(0x080370A4)) return;
+    writeWordOneAtPool(0x080370AC);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08037124`).
+pub fn func_08037124() callconv(.c) void {
+    if (!abi.enter(0x08037124)) return;
+    writeWordOneAtPool(0x0803712C);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08037218`).
+pub fn func_08037218() callconv(.c) void {
+    if (!abi.enter(0x08037218)) return;
+    writeWordOneAtPool(0x08037220);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08037248`).
+pub fn func_08037248() callconv(.c) void {
+    if (!abi.enter(0x08037248)) return;
+    writeWordOneAtPool(0x08037250);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08037398`).
+pub fn func_08037398() callconv(.c) void {
+    if (!abi.enter(0x08037398)) return;
+    writeWordOneAtPool(0x080373A0);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x080373C8`).
+pub fn func_080373C8() callconv(.c) void {
+    if (!abi.enter(0x080373C8)) return;
+    writeWordOneAtPool(0x080373D0);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x0803741C`).
+pub fn func_0803741C() callconv(.c) void {
+    if (!abi.enter(0x0803741C)) return;
+    writeWordOneAtPool(0x08037424);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08037548`).
+pub fn func_08037548() callconv(.c) void {
+    if (!abi.enter(0x08037548)) return;
+    writeWordOneAtPool(0x08037550);
+}
+
+/// Set `[0x0300_3200] = 1` (`0x08037578`).
+pub fn func_08037578() callconv(.c) void {
+    if (!abi.enter(0x08037578)) return;
+    writeWordOneAtPool(0x08037580);
+}
+
+/// Zero 10 command words (`0x28` bytes) at `0x0300_3200` (`0x08037F98`).
+pub fn func_08037F98() callconv(.c) void {
+    if (!abi.enter(0x08037F98)) return;
+    abi.fetches(15);
+    const base = abi.read32(0x08037FB4);
+    var i: u32 = 0;
+    while (i < 10) : (i += 1) {
+        abi.write32(base +% (i << 2), 0);
+    }
+    rt.r[1] = base;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Set `[0x0300_4310 + 0x0D] = 1` (`0x08037FB8`).
+pub fn func_08037FB8() callconv(.c) void {
+    if (!abi.enter(0x08037FB8)) return;
+    abi.fetches(6);
+    const base = abi.read32(0x08037FC0);
+    abi.write8(base +% 0xD, 1);
+    rt.r[1] = base;
+    abi.setRegNz(&rt.r[0], 1);
+    abi.retLr();
+}
+
+fn writeBattleUiField7(comptime pool_ref: u32, comptime val: u8) void {
+    abi.fetches(6);
+    const base = abi.read32(pool_ref);
+    abi.write8(base +% 7, val);
+    rt.r[1] = base;
+    abi.setRegNz(&rt.r[0], val);
+    abi.retLr();
+}
+
+/// Set `[0x0300_4310 + 0x07] = 1` (`0x08038010`).
+pub fn func_08038010() callconv(.c) void {
+    if (!abi.enter(0x08038010)) return;
+    writeBattleUiField7(0x08038018, 1);
+}
+
+/// Clear `[0x0300_4310 + 0x07] = 0` (`0x0803801C`).
+pub fn func_0803801C() callconv(.c) void {
+    if (!abi.enter(0x0803801C)) return;
+    writeBattleUiField7(0x08038024, 0);
+}
+
+/// Set active scene callback `[0x0300_4478] = r0` (`0x08038260`).
+pub fn func_08038260() callconv(.c) void {
+    if (!abi.enter(0x08038260)) return;
+    abi.fetches(5);
+    const dst = abi.read32(0x08038268);
+    abi.write32(dst, rt.r[0]);
+    rt.r[1] = dst;
+    abi.retLr();
+}
+
+/// Clear UI scroll halfword `[0x0300_47E4] = 0` (`0x080385BC`).
+pub fn func_080385BC() callconv(.c) void {
+    if (!abi.enter(0x080385BC)) return;
+    abi.fetches(6);
+    const dst = abi.read32(0x080385C4);
+    abi.write16(dst, 0);
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// No-op state callback (`0x0803A2E0`).
+pub fn func_0803A2E0() callconv(.c) void {
+    if (!abi.enter(0x0803A2E0)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08018AAC, .{ .name = "func_08018AAC", .linkage = .strong });
@@ -308,26 +574,58 @@ comptime {
         @export(&func_08018C9C, .{ .name = "func_08018C9C", .linkage = .strong });
         @export(&func_08019248, .{ .name = "func_08019248", .linkage = .strong });
         @export(&func_08019A0C, .{ .name = "func_08019A0C", .linkage = .strong });
+        @export(&func_0801BDF0, .{ .name = "func_0801BDF0", .linkage = .strong });
+        @export(&func_0801BFD0, .{ .name = "func_0801BFD0", .linkage = .strong });
         @export(&func_0801C108, .{ .name = "func_0801C108", .linkage = .strong });
+        @export(&func_0801C1C4, .{ .name = "func_0801C1C4", .linkage = .strong });
+        @export(&func_0801C1C8, .{ .name = "func_0801C1C8", .linkage = .strong });
         @export(&func_0801C34C, .{ .name = "func_0801C34C", .linkage = .strong });
         @export(&func_0801C358, .{ .name = "func_0801C358", .linkage = .strong });
+        @export(&func_0801CCF0, .{ .name = "func_0801CCF0", .linkage = .strong });
         @export(&func_08022888, .{ .name = "func_08022888", .linkage = .strong });
         @export(&func_080228DC, .{ .name = "func_080228DC", .linkage = .strong });
         @export(&func_080228EC, .{ .name = "func_080228EC", .linkage = .strong });
         @export(&func_0802290C, .{ .name = "func_0802290C", .linkage = .strong });
         @export(&func_08024EC4, .{ .name = "func_08024EC4", .linkage = .strong });
         @export(&func_0802C540, .{ .name = "func_0802C540", .linkage = .strong });
+        @export(&func_08034C64, .{ .name = "func_08034C64", .linkage = .strong });
+        @export(&func_080351BC, .{ .name = "func_080351BC", .linkage = .strong });
+        @export(&func_08035220, .{ .name = "func_08035220", .linkage = .strong });
         @export(&func_08035240, .{ .name = "func_08035240", .linkage = .strong });
+        @export(&func_0803524C, .{ .name = "func_0803524C", .linkage = .strong });
+        @export(&func_08035804, .{ .name = "func_08035804", .linkage = .strong });
+        @export(&func_0803626C, .{ .name = "func_0803626C", .linkage = .strong });
+        @export(&func_08036270, .{ .name = "func_08036270", .linkage = .strong });
         @export(&func_080369F8, .{ .name = "func_080369F8", .linkage = .strong });
         @export(&func_08036A04, .{ .name = "func_08036A04", .linkage = .strong });
         @export(&func_08036A84, .{ .name = "func_08036A84", .linkage = .strong });
         @export(&func_08036A90, .{ .name = "func_08036A90", .linkage = .strong });
+        @export(&func_08036AE4, .{ .name = "func_08036AE4", .linkage = .strong });
+        @export(&func_08036B38, .{ .name = "func_08036B38", .linkage = .strong });
+        @export(&func_08036E44, .{ .name = "func_08036E44", .linkage = .strong });
+        @export(&func_08037048, .{ .name = "func_08037048", .linkage = .strong });
+        @export(&func_080370A4, .{ .name = "func_080370A4", .linkage = .strong });
+        @export(&func_08037124, .{ .name = "func_08037124", .linkage = .strong });
+        @export(&func_08037218, .{ .name = "func_08037218", .linkage = .strong });
+        @export(&func_08037248, .{ .name = "func_08037248", .linkage = .strong });
+        @export(&func_08037398, .{ .name = "func_08037398", .linkage = .strong });
+        @export(&func_080373C8, .{ .name = "func_080373C8", .linkage = .strong });
+        @export(&func_0803741C, .{ .name = "func_0803741C", .linkage = .strong });
+        @export(&func_08037548, .{ .name = "func_08037548", .linkage = .strong });
+        @export(&func_08037578, .{ .name = "func_08037578", .linkage = .strong });
         @export(&func_0803798C, .{ .name = "func_0803798C", .linkage = .strong });
         @export(&func_08037ADC, .{ .name = "func_08037ADC", .linkage = .strong });
         @export(&func_08037BB8, .{ .name = "func_08037BB8", .linkage = .strong });
         @export(&func_08037BE8, .{ .name = "func_08037BE8", .linkage = .strong });
         @export(&func_08037C98, .{ .name = "func_08037C98", .linkage = .strong });
+        @export(&func_08037F98, .{ .name = "func_08037F98", .linkage = .strong });
+        @export(&func_08037FB8, .{ .name = "func_08037FB8", .linkage = .strong });
         @export(&func_08038000, .{ .name = "func_08038000", .linkage = .strong });
+        @export(&func_08038010, .{ .name = "func_08038010", .linkage = .strong });
+        @export(&func_0803801C, .{ .name = "func_0803801C", .linkage = .strong });
+        @export(&func_08038260, .{ .name = "func_08038260", .linkage = .strong });
+        @export(&func_080385BC, .{ .name = "func_080385BC", .linkage = .strong });
+        @export(&func_0803A2E0, .{ .name = "func_0803A2E0", .linkage = .strong });
         @export(&func_0803FD78, .{ .name = "func_0803FD78", .linkage = .strong });
     }
 }
