@@ -12,6 +12,7 @@ const HudFrame = core.platform.HudFrame;
 const PointerEvent = core.platform.PointerEvent;
 const TouchController = core.touch.TouchController;
 const GameState = core.touch.GameState;
+const UiMode = core.touch.UiMode;
 
 const is_freestanding = builtin.os.tag == .freestanding;
 const default_scale: u32 = 3;
@@ -80,28 +81,94 @@ fn readRamSignedBytes(addr: u32, dst: []i8) void {
     }
 }
 
+fn hasActiveProc(script_addr: u32) bool {
+    const proc_table_base: u32 = 0x0300_0E10;
+    const proc_stride: u32 = 0x60;
+    const proc_count: usize = 40;
+    for (0..proc_count) |slot| {
+        if (peek32(proc_table_base + @as(u32, @intCast(slot)) * proc_stride) == script_addr) {
+            return true;
+        }
+    }
+    return false;
+}
+
 fn sampleGameState() GameState {
     const io = rt.io_regs orelse return .{};
     const dispcnt = readIo16(io, gba.io_reg.dispcnt);
-    const mode = dispcnt & 7;
+    const disp_mode = dispcnt & 7;
     const bg3_hofs = readIo16(io, gba.io_reg.bg3hofs) & 0x1FF;
     const bg3_vofs = readIo16(io, gba.io_reg.bg3vofs) & 0x1FF;
 
-    const cursor_live = peek8(0x030036AC) == 1;
-    const battle_mode = peek8(0x030033E0) == 1;
-    const dialog_wait = peek8(0x03001D18) == 1;
-    const cursor_x = peek16(0x030036A4);
-    const cursor_y = peek16(0x030036A6);
+    const battle_lock: i16 = @bitCast(peek16(0x0300_43C8));
+    const battle_lock2: i16 = @bitCast(peek16(0x0300_4470));
+    const turn_phase = peek16(0x0300_357C);
+    const substate = peek16(0x0300_35EC);
+    const main_scene_fn = peek32(0x0300_4478);
+    const in_battle_scene = (main_scene_fn == 0x0803_849D);
+    const dialog_active = hasActiveProc(0x0828_0E0C);
+    const frontend_root = hasActiveProc(0x082F_1160);
+    const cursor_x = peek16(0x0300_36A4);
+    const cursor_y = peek16(0x0300_36A6);
 
-    return .{
-        .map_active = (mode == 0) and cursor_live and battle_mode and !dialog_wait,
-        .dialog_waiting = dialog_wait,
-        .title_mode4 = (mode == 4),
+    const raw_w = peek16(0x0201_57F8);
+    const raw_h = peek16(0x0201_57FA);
+    const valid_map = raw_w >= 1 and raw_w <= core.touch.max_map_dim and
+        raw_h >= 1 and raw_h <= core.touch.max_map_dim;
+    const cam_x: i16 = if (valid_map)
+        @bitCast(peek16(0x0201_57FC))
+    else if (bg3_hofs > 480)
+        @as(i16, @intCast(bg3_hofs)) - 512
+    else
+        @intCast(bg3_hofs);
+    const cam_y: i16 = if (valid_map)
+        @bitCast(peek16(0x0201_57FE))
+    else if (bg3_vofs > 480)
+        @as(i16, @intCast(bg3_vofs)) - 512
+    else
+        @intCast(bg3_vofs);
+
+    const mode: UiMode = if (disp_mode == 4)
+        .title
+    else if (in_battle_scene and disp_mode == 0 and battle_lock == 0 and battle_lock2 == 0 and turn_phase == 5) blk: {
+        if (dialog_active) break :blk .dialog;
+        break :blk switch (substate) {
+            0 => .battle_free_map,
+            1 => .battle_unit_selected,
+            else => .battle_overlay,
+        };
+    } else if (dialog_active and !frontend_root)
+        .dialog
+    else if (!in_battle_scene or battle_lock < 0)
+        .frontend_menu
+    else
+        .battle_overlay;
+
+    var state = GameState{
+        .mode = mode,
+        .map_width = if (valid_map) raw_w else 0,
+        .map_height = if (valid_map) raw_h else 0,
         .cursor_x = cursor_x,
         .cursor_y = cursor_y,
-        .scroll_x = bg3_hofs,
-        .scroll_y = bg3_vofs,
+        .cam_x = cam_x,
+        .cam_y = cam_y,
     };
+
+    if (mode == .battle_unit_selected and state.map_width > 0 and state.map_height > 0) {
+        for (0..@as(usize, state.map_height)) |y| {
+            const row_ptr = peek32(0x0300_3600 + @as(u32, @intCast(y)) * 4);
+            if (row_ptr >= 0x0200_0000 and row_ptr + @as(u32, state.map_width) <= 0x0204_0000) {
+                for (0..@as(usize, state.map_width)) |x| {
+                    const cost: i8 = @bitCast(peek8(row_ptr + @as(u32, @intCast(x))));
+                    if (cost >= 0) {
+                        state.setReachable(@intCast(x), @intCast(y));
+                    }
+                }
+            }
+        }
+    }
+
+    return state;
 }
 
 fn pumpLiveAudio() void {
@@ -203,12 +270,12 @@ fn dumpContinuousFrame(framebuf: *const [gba.width * gba.height]u32, state: Game
             keyin,
             s_live_keys_pressed,
             s_touch.activeKeys(),
-            @intFromBool(state.map_active),
-            @intFromBool(state.dialog_waiting),
+            @intFromBool(state.isMapInteractive()),
+            @intFromBool(state.mode == .dialog),
             state.cursor_x,
             state.cursor_y,
-            state.scroll_x,
-            state.scroll_y,
+            state.cam_x,
+            state.cam_y,
             rt.r[13],
             rt.r[14],
             rt.r[15],

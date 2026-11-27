@@ -101,20 +101,49 @@ pub const hud_buttons = [_]HudSpec{
     .{ .button = .a, .rect = .{ .x = 218, .y = 141, .w = 19, .h = 17 } },
 };
 
-/// Advance Wars IWRAM/MMIO snapshot sampled once per interactive frame.
+pub const max_map_dim: u16 = 32;
+
+pub const UiMode = enum {
+    title,
+    dialog,
+    battle_free_map,
+    battle_unit_selected,
+    battle_overlay,
+    frontend_menu,
+};
+
+/// Advance Wars IWRAM/EWRAM/MMIO snapshot sampled once per interactive frame.
 pub const GameState = struct {
-    map_active: bool = false,
-    dialog_waiting: bool = false,
-    title_mode4: bool = false,
+    mode: UiMode = .frontend_menu,
+    map_width: u16 = 0,
+    map_height: u16 = 0,
     cursor_x: u16 = 0,
     cursor_y: u16 = 0,
-    scroll_x: u16 = 0,
-    scroll_y: u16 = 0,
+    cam_x: i16 = 0,
+    cam_y: i16 = 0,
+    reach_rows: [max_map_dim]u32 = @splat(0),
+
+    pub fn isMapInteractive(self: GameState) bool {
+        return self.mode == .battle_free_map or self.mode == .battle_unit_selected;
+    }
+
+    pub fn isReachable(self: GameState, tx: u16, ty: u16) bool {
+        if (tx >= max_map_dim or ty >= max_map_dim) return false;
+        if (self.map_width > 0 and tx >= self.map_width) return false;
+        if (self.map_height > 0 and ty >= self.map_height) return false;
+        return ((self.reach_rows[ty] >> @intCast(tx)) & 1) != 0;
+    }
+
+    pub fn setReachable(self: *GameState, tx: u16, ty: u16) void {
+        if (tx < max_map_dim and ty < max_map_dim) {
+            self.reach_rows[ty] |= (@as(u32, 1) << @intCast(tx));
+        }
+    }
 };
 
 pub const TileCoord = struct {
-    x: u16,
-    y: u16,
+    x: u16 = 0,
+    y: u16 = 0,
 };
 
 const max_pointers = 8;
@@ -126,6 +155,13 @@ const nav_gap_frames: u8 = 3;
 const nav_stall_limit: u16 = 24;
 const min_button_frames: u8 = 3;
 
+const DragKind = enum {
+    none,
+    move_cursor,
+    paint_path,
+    scroll_menu,
+};
+
 const PointerSlot = struct {
     active: bool = false,
     id: i64 = 0,
@@ -136,6 +172,10 @@ const PointerSlot = struct {
     anchor_x: f32 = 0,
     anchor_y: f32 = 0,
     dragged: bool = false,
+    mode_on_down: UiMode = .frontend_menu,
+    drag_kind: DragKind = .none,
+    start_tile: TileCoord = .{},
+    last_paint_tile: ?TileCoord = null,
 };
 
 const Pulse = struct {
@@ -145,7 +185,7 @@ const Pulse = struct {
 };
 
 /// Touch + mouse controller combining Tier 1 corner HUD buttons and
-/// Tier 2 direct map-tile tapping, menu/dialog taps, and swipe gestures.
+/// Tier 2 direct map-tile tapping, menu/dialog taps, and drag gestures.
 pub const TouchController = struct {
     hud_visible: bool = true,
     hud_width: u16 = gba.width,
@@ -166,12 +206,13 @@ pub const TouchController = struct {
     nav_timer: u8 = 0,
     nav_in_gap: bool = false,
     nav_key_mask: u16 = 0,
-    nav_prev_dist: u32 = 0,
+    nav_last_cursor: TileCoord = .{},
     nav_stall_frames: u16 = 0,
+    nav_steps: u16 = 0,
 
     reticle_tile: ?TileCoord = null,
-    reticle_scroll_x: u16 = 0,
-    reticle_scroll_y: u16 = 0,
+    reticle_cam_x: i16 = 0,
+    reticle_cam_y: i16 = 0,
     reticle_timer: u8 = 0,
 
     pub fn setHudVisible(self: *TouchController, visible: bool) void {
@@ -213,16 +254,22 @@ pub const TouchController = struct {
         return hitTestHudWidth(lx, ly, gba.width);
     }
 
-    pub fn screenToTile(lx: f32, ly: f32, scroll_x: u16, scroll_y: u16) TileCoord {
+    pub fn screenToTile(lx: f32, ly: f32, state: GameState) TileCoord {
         const clamped_x = std.math.clamp(@as(i32, @intFromFloat(@floor(lx))), 0, @as(i32, @intCast(gba.width)) - 1);
         const clamped_y = std.math.clamp(@as(i32, @intFromFloat(@floor(ly))), 0, @as(i32, @intCast(gba.height)) - 1);
-        const sx: i32 = if (scroll_x > 480) @as(i32, scroll_x) - 512 else @as(i32, scroll_x);
-        const sy: i32 = if (scroll_y > 480) @as(i32, scroll_y) - 512 else @as(i32, scroll_y);
-        const wx = @max(clamped_x + sx, 0);
-        const wy = @max(clamped_y + sy, 0);
+        const wx = @max(clamped_x + @as(i32, state.cam_x), 0);
+        const wy = @max(clamped_y + @as(i32, state.cam_y), 0);
+        var tx: i32 = @divTrunc(wx, 16);
+        var ty: i32 = @divTrunc(wy, 16);
+        if (state.map_width > 0) {
+            tx = std.math.clamp(tx, @as(i32, 0), @as(i32, state.map_width) - 1);
+        }
+        if (state.map_height > 0) {
+            ty = std.math.clamp(ty, @as(i32, 0), @as(i32, state.map_height) - 1);
+        }
         return .{
-            .x = @intCast(@divTrunc(wx, 16)),
-            .y = @intCast(@divTrunc(wy, 16)),
+            .x = @intCast(tx),
+            .y = @intCast(ty),
         };
     }
 
@@ -235,6 +282,32 @@ pub const TouchController = struct {
             .gap_frames = gap_frames,
         };
         self.pulse_count += 1;
+    }
+
+    fn clearPulseQueue(self: *TouchController) void {
+        self.pulse_head = 0;
+        self.pulse_count = 0;
+    }
+
+    fn startNavigation(self: *TouchController, target: TileCoord, state: GameState) void {
+        self.nav_target = target;
+        self.nav_timer = 0;
+        self.nav_in_gap = false;
+        self.nav_key_mask = 0;
+        self.nav_last_cursor = .{ .x = state.cursor_x, .y = state.cursor_y };
+        self.nav_stall_frames = 0;
+        self.nav_steps = 0;
+        self.reticle_tile = target;
+        self.reticle_cam_x = state.cam_x;
+        self.reticle_cam_y = state.cam_y;
+        self.reticle_timer = 18;
+    }
+
+    fn cancelNavigation(self: *TouchController) void {
+        self.nav_target = null;
+        self.nav_key_mask = 0;
+        self.nav_timer = 0;
+        self.nav_in_gap = false;
     }
 
     fn recomputeHudMask(self: *TouchController) void {
@@ -263,10 +336,51 @@ pub const TouchController = struct {
         return null;
     }
 
-    fn manhattan(a: TileCoord, b: TileCoord) u32 {
-        const dx: i32 = @as(i32, a.x) - @as(i32, b.x);
-        const dy: i32 = @as(i32, a.y) - @as(i32, b.y);
-        return @abs(dx) + @abs(dy);
+    fn findReachableNextStep(state: GameState, start: TileCoord, goal: TileCoord) ?u16 {
+        if (start.x == goal.x and start.y == goal.y) return null;
+        if (start.x >= max_map_dim or start.y >= max_map_dim) return null;
+        if (goal.x >= max_map_dim or goal.y >= max_map_dim) return null;
+
+        const max_cells: usize = @as(usize, max_map_dim) * @as(usize, max_map_dim);
+        var queue: [max_cells]TileCoord = undefined;
+        var first_dir: [max_cells]u16 = undefined;
+        var visited: [max_map_dim]u32 = @splat(0);
+
+        var head: usize = 0;
+        var tail: usize = 1;
+        queue[0] = start;
+        first_dir[0] = 0;
+        visited[start.y] |= (@as(u32, 1) << @intCast(start.x));
+
+        const deltas = [_]struct { dx: i32, dy: i32, mask: u16 }{
+            .{ .dx = 1, .dy = 0, .mask = gba.Key.right.mask() },
+            .{ .dx = -1, .dy = 0, .mask = gba.Key.left.mask() },
+            .{ .dx = 0, .dy = 1, .mask = gba.Key.down.mask() },
+            .{ .dx = 0, .dy = -1, .mask = gba.Key.up.mask() },
+        };
+
+        while (head < tail) : (head += 1) {
+            const cur = queue[head];
+            const base_dir = first_dir[head];
+            for (deltas) |d| {
+                const nxi: i32 = @as(i32, cur.x) + d.dx;
+                const nyi: i32 = @as(i32, cur.y) + d.dy;
+                if (nxi < 0 or nyi < 0 or nxi >= max_map_dim or nyi >= max_map_dim) continue;
+                const nx: u16 = @intCast(nxi);
+                const ny: u16 = @intCast(nyi);
+                if (!state.isReachable(nx, ny)) continue;
+                if (((visited[ny] >> @intCast(nx)) & 1) != 0) continue;
+
+                const step_dir = if (base_dir != 0) base_dir else d.mask;
+                if (nx == goal.x and ny == goal.y) return step_dir;
+
+                visited[ny] |= (@as(u32, 1) << @intCast(nx));
+                queue[tail] = .{ .x = nx, .y = ny };
+                first_dir[tail] = step_dir;
+                tail += 1;
+            }
+        }
+        return null;
     }
 
     pub fn handlePointer(self: *TouchController, ev: platform.PointerEvent, state: GameState) void {
@@ -284,6 +398,10 @@ pub const TouchController = struct {
                     .anchor_x = ev.logical_x,
                     .anchor_y = ev.logical_y,
                     .dragged = false,
+                    .mode_on_down = state.mode,
+                    .drag_kind = .none,
+                    .start_tile = screenToTile(ev.logical_x, ev.logical_y, state),
+                    .last_paint_tile = null,
                 };
                 if (hud_hit != null) {
                     self.recomputeHudMask();
@@ -303,28 +421,95 @@ pub const TouchController = struct {
 
                 const dx_start = ev.logical_x - slot.start_x;
                 const dy_start = ev.logical_y - slot.start_y;
-                if (!slot.dragged and (dx_start * dx_start + dy_start * dy_start) >= drag_threshold_sq) {
-                    slot.dragged = true;
-                    self.nav_target = null;
-                    self.nav_key_mask = 0;
-                }
+                const dist_sq = dx_start * dx_start + dy_start * dy_start;
 
-                if (slot.dragged) {
-                    while (ev.logical_x - slot.anchor_x >= swipe_step_px) {
-                        self.enqueuePulse(gba.Key.right.mask(), 3, 2);
-                        slot.anchor_x += swipe_step_px;
+                if (slot.mode_on_down == .battle_free_map) {
+                    if (!slot.dragged and dist_sq >= drag_threshold_sq) {
+                        slot.dragged = true;
+                        slot.drag_kind = .move_cursor;
+                        self.cancelNavigation();
                     }
-                    while (slot.anchor_x - ev.logical_x >= swipe_step_px) {
-                        self.enqueuePulse(gba.Key.left.mask(), 3, 2);
-                        slot.anchor_x -= swipe_step_px;
+                    if (slot.drag_kind == .move_cursor) {
+                        // Moving cursor on the map mimics finger motion.
+                        while (ev.logical_x - slot.anchor_x >= swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.right.mask(), 3, 2);
+                            slot.anchor_x += swipe_step_px;
+                        }
+                        while (slot.anchor_x - ev.logical_x >= swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.left.mask(), 3, 2);
+                            slot.anchor_x -= swipe_step_px;
+                        }
+                        while (ev.logical_y - slot.anchor_y >= swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.down.mask(), 3, 2);
+                            slot.anchor_y += swipe_step_px;
+                        }
+                        while (slot.anchor_y - ev.logical_y >= swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.up.mask(), 3, 2);
+                            slot.anchor_y -= swipe_step_px;
+                        }
                     }
-                    while (ev.logical_y - slot.anchor_y >= swipe_step_px) {
-                        self.enqueuePulse(gba.Key.down.mask(), 3, 2);
-                        slot.anchor_y += swipe_step_px;
+                } else if (slot.mode_on_down == .battle_unit_selected) {
+                    const gba_w: f32 = @floatFromInt(gba.width);
+                    const gba_h: f32 = @floatFromInt(gba.height);
+                    const in_bounds = ev.logical_x >= 0 and ev.logical_y >= 0 and ev.logical_x < gba_w and ev.logical_y < gba_h;
+                    const tile = screenToTile(ev.logical_x, ev.logical_y, state);
+                    if (!slot.dragged and (dist_sq >= drag_threshold_sq or tile.x != slot.start_tile.x or tile.y != slot.start_tile.y)) {
+                        slot.dragged = true;
+                        slot.drag_kind = .paint_path;
                     }
-                    while (slot.anchor_y - ev.logical_y >= swipe_step_px) {
-                        self.enqueuePulse(gba.Key.up.mask(), 3, 2);
-                        slot.anchor_y -= swipe_step_px;
+                    if (slot.drag_kind == .paint_path and state.mode == .battle_unit_selected and in_bounds) {
+                        if (state.isReachable(tile.x, tile.y)) {
+                            const changed = if (slot.last_paint_tile) |prev| (prev.x != tile.x or prev.y != tile.y) else true;
+                            if (changed) {
+                                slot.last_paint_tile = tile;
+                                if (tile.x != state.cursor_x or tile.y != state.cursor_y) {
+                                    if (self.nav_target != null) {
+                                        self.nav_target = tile;
+                                        self.nav_stall_frames = 0;
+                                        self.reticle_tile = tile;
+                                        self.reticle_cam_x = state.cam_x;
+                                        self.reticle_cam_y = state.cam_y;
+                                        self.reticle_timer = 18;
+                                    } else {
+                                        self.startNavigation(tile, state);
+                                    }
+                                } else {
+                                    self.reticle_tile = tile;
+                                    self.reticle_cam_x = state.cam_x;
+                                    self.reticle_cam_y = state.cam_y;
+                                    self.reticle_timer = 18;
+                                }
+                            }
+                        }
+                    }
+                } else if (slot.mode_on_down == .battle_overlay or slot.mode_on_down == .frontend_menu) {
+                    if (!slot.dragged and dist_sq >= drag_threshold_sq) {
+                        slot.dragged = true;
+                        slot.drag_kind = .scroll_menu;
+                        self.cancelNavigation();
+                    }
+                    if (slot.drag_kind == .scroll_menu) {
+                        // Natural scrolling in menus: swipe up scrolls down, swipe down scrolls up.
+                        while (ev.logical_x - slot.anchor_x <= -swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.right.mask(), 3, 2);
+                            slot.anchor_x -= swipe_step_px;
+                        }
+                        while (ev.logical_x - slot.anchor_x >= swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.left.mask(), 3, 2);
+                            slot.anchor_x += swipe_step_px;
+                        }
+                        while (ev.logical_y - slot.anchor_y <= -swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.down.mask(), 3, 2);
+                            slot.anchor_y -= swipe_step_px;
+                        }
+                        while (ev.logical_y - slot.anchor_y >= swipe_step_px) {
+                            if (self.pulse_count < 3) self.enqueuePulse(gba.Key.up.mask(), 3, 2);
+                            slot.anchor_y += swipe_step_px;
+                        }
+                    }
+                } else {
+                    if (!slot.dragged and dist_sq >= drag_threshold_sq) {
+                        slot.dragged = true;
                     }
                 }
             },
@@ -333,9 +518,11 @@ pub const TouchController = struct {
                 const hud_btn = slot.hud_button;
                 const held = slot.held_frames;
                 const was_dragged = slot.dragged;
+                const drag_kind = slot.drag_kind;
                 slot.active = false;
                 slot.hud_button = null;
                 slot.held_frames = 0;
+                slot.drag_kind = .none;
                 if (hud_btn) |btn| {
                     if (held < min_button_frames) {
                         self.enqueuePulse(btn.keyMask(), min_button_frames - held, 1);
@@ -343,13 +530,17 @@ pub const TouchController = struct {
                     self.recomputeHudMask();
                     return;
                 }
-                if (was_dragged) return;
+                if (was_dragged) {
+                    if (drag_kind == .move_cursor or drag_kind == .scroll_menu) {
+                        self.clearPulseQueue();
+                    }
+                    return;
+                }
 
                 self.handleCanvasTap(ev.logical_x, ev.logical_y, state);
             },
             .right_down => {
-                self.nav_target = null;
-                self.nav_key_mask = 0;
+                self.cancelNavigation();
                 self.right_held = true;
                 self.right_held_frames = 0;
             },
@@ -361,13 +552,11 @@ pub const TouchController = struct {
                 self.right_held_frames = 0;
             },
             .scroll_up => {
-                self.nav_target = null;
-                self.nav_key_mask = 0;
+                self.cancelNavigation();
                 self.enqueuePulse(gba.Key.up.mask(), 3, 2);
             },
             .scroll_down => {
-                self.nav_target = null;
-                self.nav_key_mask = 0;
+                self.cancelNavigation();
                 self.enqueuePulse(gba.Key.down.mask(), 3, 2);
             },
         }
@@ -378,45 +567,67 @@ pub const TouchController = struct {
             return;
         }
 
-        if (state.map_active) {
-            const tile = screenToTile(lx, ly, state.scroll_x, state.scroll_y);
-            self.reticle_tile = tile;
-            self.reticle_scroll_x = state.scroll_x;
-            self.reticle_scroll_y = state.scroll_y;
-            self.reticle_timer = 18;
-
-            if (tile.x == state.cursor_x and tile.y == state.cursor_y) {
-                self.nav_target = null;
-                self.nav_key_mask = 0;
+        switch (state.mode) {
+            .battle_free_map => {
+                const tile = screenToTile(lx, ly, state);
+                if (tile.x == state.cursor_x and tile.y == state.cursor_y) {
+                    self.cancelNavigation();
+                    self.reticle_tile = tile;
+                    self.reticle_cam_x = state.cam_x;
+                    self.reticle_cam_y = state.cam_y;
+                    self.reticle_timer = 18;
+                    self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                } else {
+                    self.startNavigation(tile, state);
+                }
+            },
+            .battle_unit_selected => {
+                const tile = screenToTile(lx, ly, state);
+                if (state.isReachable(tile.x, tile.y)) {
+                    if (tile.x == state.cursor_x and tile.y == state.cursor_y) {
+                        self.cancelNavigation();
+                        self.reticle_tile = tile;
+                        self.reticle_cam_x = state.cam_x;
+                        self.reticle_cam_y = state.cam_y;
+                        self.reticle_timer = 18;
+                        self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                    } else {
+                        self.startNavigation(tile, state);
+                    }
+                } else {
+                    // Tapping outside the unit's movement range simply cancels/deselects (B).
+                    self.cancelNavigation();
+                    self.reticle_timer = 0;
+                    self.enqueuePulse(gba.Key.b.mask(), 4, 2);
+                }
+            },
+            .battle_overlay => {
+                self.cancelNavigation();
                 self.enqueuePulse(gba.Key.a.mask(), 4, 2);
-            } else {
-                self.nav_target = tile;
-                self.nav_timer = 0;
-                self.nav_in_gap = false;
-                self.nav_key_mask = 0;
-                self.nav_prev_dist = manhattan(.{ .x = state.cursor_x, .y = state.cursor_y }, tile);
-                self.nav_stall_frames = 0;
-            }
-            return;
-        }
-
-        self.nav_target = null;
-        self.nav_key_mask = 0;
-        if (state.dialog_waiting) {
-            self.enqueuePulse(gba.Key.a.mask(), 4, 2);
-        } else if (state.title_mode4) {
-            self.enqueuePulse(gba.Key.start.mask(), 4, 2);
-        } else {
-            self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+            },
+            .dialog => {
+                self.cancelNavigation();
+                self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+            },
+            .title => {
+                self.cancelNavigation();
+                self.enqueuePulse(gba.Key.start.mask(), 4, 2);
+            },
+            .frontend_menu => {
+                self.cancelNavigation();
+                self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+            },
         }
     }
 
     pub fn stepFrame(self: *TouchController, state: GameState) void {
-        if (self.reticle_timer > 0) {
+        if (!state.isMapInteractive()) {
+            self.reticle_timer = 0;
+        } else if (self.reticle_timer > 0) {
             self.reticle_timer -= 1;
         }
-        self.reticle_scroll_x = state.scroll_x;
-        self.reticle_scroll_y = state.scroll_y;
+        self.reticle_cam_x = state.cam_x;
+        self.reticle_cam_y = state.cam_y;
 
         for (&self.pointers) |*slot| {
             if (slot.active and slot.hud_button != null) {
@@ -463,7 +674,7 @@ pub const TouchController = struct {
             return;
         };
 
-        if (!state.map_active or (state.cursor_x == target.x and state.cursor_y == target.y)) {
+        if (!state.isMapInteractive() or (state.cursor_x == target.x and state.cursor_y == target.y)) {
             self.nav_target = null;
             self.nav_key_mask = 0;
             self.nav_timer = 0;
@@ -471,10 +682,17 @@ pub const TouchController = struct {
             return;
         }
 
-        const dist = manhattan(.{ .x = state.cursor_x, .y = state.cursor_y }, target);
-        if (dist < self.nav_prev_dist) {
-            self.nav_prev_dist = dist;
+        if (state.cursor_x != self.nav_last_cursor.x or state.cursor_y != self.nav_last_cursor.y) {
+            self.nav_last_cursor = .{ .x = state.cursor_x, .y = state.cursor_y };
             self.nav_stall_frames = 0;
+            self.nav_steps += 1;
+            if (self.nav_steps >= 64) {
+                self.nav_target = null;
+                self.nav_key_mask = 0;
+                self.nav_timer = 0;
+                self.nav_in_gap = false;
+                return;
+            }
         } else {
             self.nav_stall_frames += 1;
             if (self.nav_stall_frames >= nav_stall_limit) {
@@ -497,14 +715,21 @@ pub const TouchController = struct {
                 self.nav_timer = nav_gap_frames;
             } else {
                 var dir_mask: u16 = 0;
-                if (state.cursor_x < target.x) {
-                    dir_mask = gba.Key.right.mask();
-                } else if (state.cursor_x > target.x) {
-                    dir_mask = gba.Key.left.mask();
-                } else if (state.cursor_y < target.y) {
-                    dir_mask = gba.Key.down.mask();
-                } else if (state.cursor_y > target.y) {
-                    dir_mask = gba.Key.up.mask();
+                if (state.mode == .battle_unit_selected and state.isReachable(target.x, target.y)) {
+                    if (findReachableNextStep(state, .{ .x = state.cursor_x, .y = state.cursor_y }, target)) |bfs_dir| {
+                        dir_mask = bfs_dir;
+                    }
+                }
+                if (dir_mask == 0) {
+                    if (state.cursor_x < target.x) {
+                        dir_mask = gba.Key.right.mask();
+                    } else if (state.cursor_x > target.x) {
+                        dir_mask = gba.Key.left.mask();
+                    } else if (state.cursor_y < target.y) {
+                        dir_mask = gba.Key.down.mask();
+                    } else if (state.cursor_y > target.y) {
+                        dir_mask = gba.Key.up.mask();
+                    }
                 }
                 self.nav_key_mask = dir_mask;
                 self.nav_timer = nav_pulse_frames;
@@ -526,7 +751,7 @@ pub const TouchController = struct {
 
         if (self.nav_target != null or self.reticle_timer > 0) {
             if (self.reticle_tile) |tile| {
-                drawTargetReticle(dst, tile, self.reticle_scroll_x, self.reticle_scroll_y);
+                drawTargetReticle(dst, tile, self.reticle_cam_x, self.reticle_cam_y);
             }
         }
     }
@@ -599,13 +824,11 @@ fn blendPixel(dst: *u32, r: u32, g: u32, b: u32, alpha: u32, rgba_order: bool) v
 fn drawTargetReticle(
     dst: *[gba.width * gba.height]u32,
     tile: TileCoord,
-    scroll_x: u16,
-    scroll_y: u16,
+    cam_x: i16,
+    cam_y: i16,
 ) void {
-    const sx: i32 = if (scroll_x > 480) @as(i32, scroll_x) - 512 else @as(i32, scroll_x);
-    const sy: i32 = if (scroll_y > 480) @as(i32, scroll_y) - 512 else @as(i32, scroll_y);
-    const x0: i32 = @as(i32, tile.x) * 16 - sx;
-    const y0: i32 = @as(i32, tile.y) * 16 - sy;
+    const x0: i32 = @as(i32, tile.x) * 16 - @as(i32, cam_x);
+    const y0: i32 = @as(i32, tile.y) * 16 - @as(i32, cam_y);
 
     var dy: i32 = 0;
     while (dy < 16) : (dy += 1) {
@@ -730,11 +953,13 @@ test "HUD buttons hit-test and hold/release keys cleanly" {
 test "Tier 2 map tap navigates cursor to target tile and second tap emits A" {
     var tc = TouchController{};
     var state = GameState{
-        .map_active = true,
+        .mode = .battle_free_map,
+        .map_width = 15,
+        .map_height = 10,
         .cursor_x = 7,
         .cursor_y = 4,
-        .scroll_x = 0,
-        .scroll_y = 0,
+        .cam_x = 0,
+        .cam_y = 0,
     };
 
     // Tap tile (5, 5) -> pixel (88, 88).
@@ -768,7 +993,7 @@ test "Tier 2 map tap navigates cursor to target tile and second tap emits A" {
 test "Navigation stall guard aborts cleanly if cursor cannot move" {
     var tc = TouchController{};
     const state = GameState{
-        .map_active = true,
+        .mode = .battle_free_map,
         .cursor_x = 7,
         .cursor_y = 4,
     };
@@ -786,7 +1011,7 @@ test "Navigation stall guard aborts cleanly if cursor cannot move" {
 
 test "Dialog tap emits A and Mode 4 title tap emits Start" {
     var tc = TouchController{};
-    const dialog_state = GameState{ .dialog_waiting = true };
+    const dialog_state = GameState{ .mode = .dialog };
     tc.handlePointer(.{ .id = 1, .phase = .down, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, dialog_state);
     tc.handlePointer(.{ .id = 1, .phase = .up, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, dialog_state);
     tc.stepFrame(dialog_state);
@@ -795,29 +1020,147 @@ test "Dialog tap emits A and Mode 4 title tap emits Start" {
     for (0..8) |_| tc.stepFrame(dialog_state);
     try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 
-    const title_state = GameState{ .title_mode4 = true };
+    const title_state = GameState{ .mode = .title };
     tc.handlePointer(.{ .id = 1, .phase = .down, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, title_state);
     tc.handlePointer(.{ .id = 1, .phase = .up, .x = 120, .y = 80, .logical_x = 120, .logical_y = 80 }, title_state);
     tc.stepFrame(title_state);
     try std.testing.expectEqual(gba.Key.start.mask(), tc.activeKeys());
 }
 
-test "Menu swipe emits Down pulses and suppresses tap A on release" {
+test "Battle overlay and frontend menus use natural scrolling and tap emits A" {
     var tc = TouchController{};
-    const menu_state = GameState{};
-    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, menu_state);
-    tc.handlePointer(.{ .id = 1, .phase = .move, .x = 100, .y = 76, .logical_x = 100, .logical_y = 76 }, menu_state);
-    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 100, .y = 76, .logical_x = 100, .logical_y = 76 }, menu_state);
+    const menu_state = GameState{ .mode = .frontend_menu };
+    // Natural scrolling: swipe UP scrolls DOWN (Key.down), clears queue on lift without emitting A.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 100, .y = 90, .logical_x = 100, .logical_y = 90 }, menu_state);
+    tc.handlePointer(.{ .id = 1, .phase = .move, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, menu_state);
+    tc.stepFrame(menu_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, menu_state);
+    try std.testing.expectEqual(@as(usize, 0), tc.pulse_count);
+    for (0..6) |_| tc.stepFrame(menu_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 
-    var down_count: usize = 0;
-    var a_count: usize = 0;
-    for (0..20) |_| {
-        tc.stepFrame(menu_state);
-        if ((tc.activeKeys() & gba.Key.down.mask()) != 0) down_count += 1;
-        if ((tc.activeKeys() & gba.Key.a.mask()) != 0) a_count += 1;
+    // Plain tap in frontend menu emits A.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, menu_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, menu_state);
+    tc.stepFrame(menu_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..6) |_| tc.stepFrame(menu_state);
+
+    // Battle overlay (e.g. Action Menu / Map Menu / Unit List): natural scrolling + tap A, never map nav.
+    const overlay_state = GameState{ .mode = .battle_overlay, .cursor_x = 3, .cursor_y = 5 };
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 100, .y = 40, .logical_x = 100, .logical_y = 40 }, overlay_state);
+    tc.handlePointer(.{ .id = 3, .phase = .move, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, overlay_state);
+    tc.stepFrame(overlay_state);
+    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 100, .y = 88, .logical_x = 100, .logical_y = 88 }, overlay_state);
+    for (0..6) |_| tc.stepFrame(overlay_state);
+
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, overlay_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 16, .y = 16, .logical_x = 16, .logical_y = 16 }, overlay_state);
+    try std.testing.expect(tc.nav_target == null);
+    tc.stepFrame(overlay_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+}
+
+test "Free map drag mimics finger motion and clears queue on release" {
+    var tc = TouchController{};
+    const fm_state = GameState{
+        .mode = .battle_free_map,
+        .map_width = 20,
+        .map_height = 15,
+        .cursor_x = 5,
+        .cursor_y = 5,
+    };
+
+    // Dragging finger RIGHT moves cursor RIGHT -> emits Key.right; lifting clears queue and never emits A.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 80, .y = 80, .logical_x = 80, .logical_y = 80 }, fm_state);
+    tc.handlePointer(.{ .id = 1, .phase = .move, .x = 80 + 48, .y = 80, .logical_x = 80 + 48, .logical_y = 80 }, fm_state);
+    tc.stepFrame(fm_state);
+    try std.testing.expectEqual(gba.Key.right.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 80 + 48, .y = 80, .logical_x = 80 + 48, .logical_y = 80 }, fm_state);
+    try std.testing.expectEqual(@as(usize, 0), tc.pulse_count);
+    for (0..6) |_| tc.stepFrame(fm_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Dragging finger UP moves cursor UP -> emits Key.up without triggering A.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 100, .y = 100, .logical_x = 100, .logical_y = 100 }, fm_state);
+    tc.handlePointer(.{ .id = 2, .phase = .move, .x = 100, .y = 100 - 32, .logical_x = 100, .logical_y = 100 - 32 }, fm_state);
+    tc.stepFrame(fm_state);
+    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
+}
+
+test "Unit selected BFS detour preview, 2nd-tap confirm, unreachable B deselect, and drag path painting" {
+    var tc = TouchController{};
+    // Reachable U-shape detour from (2,2) to (4,2) avoiding barrier at (3,2): (2,2)->(2,3)->(3,3)->(4,3)->(4,2).
+    var sel_state = GameState{
+        .mode = .battle_unit_selected,
+        .map_width = 10,
+        .map_height = 10,
+        .cursor_x = 2,
+        .cursor_y = 2,
+    };
+    sel_state.setReachable(2, 2);
+    sel_state.setReachable(2, 3);
+    sel_state.setReachable(3, 3);
+    sel_state.setReachable(4, 3);
+    sel_state.setReachable(4, 2);
+
+    // 1st tap on reachable (4, 2) -> px (72, 40) walks via reachable BFS detour without confirming A.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 72, .y = 40, .logical_x = 72, .logical_y = 40 }, sel_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 72, .y = 40, .logical_x = 72, .logical_y = 40 }, sel_state);
+    var first_dir: u16 = 0;
+    var ticks: usize = 0;
+    while (tc.nav_target != null and ticks < 50) : (ticks += 1) {
+        tc.stepFrame(sel_state);
+        const k = tc.activeKeys();
+        if (first_dir == 0 and k != 0) first_dir = k;
+        if (tc.nav_timer == nav_pulse_frames - 1 and !tc.nav_in_gap) {
+            if ((k & gba.Key.left.mask()) != 0) sel_state.cursor_x -= 1;
+            if ((k & gba.Key.right.mask()) != 0) sel_state.cursor_x += 1;
+            if ((k & gba.Key.up.mask()) != 0) sel_state.cursor_y -= 1;
+            if ((k & gba.Key.down.mask()) != 0) sel_state.cursor_y += 1;
+            try std.testing.expect(sel_state.isReachable(sel_state.cursor_x, sel_state.cursor_y));
+        }
     }
-    try std.testing.expect(down_count >= 6);
-    try std.testing.expectEqual(@as(usize, 0), a_count);
+    try std.testing.expectEqual(gba.Key.down.mask(), first_dir);
+    try std.testing.expectEqual(@as(u16, 4), sel_state.cursor_x);
+    try std.testing.expectEqual(@as(u16, 2), sel_state.cursor_y);
+
+    // Drag painting from (4,2) across (4,3) -> (3,3) does NOT auto-confirm A on release.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 72, .y = 40, .logical_x = 72, .logical_y = 40 }, sel_state);
+    tc.handlePointer(.{ .id = 2, .phase = .move, .x = 72, .y = 56, .logical_x = 72, .logical_y = 56 }, sel_state);
+    tc.handlePointer(.{ .id = 2, .phase = .move, .x = 56, .y = 56, .logical_x = 56, .logical_y = 56 }, sel_state);
+    try std.testing.expectEqual(TileCoord{ .x = 3, .y = 3 }, tc.nav_target.?);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 56, .y = 56, .logical_x = 56, .logical_y = 56 }, sel_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys() & gba.Key.a.mask());
+    sel_state.cursor_x = 4;
+    sel_state.cursor_y = 2;
+
+    // 2nd tap on cursor tile (4, 2) confirms A.
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 72, .y = 40, .logical_x = 72, .logical_y = 40 }, sel_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 72, .y = 40, .logical_x = 72, .logical_y = 40 }, sel_state);
+    tc.stepFrame(sel_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(sel_state);
+
+    // Tapping unreachable tile (8, 6) -> px (136, 104) only emits B (cancel/deselect), without moving cursor there.
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 136, .y = 104, .logical_x = 136, .logical_y = 104 }, sel_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 136, .y = 104, .logical_x = 136, .logical_y = 104 }, sel_state);
+    tc.stepFrame(sel_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+    try std.testing.expect(tc.nav_target == null);
+
+    const fm_after = GameState{
+        .mode = .battle_free_map,
+        .map_width = 10,
+        .map_height = 10,
+        .cursor_x = 2,
+        .cursor_y = 2,
+    };
+    for (0..10) |_| tc.stepFrame(fm_after);
+    try std.testing.expect(tc.nav_target == null);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 }
 
 test "renderOverlay draws HUD pixels into dst without altering src" {
@@ -837,7 +1180,9 @@ test "renderOverlay draws HUD pixels into dst without altering src" {
 test "Mouse right-click holds B and scroll wheel emits Up/Down while cancelling map nav" {
     var tc = TouchController{};
     const map_state = GameState{
-        .map_active = true,
+        .mode = .battle_free_map,
+        .map_width = 15,
+        .map_height = 10,
         .cursor_x = 2,
         .cursor_y = 2,
     };
@@ -972,4 +1317,38 @@ test "Unified HUD layer extends classic corner pills into side margins" {
     try std.testing.expect(buf[7 * 284 + 10] != 0);
     try std.testing.expectEqual(@as(u32, 0), buf[2 * 284 + 2]);
     try std.testing.expectEqual(@as(u32, 0), buf[80 * 284 + 142]);
+}
+
+test "Smooth drag-paint preserves step cadence and battle_overlay clears stale reticle" {
+    var tc = TouchController{};
+    var sel_state = GameState{
+        .mode = .battle_unit_selected,
+        .map_width = 10,
+        .map_height = 10,
+        .cursor_x = 2,
+        .cursor_y = 2,
+    };
+    sel_state.setReachable(2, 2);
+    sel_state.setReachable(3, 2);
+    sel_state.setReachable(4, 2);
+
+    // Start drag-paint across (3,2) -> step 1 frame -> retarget (4,2) without resetting nav_timer.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 40, .y = 40, .logical_x = 40, .logical_y = 40 }, sel_state);
+    tc.handlePointer(.{ .id = 1, .phase = .move, .x = 56, .y = 40, .logical_x = 56, .logical_y = 40 }, sel_state);
+    tc.stepFrame(sel_state);
+    const saved_timer = tc.nav_timer;
+    const saved_mask = tc.nav_key_mask;
+    try std.testing.expect(saved_mask == gba.Key.right.mask());
+
+    tc.handlePointer(.{ .id = 1, .phase = .move, .x = 72, .y = 40, .logical_x = 72, .logical_y = 40 }, sel_state);
+    try std.testing.expectEqual(TileCoord{ .x = 4, .y = 2 }, tc.nav_target.?);
+    try std.testing.expectEqual(saved_timer, tc.nav_timer);
+    try std.testing.expectEqual(saved_mask, tc.nav_key_mask);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 72, .y = 40, .logical_x = 72, .logical_y = 40 }, sel_state);
+    try std.testing.expect(tc.reticle_timer > 0);
+
+    // Entering battle_overlay clears stale yellow reticle immediately.
+    const overlay_state = GameState{ .mode = .battle_overlay, .map_width = 10, .map_height = 10 };
+    tc.stepFrame(overlay_state);
+    try std.testing.expectEqual(@as(u8, 0), tc.reticle_timer);
 }
