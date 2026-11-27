@@ -7,32 +7,97 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="toolbar">
-    <div class="brand">Advance Wars <span class="badge">WASM</span></div>
+  <header id="toolbar" class="toolbar">
+    <div class="brand">
+      <svg class="icon-wrench" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+      </svg>
+      <span>Advance Wars</span>
+    </div>
     <div class="actions">
-      <label class="btn primary">
+      <label id="load-rom-btn" class="btn primary" hidden>
         Load ROM
         <input id="rom-input" type="file" accept=".gba" hidden />
       </label>
-      <button id="btn-hud" class="btn" type="button" title="Toggle Touch HUD (F2)">HUD</button>
+      <button id="btn-hud" class="btn" type="button" title="Toggle Touch Controls (F2)">HUD</button>
       <button id="btn-mute" class="btn" type="button" title="Mute / Unmute Audio (F3 / M)">Mute</button>
-      <button id="btn-full" class="btn" type="button" title="Fullscreen (F11)">Full</button>
-      <button id="btn-export-sav" class="btn" type="button" title="Download .sav">Export .sav</button>
+      <button id="btn-export-sav" class="btn" type="button" title="Download .sav">Save</button>
       <label class="btn" title="Load external .sav into IndexedDB">
-        Import .sav
+        Load
         <input id="sav-input" type="file" accept=".sav,.srm" hidden />
       </label>
-      <button id="btn-stop" class="btn danger" type="button" disabled>Stop</button>
     </div>
+    <button id="btn-hide-bar" class="btn" type="button" title="Hide toolbar">Hide</button>
   </header>
+
+  <button id="bar-restore" class="bar-restore" type="button" hidden title="Show toolbar">
+    <svg class="icon-wrench" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  </button>
 
   <div id="coep-banner" class="banner" hidden>
     <strong>Cross-Origin Isolation required:</strong> <code>SharedArrayBuffer</code> is unavailable.
     Serve <code>zig-out/web/</code> via <code>python3 scripts/serve_web.py</code> (COOP + COEP headers enabled).
   </div>
 
-  <main id="stage" class="stage">
-    <canvas id="screen" width="240" height="160"></canvas>
+  <main id="stage" class="stage layout-tight">
+    <div id="screen-zone" class="screen-zone">
+      <div class="screen-bezel">
+        <canvas id="screen" width="240" height="160"></canvas>
+      </div>
+    </div>
+    <canvas id="hud-canvas" class="hud-canvas" width="240" height="160" hidden></canvas>
+
+    <div id="pad-deck" class="pad-deck" hidden>
+      <div class="deck-inner">
+        <div class="deck-shoulders">
+          <button class="pad-btn shoulder" type="button" data-key="512" aria-label="L">
+            <svg class="px-glyph" width="9" height="15" viewBox="0 0 3 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M0 0h1v4h2v1H0z"/></svg>
+          </button>
+          <button class="pad-btn shoulder" type="button" data-key="256" aria-label="R">
+            <svg class="px-glyph" width="9" height="15" viewBox="0 0 3 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M0 0h2v1H1v1h1v1H1v2H0z M2 1h1v1H2z M2 3h1v2H2z"/></svg>
+          </button>
+        </div>
+
+        <div class="deck-main">
+          <div id="dpad-zone" class="dpad" aria-label="D-Pad">
+            <div class="dpad-arm dpad-up" data-dir="up">
+              <svg class="px-glyph" width="12" height="12" viewBox="0 0 5 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M2 1h1v1H2z M1 2h3v1H1z M0 3h5v1H0z"/></svg>
+            </div>
+            <div class="dpad-arm dpad-left" data-dir="left">
+              <svg class="px-glyph" width="12" height="12" viewBox="0 0 5 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 2h1v1H1z M2 1h1v3H2z M3 0h1v5H3z"/></svg>
+            </div>
+            <div class="dpad-center"></div>
+            <div class="dpad-arm dpad-right" data-dir="right">
+              <svg class="px-glyph" width="12" height="12" viewBox="0 0 5 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h1v5H1z M2 1h1v3H2z M3 2h1v1H3z"/></svg>
+            </div>
+            <div class="dpad-arm dpad-down" data-dir="down">
+              <svg class="px-glyph" width="12" height="12" viewBox="0 0 5 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M0 1h5v1H0z M1 2h3v1H1z M2 3h1v1H2z"/></svg>
+            </div>
+          </div>
+
+          <div class="deck-ab">
+            <button class="pad-btn pad-ba-port pad-b" type="button" data-key="2" aria-label="B">
+              <svg class="px-glyph" width="12" height="20" viewBox="0 0 3 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M0 0h2v1H1v1h1v1H1v1h1v1H0z M2 1h1v1H2z M2 3h1v1H2z"/></svg>
+            </button>
+            <button class="pad-btn pad-ba-port pad-a" type="button" data-key="1" aria-label="A">
+              <svg class="px-glyph" width="12" height="20" viewBox="0 0 3 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h1v1H1z M0 1h1v4H0z M2 1h1v4H2z M1 2h1v1H1z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="deck-meta">
+          <button class="pad-btn pill" type="button" data-key="4" aria-label="Select">
+            <svg class="px-glyph" width="33" height="15" viewBox="0 0 11 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v1H1z M0 1h1v1H0z M1 2h1v1H1z M2 3h1v1H2z M0 4h2v1H0z M4 0h1v5H4z M5 0h2v1H5z M5 2h1v1H5z M5 4h2v1H5z M8 0h1v4h2v1H8z"/></svg>
+          </button>
+          <button class="pad-btn pill" type="button" data-key="8" aria-label="Start">
+            <svg class="px-glyph" width="21" height="15" viewBox="0 0 7 5" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 0h2v1H1z M0 1h1v1H0z M1 2h1v1H1z M2 3h1v1H2z M0 4h2v1H0z M4 0h3v1H4z M5 1h1v4H5z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="drop-overlay" class="overlay" hidden>
       <div class="card">
         <h1>Advance Wars</h1>
@@ -49,10 +114,7 @@
     </div>
   </main>
 
-  <footer class="statusbar">
-    <span id="status-text">Waiting for ROM</span>
-    <span id="fps-text"></span>
-  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="main.js" type="module"></script>
 </body>

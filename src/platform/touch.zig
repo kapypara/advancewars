@@ -50,6 +50,48 @@ pub const HudSpec = struct {
     rect: Rect,
 };
 
+pub const max_hud_width: usize = 512;
+
+/// Compute total HUD layer width (in 160p GBA logical pixels) spanning the
+/// centered 240x160 game plus any horizontal side margins, kept even for
+/// symmetric centering.
+pub fn computeHudWidth(area_w: i32, game_h: i32) u16 {
+    if (area_w <= 0 or game_h <= 0) return gba.width;
+    const gba_w: i32 = @intCast(gba.width);
+    const gba_h: i32 = @intCast(gba.height);
+    const raw_w: i32 = @divTrunc(area_w * gba_h, game_h);
+    const max_w: i32 = @intCast(max_hud_width);
+    const clamped: i32 = std.math.clamp(raw_w, gba_w, max_w);
+    const even_w: i32 = clamped - @mod(clamped, 2);
+    return @intCast(@max(even_w, gba_w));
+}
+
+/// Button rect in `(hud_w x 160)` HUD layer coordinates `[0, hud_w)`.
+pub fn hudBufferRect(button: HudButton, hud_w: u16) Rect {
+    const w_i: i32 = @max(@as(i32, hud_w), @as(i32, gba.width));
+    return switch (button) {
+        .l => .{ .x = 2, .y = 2, .w = 18, .h = 12 },
+        .start => .{ .x = w_i - 46, .y = 2, .w = 22, .h = 12 },
+        .r => .{ .x = w_i - 20, .y = 2, .w = 18, .h = 12 },
+        .b => .{ .x = w_i - 44, .y = 141, .w = 19, .h = 17 },
+        .a => .{ .x = w_i - 22, .y = 141, .w = 19, .h = 17 },
+    };
+}
+
+/// Hit-test HUD buttons using game-relative logical coordinates `(lx, ly)`, where
+/// `[0, 240)` is the GBA screen and negative or `>= 240` coordinates lie in side margins.
+pub fn hitTestHudWidth(lx: f32, ly: f32, hud_w: u16) ?HudButton {
+    const w_i: i32 = @max(@as(i32, hud_w), @as(i32, gba.width));
+    const pad_l: f32 = @floatFromInt(@divTrunc(w_i - @as(i32, gba.width), 2));
+    const hx = lx + pad_l;
+    for (hud_buttons) |spec| {
+        if (hudBufferRect(spec.button, @intCast(w_i)).contains(hx, ly)) {
+            return spec.button;
+        }
+    }
+    return null;
+}
+
 /// Minimal corner HUD layout in logical 240x160 GBA coordinates (center map stays clear).
 pub const hud_buttons = [_]HudSpec{
     .{ .button = .l, .rect = .{ .x = 2, .y = 2, .w = 18, .h = 12 } },
@@ -106,6 +148,7 @@ const Pulse = struct {
 /// Tier 2 direct map-tile tapping, menu/dialog taps, and swipe gestures.
 pub const TouchController = struct {
     hud_visible: bool = true,
+    hud_width: u16 = gba.width,
     pointers: [max_pointers]PointerSlot = @splat(.{}),
     hud_held_mask: u16 = 0,
     right_held: bool = false,
@@ -131,17 +174,32 @@ pub const TouchController = struct {
     reticle_scroll_y: u16 = 0,
     reticle_timer: u8 = 0,
 
-    pub fn toggleHud(self: *TouchController) void {
-        self.hud_visible = !self.hud_visible;
+    pub fn setHudVisible(self: *TouchController, visible: bool) void {
+        if (self.hud_visible == visible) return;
+        self.hud_visible = visible;
         if (!self.hud_visible) {
             for (&self.pointers) |*slot| {
                 if (slot.active and slot.hud_button != null) {
                     slot.active = false;
                     slot.hud_button = null;
+                    slot.held_frames = 0;
                 }
             }
             self.recomputeHudMask();
         }
+    }
+
+    pub fn toggleHud(self: *TouchController) void {
+        self.setHudVisible(!self.hud_visible);
+    }
+
+    pub fn setHudWidth(self: *TouchController, width: u16) void {
+        const clamped: u16 = std.math.clamp(
+            width,
+            @as(u16, @intCast(gba.width)),
+            @as(u16, @intCast(max_hud_width)),
+        );
+        self.hud_width = clamped - @mod(clamped, 2);
     }
 
     pub fn activeKeys(self: *const TouchController) u16 {
@@ -152,10 +210,7 @@ pub const TouchController = struct {
     }
 
     pub fn hitTestHud(lx: f32, ly: f32) ?HudButton {
-        for (hud_buttons) |spec| {
-            if (spec.rect.contains(lx, ly)) return spec.button;
-        }
-        return null;
+        return hitTestHudWidth(lx, ly, gba.width);
     }
 
     pub fn screenToTile(lx: f32, ly: f32, scroll_x: u16, scroll_y: u16) TileCoord {
@@ -218,7 +273,7 @@ pub const TouchController = struct {
         switch (ev.phase) {
             .down => {
                 const slot = self.findSlot(ev.id) orelse self.allocSlot() orelse return;
-                const hud_hit = if (self.hud_visible) hitTestHud(ev.logical_x, ev.logical_y) else null;
+                const hud_hit = if (self.hud_visible) hitTestHudWidth(ev.logical_x, ev.logical_y, self.hud_width) else null;
                 slot.* = .{
                     .active = true,
                     .id = ev.id,
@@ -237,7 +292,7 @@ pub const TouchController = struct {
             .move => {
                 const slot = self.findSlot(ev.id) orelse return;
                 if (slot.hud_button) |old_btn| {
-                    const now_btn = if (self.hud_visible) hitTestHud(ev.logical_x, ev.logical_y) else null;
+                    const now_btn = if (self.hud_visible) hitTestHudWidth(ev.logical_x, ev.logical_y, self.hud_width) else null;
                     if (now_btn != old_btn) {
                         slot.hud_button = now_btn;
                         slot.held_frames = 0;
@@ -461,8 +516,8 @@ pub const TouchController = struct {
         }
     }
 
-    /// Composite subtle corner touch controls and target reticle into `dst` without altering `src`.
-    pub fn renderOverlay(
+    /// Composite only the in-game target reticle into `dst` without baking HUD buttons.
+    pub fn renderGameWithReticle(
         self: *const TouchController,
         src: *const [gba.width * gba.height]u32,
         dst: *[gba.width * gba.height]u32,
@@ -474,27 +529,71 @@ pub const TouchController = struct {
                 drawTargetReticle(dst, tile, self.reticle_scroll_x, self.reticle_scroll_y);
             }
         }
+    }
 
+    /// Composite corner touch controls into a separate transparent `hud_w x 160` buffer.
+    /// `rgba_order` selects little-endian RGBA bytes (`0xAABBGGRR`, for Canvas2D) vs ARGB (`0xAARRGGBB`, for SDL2).
+    pub fn renderHudLayer(
+        self: *const TouchController,
+        dst: []u32,
+        hud_w: u16,
+        rgba_order: bool,
+    ) void {
+        const clamped: u16 = std.math.clamp(
+            hud_w,
+            @as(u16, @intCast(gba.width)),
+            @as(u16, @intCast(max_hud_width)),
+        );
+        const safe_w: u16 = clamped - @mod(clamped, 2);
+        const total: usize = @as(usize, safe_w) * gba.height;
+        if (dst.len < total) return;
+        @memset(dst[0..total], 0);
+        if (!self.hud_visible) return;
+
+        const held = self.hud_held_mask;
+        for (hud_buttons) |spec| {
+            const rect = hudBufferRect(spec.button, safe_w);
+            const is_pressed = (held & spec.button.keyMask()) != 0;
+            drawPillBuf(dst[0..total], safe_w, rect, spec.button.label(), is_pressed, rgba_order);
+        }
+    }
+
+    /// Composite target reticle and subtle corner touch controls directly into `dst` without altering `src`.
+    pub fn renderOverlay(
+        self: *const TouchController,
+        src: *const [gba.width * gba.height]u32,
+        dst: *[gba.width * gba.height]u32,
+    ) void {
+        self.renderGameWithReticle(src, dst);
         if (!self.hud_visible) return;
 
         const held = self.hud_held_mask;
         for (hud_buttons) |spec| {
             const is_pressed = (held & spec.button.keyMask()) != 0;
-            drawPill(dst, spec.rect, spec.button.label(), is_pressed);
+            drawPillBuf(dst[0..], gba.width, spec.rect, spec.button.label(), is_pressed, false);
         }
     }
 };
 
-fn blendPixel(dst: *u32, r: u32, g: u32, b: u32, alpha: u32) void {
+fn blendPixel(dst: *u32, r: u32, g: u32, b: u32, alpha: u32, rgba_order: bool) void {
+    if (alpha == 0) return;
     const px = dst.*;
-    const dr = (px >> 16) & 0xFF;
+    const da = (px >> 24) & 0xFF;
+    const dr = if (rgba_order) (px & 0xFF) else ((px >> 16) & 0xFF);
     const dg = (px >> 8) & 0xFF;
-    const db = px & 0xFF;
+    const db = if (rgba_order) ((px >> 16) & 0xFF) else (px & 0xFF);
+
     const inv = 255 - alpha;
-    const nr = (r * alpha + dr * inv) / 255;
-    const ng = (g * alpha + dg * inv) / 255;
-    const nb = (b * alpha + db * inv) / 255;
-    dst.* = 0xFF000000 | (nr << 16) | (ng << 8) | nb;
+    const num_a = alpha * 255 + da * inv;
+    const out_a = (num_a + 127) / 255;
+    const nr = (r * alpha * 255 + dr * da * inv + (num_a / 2)) / num_a;
+    const ng = (g * alpha * 255 + dg * da * inv + (num_a / 2)) / num_a;
+    const nb = (b * alpha * 255 + db * da * inv + (num_a / 2)) / num_a;
+
+    dst.* = if (rgba_order)
+        (out_a << 24) | (nb << 16) | (ng << 8) | nr
+    else
+        (out_a << 24) | (nr << 16) | (ng << 8) | nb;
 }
 
 fn drawTargetReticle(
@@ -520,15 +619,22 @@ fn drawTargetReticle(
             const on_corner = on_edge and ((dx < 4 or dx > 11) and (dy < 4 or dy > 11));
             const idx: usize = @intCast(@as(usize, @intCast(py)) * gba.width + @as(usize, @intCast(px)));
             if (on_corner) {
-                blendPixel(&dst[idx], 255, 210, 64, 210);
+                blendPixel(&dst[idx], 255, 210, 64, 210, false);
             } else if (!on_edge) {
-                blendPixel(&dst[idx], 255, 220, 90, 40);
+                blendPixel(&dst[idx], 255, 220, 90, 40, false);
             }
         }
     }
 }
 
-fn drawPill(dst: *[gba.width * gba.height]u32, rect: Rect, text: []const u8, pressed: bool) void {
+fn drawPillBuf(
+    dst: []u32,
+    buf_w: usize,
+    rect: Rect,
+    text: []const u8,
+    pressed: bool,
+    rgba_order: bool,
+) void {
     const fill_r: u32 = if (pressed) 225 else 20;
     const fill_g: u32 = if (pressed) 135 else 24;
     const fill_b: u32 = if (pressed) 35 else 34;
@@ -546,18 +652,18 @@ fn drawPill(dst: *[gba.width * gba.height]u32, rect: Rect, text: []const u8, pre
         var dx: i32 = 0;
         while (dx < rect.w) : (dx += 1) {
             const px = rect.x + dx;
-            if (px < 0 or px >= @as(i32, @intCast(gba.width))) continue;
+            if (px < 0 or px >= @as(i32, @intCast(buf_w))) continue;
             // Cut 1px outer corners for rounded pill silhouette.
             const is_corner = (dx == 0 or dx == rect.w - 1) and (dy == 0 or dy == rect.h - 1);
             if (is_corner) continue;
 
             const is_border = (dx == 0 or dx == rect.w - 1 or dy == 0 or dy == rect.h - 1 or
                 ((dx == 1 or dx == rect.w - 2) and (dy == 1 or dy == rect.h - 2)));
-            const idx: usize = @intCast(@as(usize, @intCast(py)) * gba.width + @as(usize, @intCast(px)));
+            const idx: usize = @as(usize, @intCast(py)) * buf_w + @as(usize, @intCast(px));
             if (is_border) {
-                blendPixel(&dst[idx], border_r, border_g, border_b, border_a);
+                blendPixel(&dst[idx], border_r, border_g, border_b, border_a, rgba_order);
             } else {
-                blendPixel(&dst[idx], fill_r, fill_g, fill_b, fill_a);
+                blendPixel(&dst[idx], fill_r, fill_g, fill_b, fill_a, rgba_order);
             }
         }
     }
@@ -566,11 +672,11 @@ fn drawPill(dst: *[gba.width * gba.height]u32, rect: Rect, text: []const u8, pre
     const start_x: i32 = rect.x + @divTrunc(rect.w - total_text_w, 2);
     const start_y: i32 = rect.y + @divTrunc(rect.h - 5, 2);
     for (text, 0..) |ch, ci| {
-        drawGlyph3x5(dst, start_x + @as(i32, @intCast(ci)) * 4, start_y, ch, pressed);
+        drawGlyph3x5Buf(dst, buf_w, start_x + @as(i32, @intCast(ci)) * 4, start_y, ch, pressed, rgba_order);
     }
 }
 
-fn glyphRows(ch: u8) [5]u3 {
+pub fn glyphRows(ch: u8) [5]u3 {
     return switch (ch) {
         'A' => .{ 0b010, 0b101, 0b111, 0b101, 0b101 },
         'B' => .{ 0b110, 0b101, 0b110, 0b101, 0b110 },
@@ -582,7 +688,15 @@ fn glyphRows(ch: u8) [5]u3 {
     };
 }
 
-fn drawGlyph3x5(dst: *[gba.width * gba.height]u32, gx: i32, gy: i32, ch: u8, bright: bool) void {
+fn drawGlyph3x5Buf(
+    dst: []u32,
+    buf_w: usize,
+    gx: i32,
+    gy: i32,
+    ch: u8,
+    bright: bool,
+    rgba_order: bool,
+) void {
     const rows = glyphRows(ch);
     const a: u32 = if (bright) 255 else 225;
     for (rows, 0..) |row, ry| {
@@ -593,9 +707,9 @@ fn drawGlyph3x5(dst: *[gba.width * gba.height]u32, gx: i32, gy: i32, ch: u8, bri
             const bit_idx: u2 = @intCast(2 - rx);
             if (((row >> bit_idx) & 1) == 0) continue;
             const px = gx + rx;
-            if (px < 0 or px >= @as(i32, @intCast(gba.width))) continue;
-            const idx: usize = @intCast(@as(usize, @intCast(py)) * gba.width + @as(usize, @intCast(px)));
-            blendPixel(&dst[idx], 255, 255, 255, a);
+            if (px < 0 or px >= @as(i32, @intCast(buf_w))) continue;
+            const idx: usize = @as(usize, @intCast(py)) * buf_w + @as(usize, @intCast(px));
+            blendPixel(&dst[idx], 255, 255, 255, a, rgba_order);
         }
     }
 }
@@ -807,4 +921,55 @@ test "Same-frame HUD B click and mouse right-click latch for minimum frames" {
     try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
     tc.stepFrame(.{});
     try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+}
+
+test "setHudVisible toggles and releases held HUD buttons cleanly" {
+    var tc = TouchController{};
+    const a_x: f32 = 227;
+    const a_y: f32 = 149;
+
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = a_x, .y = a_y, .logical_x = a_x, .logical_y = a_y }, .{});
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+
+    tc.setHudVisible(false);
+    try std.testing.expect(!tc.hud_visible);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = a_x, .y = a_y, .logical_x = a_x, .logical_y = a_y }, .{});
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    tc.setHudVisible(true);
+    try std.testing.expect(tc.hud_visible);
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = a_x, .y = a_y, .logical_x = a_x, .logical_y = a_y }, .{});
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+}
+
+test "Unified HUD layer extends classic corner pills into side margins" {
+    try std.testing.expectEqual(@as(u16, gba.width), computeHudWidth(720, 480));
+    try std.testing.expectEqual(@as(u16, 284), computeHudWidth(1280, 720));
+    try std.testing.expectEqual(@as(u16, 372), computeHudWidth(2560, 1100));
+    try std.testing.expectEqual(@as(u16, max_hud_width), computeHudWidth(4000, 720));
+
+    // At 16:9 (`hud_w = 284`), L sits purely inside the left margin (`lx in [-20, -2)`),
+    // and R / A extend past the right edge (`>= 240`).
+    try std.testing.expectEqual(HudButton.l, hitTestHudWidth(-12.0, 7.0, 284).?);
+    try std.testing.expectEqual(HudButton.r, hitTestHudWidth(250.0, 7.0, 284).?);
+    try std.testing.expectEqual(HudButton.a, hitTestHudWidth(248.0, 148.0, 284).?);
+    try std.testing.expect(hitTestHudWidth(120.0, 80.0, 284) == null);
+
+    // At ultrawide (`hud_w = 374` -> clamped even `374`), all 5 buttons sit cleanly outside `[0, 240)`.
+    var tc = TouchController{};
+    tc.setHudWidth(374);
+    try std.testing.expectEqual(@as(u16, 374), tc.hud_width);
+    try std.testing.expectEqual(HudButton.l, hitTestHudWidth(-58.0, 7.0, tc.hud_width).?);
+    try std.testing.expectEqual(HudButton.start, hitTestHudWidth(270.0, 7.0, tc.hud_width).?);
+    try std.testing.expectEqual(HudButton.b, hitTestHudWidth(270.0, 148.0, tc.hud_width).?);
+
+    var buf: [max_hud_width * gba.height]u32 = @splat(0);
+    tc.renderHudLayer(&buf, 284, true);
+    // Center pixel in L button buffer rect (`x=10, y=7`) is opaque/translucent glyph/fill;
+    // cut outer corner `(2, 2)` and center screen pixel `(142, 80)` remain transparent.
+    try std.testing.expect(buf[7 * 284 + 10] != 0);
+    try std.testing.expectEqual(@as(u32, 0), buf[2 * 284 + 2]);
+    try std.testing.expectEqual(@as(u32, 0), buf[80 * 284 + 142]);
 }

@@ -47,6 +47,13 @@ self.onmessage = async (ev) => {
             lastFpsMs = now;
           }
         },
+        host_present_hud(ptr, w, h) {
+          const memBuf = wasm.memory.buffer;
+          const width = w >>> 0;
+          const height = h >>> 0;
+          const pixels = new Uint8ClampedArray(memBuf, ptr >>> 0, width * height * 4).slice();
+          self.postMessage({ type: "hud", width, height, pixels }, [pixels.buffer]);
+        },
         host_poll_input() {
           const w = Atomics.load(sabI32, 5);
           let r = Atomics.load(sabI32, 6);
@@ -75,6 +82,9 @@ self.onmessage = async (ev) => {
             lastMuteSeq = muteSeq;
             mask |= 1 << 18;
           }
+          mask |= 1 << 19;
+          if (Atomics.load(sabI32, 8) !== 0) mask |= 1 << 20;
+          mask |= (Atomics.load(sabI32, 9) & 0x03ff) << 21;
           return mask >>> 0;
         },
         host_pace() {

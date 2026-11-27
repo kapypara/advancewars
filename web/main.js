@@ -2,6 +2,7 @@ const GBA_W = 240;
 const GBA_H = 160;
 const PTR_CAP = 64;
 const SAB_PTR_OFFSET_I32 = 16;
+const MIN_EXT_HOLD_MS = 55;
 
 const PHASE_DOWN = 0;
 const PHASE_MOVE = 1;
@@ -24,22 +25,41 @@ const KEY_MAP = new Map([
   ["KeyA", 1 << 9],       // L
 ]);
 
+const DIR_KEYS = {
+  up: 1 << 6,
+  down: 1 << 7,
+  left: 1 << 5,
+  right: 1 << 4,
+};
+
+const toolbar = document.getElementById("toolbar");
+const barRestore = document.getElementById("bar-restore");
+const loadRomBtn = document.getElementById("load-rom-btn");
+const screenZone = document.getElementById("screen-zone");
 const canvas = document.getElementById("screen");
 const ctx = canvas.getContext("2d", { alpha: false });
+const hudCanvas = document.getElementById("hud-canvas");
+const hudCtx = hudCanvas.getContext("2d", { alpha: true });
 const stage = document.getElementById("stage");
+const padDeck = document.getElementById("pad-deck");
+const dpadZone = document.getElementById("dpad-zone");
+const dpadArms = {
+  up: dpadZone.querySelector('[data-dir="up"]'),
+  down: dpadZone.querySelector('[data-dir="down"]'),
+  left: dpadZone.querySelector('[data-dir="left"]'),
+  right: dpadZone.querySelector('[data-dir="right"]'),
+};
 const dropOverlay = document.getElementById("drop-overlay");
 const coepBanner = document.getElementById("coep-banner");
-const statusText = document.getElementById("status-text");
-const fpsText = document.getElementById("fps-text");
+const toastEl = document.getElementById("toast");
 
 const romInput = document.getElementById("rom-input");
 const romInputHero = document.getElementById("rom-input-hero");
 const savInput = document.getElementById("sav-input");
 const btnHud = document.getElementById("btn-hud");
 const btnMute = document.getElementById("btn-mute");
-const btnFull = document.getElementById("btn-full");
 const btnExportSav = document.getElementById("btn-export-sav");
-const btnStop = document.getElementById("btn-stop");
+const btnHideBar = document.getElementById("btn-hide-bar");
 
 if (!window.crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
   coepBanner.hidden = false;
@@ -54,14 +74,35 @@ let currentRomName = null;
 let currentRomBytes = null;
 let lastSaveBytes = null;
 let muted = false;
-let hudVisible = true;
+let hudVisible = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+let hudUserToggled = false;
+let inFrameHud = false;
+let hudWidth = GBA_W;
 let audioCtx = null;
 let audioNode = null;
 let audioInitPromise = null;
 let wasmCache = null;
+let toastTimer = null;
 
-function setStatus(msg) {
-  statusText.textContent = msg;
+let kbKeyMask = 0;
+let extKeyMask = 0;
+
+function syncLiveKeys() {
+  if (sabI32) Atomics.store(sabI32, 0, (kbKeyMask | extKeyMask) & 0x03ff);
+}
+
+function showToast(msg, { isError = false, durationMs = 2200 } = {}) {
+  clearTimeout(toastTimer);
+  toastEl.textContent = msg;
+  toastEl.classList.toggle("error", isError);
+  toastEl.hidden = false;
+  toastEl.style.opacity = "1";
+  toastTimer = setTimeout(() => {
+    toastEl.style.opacity = "0";
+    setTimeout(() => {
+      if (toastEl.style.opacity === "0") toastEl.hidden = true;
+    }, 220);
+  }, durationMs);
 }
 
 function openSaveDb() {
@@ -154,20 +195,130 @@ function unlockAudio() {
   }
 }
 
+function updateHudButton() {
+  btnHud.textContent = hudVisible ? "HUD On" : "HUD";
+  btnHud.classList.toggle("active", hudVisible);
+}
+
+const extButtonPointers = new Map();
+const latchedExtTimers = new Map();
+let dpadPointerId = null;
+let dpadDirMask = 0;
+let dpadDownAt = 0;
+let dpadLatchTimer = null;
+
+function setDpadVisual(mask) {
+  for (const [dir, el] of Object.entries(dpadArms)) {
+    el.classList.toggle("pressed", (mask & DIR_KEYS[dir]) !== 0);
+  }
+}
+
+function recomputeExtKeys() {
+  let mask = dpadDirMask;
+  for (const entry of extButtonPointers.values()) {
+    mask |= entry.keyBit;
+  }
+  for (const bit of latchedExtTimers.keys()) {
+    mask |= bit;
+  }
+  extKeyMask = mask & 0x03ff;
+  syncLiveKeys();
+}
+
+function clearExternalPadState() {
+  for (const timer of latchedExtTimers.values()) clearTimeout(timer);
+  latchedExtTimers.clear();
+  for (const entry of extButtonPointers.values()) {
+    entry.el.classList.remove("pressed");
+  }
+  extButtonPointers.clear();
+  if (dpadLatchTimer) {
+    clearTimeout(dpadLatchTimer);
+    dpadLatchTimer = null;
+  }
+  dpadPointerId = null;
+  dpadDirMask = 0;
+  setDpadVisual(0);
+  recomputeExtKeys();
+}
+
+function computeHudWidthPx(availW, gameH) {
+  if (availW <= 0 || gameH <= 0) return GBA_W;
+  const raw = Math.floor((availW * GBA_H) / gameH);
+  const clamped = Math.max(GBA_W, Math.min(512, raw));
+  return clamped - (clamped % 2);
+}
+
 function fitCanvas() {
+  const rawW = stage.clientWidth;
+  const rawH = stage.clientHeight;
+  const isPortrait = rawH > rawW;
+  document.body.classList.toggle("is-portrait", isPortrait);
+
+  const isPortraitHud =
+    hudVisible &&
+    isPortrait &&
+    rawH >= (rawW * 2) / 3 + 220 &&
+    rawW >= 260;
+
+  const layoutClass = isPortraitHud ? "layout-portrait" : "layout-tight";
+  stage.classList.remove("layout-portrait", "layout-tight");
+  stage.classList.add(layoutClass);
+
   const cs = getComputedStyle(stage);
   const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
   const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-  const availW = Math.max(0, stage.clientWidth - padX);
-  const availH = Math.max(0, stage.clientHeight - padY);
-  let w = availW;
+  const availW = Math.max(0, rawW - padX);
+  const availH = Math.max(0, rawH - padY);
+
+  let targetW = availW;
+  let targetH = availH;
+
+  if (isPortraitHud) {
+    const minDeckH = 256;
+    const maxDeckH = 370;
+    const natGameH = Math.floor((Math.max(0, rawW - 32) * GBA_H) / GBA_W);
+    const halfH = Math.round(rawH * 0.45);
+    const maxZoneH = Math.max(120, rawH - minDeckH);
+    const minZoneForMaxDeck = Math.max(0, rawH - maxDeckH);
+    const zoneH = Math.min(Math.max(halfH, natGameH + 34, minZoneForMaxDeck), maxZoneH);
+    screenZone.style.height = `${zoneH}px`;
+    targetW = Math.max(0, rawW - 32);
+    targetH = Math.max(0, zoneH - 34);
+    padDeck.hidden = false;
+    inFrameHud = false;
+  } else {
+    screenZone.style.height = "";
+    if (!padDeck.hidden) clearExternalPadState();
+    padDeck.hidden = true;
+    inFrameHud = hudVisible;
+  }
+
+  let w = targetW;
   let h = (w * GBA_H) / GBA_W;
-  if (h > availH) {
-    h = availH;
+  if (h > targetH) {
+    h = targetH;
     w = (h * GBA_W) / GBA_H;
   }
-  canvas.style.width = `${Math.floor(w)}px`;
-  canvas.style.height = `${Math.floor(h)}px`;
+  const cw = Math.floor(Math.max(0, w));
+  const ch = Math.floor(Math.max(0, h));
+  canvas.style.width = `${cw}px`;
+  canvas.style.height = `${ch}px`;
+
+  hudWidth = inFrameHud && ch > 0 ? computeHudWidthPx(availW, ch) : GBA_W;
+  if (inFrameHud && cw > 0 && ch > 0) {
+    const hudCssW = hudWidth === GBA_W ? cw : Math.round((hudWidth * ch) / GBA_H);
+    hudCanvas.hidden = false;
+    hudCanvas.style.width = `${hudCssW}px`;
+    hudCanvas.style.height = `${ch}px`;
+  } else {
+    hudCanvas.hidden = true;
+  }
+
+  if (sabI32) {
+    Atomics.store(sabI32, 8, inFrameHud ? 1 : 0);
+    Atomics.store(sabI32, 9, hudWidth | 0);
+  }
 }
 
 if (typeof ResizeObserver !== "undefined") {
@@ -175,6 +326,7 @@ if (typeof ResizeObserver !== "undefined") {
 }
 window.addEventListener("resize", fitCanvas);
 document.addEventListener("fullscreenchange", fitCanvas);
+updateHudButton();
 fitCanvas();
 
 function pushPointerEvent(id, phase, lx, ly) {
@@ -196,7 +348,9 @@ let rightMouseDown = false;
 let rightPointerId = null;
 
 function releaseAllInputs() {
-  if (sabI32) Atomics.store(sabI32, 0, 0);
+  kbKeyMask = 0;
+  clearExternalPadState();
+  syncLiveKeys();
   for (const pid of activePointers) {
     pushPointerEvent(pid, PHASE_UP, -1, -1);
   }
@@ -227,8 +381,6 @@ function stopGame() {
     Atomics.store(sabI32, 7, 1);
     Atomics.notify(sabI32, 7);
   }
-  btnStop.disabled = true;
-  fpsText.textContent = "";
   setTimeout(() => {
     try {
       w.terminate();
@@ -239,7 +391,11 @@ function stopGame() {
 async function startSession({ name, key, romBytes }) {
   if (typeof SharedArrayBuffer === "undefined") {
     coepBanner.hidden = false;
-    setStatus("Error: SharedArrayBuffer unavailable (serve with COOP/COEP headers)");
+    loadRomBtn.hidden = false;
+    showToast("SharedArrayBuffer unavailable (serve with COOP/COEP headers)", {
+      isError: true,
+      durationMs: 5000,
+    });
     return;
   }
 
@@ -265,10 +421,12 @@ async function startSession({ name, key, romBytes }) {
   sabI32 = new Int32Array(sab);
   sabF32 = new Float32Array(sab);
   if (muted) Atomics.store(sabI32, 3, 1);
-  if (!hudVisible) Atomics.store(sabI32, 2, 1);
+  Atomics.store(sabI32, 8, inFrameHud ? 1 : 0);
+  Atomics.store(sabI32, 9, hudWidth | 0);
 
   worker = new Worker("worker.js", { type: "module" });
   const imgData = ctx.createImageData(GBA_W, GBA_H);
+  let hudImgData = null;
 
   worker.onmessage = async (ev) => {
     const msg = ev.data;
@@ -279,36 +437,43 @@ async function startSession({ name, key, romBytes }) {
       if (msg.audio && audioNode && audioCtx && audioCtx.state === "running" && !muted) {
         audioNode.port.postMessage(msg.audio, [msg.audio.buffer]);
       }
-    } else if (msg.type === "fps") {
-      fpsText.textContent = `${msg.fps.toFixed(1)} FPS`;
+    } else if (msg.type === "hud") {
+      if (hudCanvas.width !== msg.width || hudCanvas.height !== msg.height) {
+        hudCanvas.width = msg.width;
+        hudCanvas.height = msg.height;
+        hudImgData = null;
+      }
+      if (!hudImgData) {
+        hudImgData = hudCtx.createImageData(msg.width, msg.height);
+      }
+      hudImgData.data.set(msg.pixels);
+      hudCtx.putImageData(hudImgData, 0, 0);
     } else if (msg.type === "ready") {
       dropOverlay.hidden = true;
-      btnStop.disabled = false;
-      setStatus(`Running ${currentRomName}${lastSaveBytes ? " (save loaded)" : " (new save)"}`);
+      loadRomBtn.hidden = true;
+      fitCanvas();
     } else if (msg.type === "needs-rom") {
       worker = null;
-      btnStop.disabled = true;
       dropOverlay.hidden = false;
-      setStatus("Select or drop a .gba ROM to play");
+      loadRomBtn.hidden = false;
+      showToast("Select or drop a .gba ROM to play", { durationMs: 3000 });
     } else if (msg.type === "save") {
       lastSaveBytes = msg.data;
       try {
         await idbPutSave(currentRomKey, msg.data);
-        setStatus(`Running ${currentRomName} — Flash saved locally`);
+        showToast("Flash saved locally");
       } catch (err) {
-        setStatus(`Save error: ${err}`);
+        showToast(`Save error: ${err}`, { isError: true, durationMs: 4000 });
       }
     } else if (msg.type === "stopped") {
-      btnStop.disabled = true;
-      setStatus("Stopped");
+      worker = null;
     } else if (msg.type === "error") {
-      btnStop.disabled = true;
-      setStatus(`WASM error: ${msg.message}`);
+      loadRomBtn.hidden = false;
+      showToast(`WASM error: ${msg.message}`, { isError: true, durationMs: 5000 });
       console.error(msg.message);
     }
   };
 
-  setStatus(`Starting ${name}...`);
   const romTransfer = romBytes ? romBytes.slice() : null;
   const savTransfer = savBytes ? savBytes.slice() : null;
   const transfers = [wasmBytes];
@@ -340,15 +505,122 @@ async function startRom(file) {
 async function startEmbedded() {
   try {
     await startSession({
-      name: "Advance Wars (Bundled)",
+      name: "Advance Wars",
       key: "awre-save:embedded",
       romBytes: null,
     });
   } catch (err) {
     dropOverlay.hidden = false;
-    setStatus(`Boot error: ${err}`);
+    loadRomBtn.hidden = false;
+    showToast(`Boot error: ${err}`, { isError: true, durationMs: 4000 });
   }
 }
+
+// External outside-frame buttons & D-Pad
+for (const btn of document.querySelectorAll(".pad-btn[data-key]")) {
+  const keyBit = parseInt(btn.dataset.key, 10) | 0;
+  btn.addEventListener("contextmenu", (ev) => ev.preventDefault());
+  btn.addEventListener("pointerdown", (ev) => {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (latchedExtTimers.has(keyBit)) {
+      clearTimeout(latchedExtTimers.get(keyBit));
+      latchedExtTimers.delete(keyBit);
+    }
+    extButtonPointers.set(ev.pointerId, { keyBit, el: btn, downAt: performance.now() });
+    btn.classList.add("pressed");
+    try {
+      btn.setPointerCapture(ev.pointerId);
+    } catch (_) {}
+    recomputeExtKeys();
+  });
+
+  function releaseExtBtn(ev) {
+    const entry = extButtonPointers.get(ev.pointerId);
+    if (!entry) return;
+    extButtonPointers.delete(ev.pointerId);
+    entry.el.classList.remove("pressed");
+    const elapsed = performance.now() - entry.downAt;
+    if (elapsed < MIN_EXT_HOLD_MS) {
+      if (latchedExtTimers.has(entry.keyBit)) clearTimeout(latchedExtTimers.get(entry.keyBit));
+      const rem = Math.ceil(MIN_EXT_HOLD_MS - elapsed);
+      const t = setTimeout(() => {
+        latchedExtTimers.delete(entry.keyBit);
+        recomputeExtKeys();
+      }, rem);
+      latchedExtTimers.set(entry.keyBit, t);
+    }
+    recomputeExtKeys();
+  }
+
+  btn.addEventListener("pointerup", releaseExtBtn);
+  btn.addEventListener("pointercancel", releaseExtBtn);
+}
+
+function evalDpadDir(ev) {
+  const rect = dpadZone.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return 0;
+  const dx = ev.clientX - (rect.left + rect.width * 0.5);
+  const dy = ev.clientY - (rect.top + rect.height * 0.5);
+  const dist = Math.hypot(dx, dy);
+  if (dist < rect.width * 0.14) return 0;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx < 0 ? DIR_KEYS.left : DIR_KEYS.right;
+  }
+  return dy < 0 ? DIR_KEYS.up : DIR_KEYS.down;
+}
+
+dpadZone.addEventListener("contextmenu", (ev) => ev.preventDefault());
+dpadZone.addEventListener("pointerdown", (ev) => {
+  if (ev.pointerType === "mouse" && ev.button !== 0) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (dpadLatchTimer) {
+    clearTimeout(dpadLatchTimer);
+    dpadLatchTimer = null;
+  }
+  dpadPointerId = ev.pointerId;
+  dpadDownAt = performance.now();
+  dpadDirMask = evalDpadDir(ev);
+  setDpadVisual(dpadDirMask);
+  try {
+    dpadZone.setPointerCapture(ev.pointerId);
+  } catch (_) {}
+  recomputeExtKeys();
+});
+
+dpadZone.addEventListener("pointermove", (ev) => {
+  if (dpadPointerId !== ev.pointerId) return;
+  const nextMask = evalDpadDir(ev);
+  if (nextMask !== dpadDirMask) {
+    dpadDirMask = nextMask;
+    setDpadVisual(dpadDirMask);
+    recomputeExtKeys();
+  }
+});
+
+function releaseDpad(ev) {
+  if (dpadPointerId !== ev.pointerId) return;
+  const prevMask = dpadDirMask;
+  const elapsed = performance.now() - dpadDownAt;
+  dpadPointerId = null;
+  if (prevMask !== 0 && elapsed < MIN_EXT_HOLD_MS) {
+    dpadLatchTimer = setTimeout(() => {
+      dpadLatchTimer = null;
+      dpadDirMask = 0;
+      setDpadVisual(0);
+      recomputeExtKeys();
+    }, Math.ceil(MIN_EXT_HOLD_MS - elapsed));
+  } else {
+    dpadDirMask = 0;
+    setDpadVisual(0);
+    recomputeExtKeys();
+  }
+}
+
+dpadZone.addEventListener("pointerup", releaseDpad);
+dpadZone.addEventListener("pointercancel", releaseDpad);
 
 // Keyboard input
 window.addEventListener("keydown", (ev) => {
@@ -371,15 +643,17 @@ window.addEventListener("keydown", (ev) => {
   const bit = KEY_MAP.get(ev.code);
   if (bit && sabI32 && worker) {
     ev.preventDefault();
-    Atomics.or(sabI32, 0, bit);
+    kbKeyMask |= bit;
+    syncLiveKeys();
   }
 });
 
 window.addEventListener("keyup", (ev) => {
   const bit = KEY_MAP.get(ev.code);
-  if (bit && sabI32) {
+  if (bit) {
     ev.preventDefault();
-    Atomics.and(sabI32, 0, ~bit);
+    kbKeyMask &= ~bit;
+    syncLiveKeys();
   }
 });
 
@@ -403,21 +677,33 @@ function releaseRightMouse(ev) {
   rightPointerId = null;
   if (pid !== null) {
     try {
-      if (canvas.hasPointerCapture?.(pid)) canvas.releasePointerCapture(pid);
+      if (stage.hasPointerCapture?.(pid)) stage.releasePointerCapture(pid);
     } catch (_) {}
   }
 }
 
-window.addEventListener("pointerdown", unlockAudio, { capture: true });
+window.addEventListener(
+  "pointerdown",
+  (ev) => {
+    unlockAudio();
+    if (ev.pointerType === "touch" && !hudUserToggled && !hudVisible) {
+      hudVisible = true;
+      updateHudButton();
+      fitCanvas();
+    }
+  },
+  { capture: true }
+);
 
-canvas.addEventListener("pointerdown", (ev) => {
+stage.addEventListener("pointerdown", (ev) => {
+  if (ev.target.closest("#pad-deck, #drop-overlay")) return;
   const { lx, ly } = clientToLogical(ev);
   if (ev.button === 2) {
     ev.preventDefault();
     rightMouseDown = true;
     rightPointerId = ev.pointerId;
     try {
-      canvas.setPointerCapture(ev.pointerId);
+      stage.setPointerCapture(ev.pointerId);
     } catch (_) {}
     pushPointerEvent(-2, PHASE_RIGHT_DOWN, lx, ly);
     return;
@@ -425,12 +711,12 @@ canvas.addEventListener("pointerdown", (ev) => {
   if (ev.pointerType === "mouse" && ev.button !== 0) return;
   activePointers.add(ev.pointerId);
   try {
-    canvas.setPointerCapture(ev.pointerId);
+    stage.setPointerCapture(ev.pointerId);
   } catch (_) {}
   pushPointerEvent(ev.pointerId, PHASE_DOWN, lx, ly);
 });
 
-canvas.addEventListener("pointermove", (ev) => {
+stage.addEventListener("pointermove", (ev) => {
   if (rightMouseDown && ev.pointerType === "mouse" && (ev.buttons & 2) === 0) {
     releaseRightMouse(ev);
   }
@@ -446,7 +732,7 @@ canvas.addEventListener("pointermove", (ev) => {
 
 function handlePointerUp(ev) {
   if (ev.button === 2 || (rightPointerId !== null && ev.pointerId === rightPointerId)) {
-    if (rightMouseDown || ev.target === canvas || stage.contains(ev.target)) {
+    if (rightMouseDown || ev.target === stage || stage.contains(ev.target)) {
       ev.preventDefault();
     }
     releaseRightMouse(ev);
@@ -456,7 +742,7 @@ function handlePointerUp(ev) {
   const { lx, ly } = clientToLogical(ev);
   pushPointerEvent(ev.pointerId, PHASE_UP, lx, ly);
   try {
-    if (canvas.hasPointerCapture?.(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId);
+    if (stage.hasPointerCapture?.(ev.pointerId)) stage.releasePointerCapture(ev.pointerId);
   } catch (_) {}
 }
 
@@ -468,9 +754,10 @@ window.addEventListener("pointermove", (ev) => {
   }
 });
 
-canvas.addEventListener(
+stage.addEventListener(
   "wheel",
   (ev) => {
+    if (ev.target.closest("#pad-deck, #drop-overlay")) return;
     ev.preventDefault();
     if (ev.deltaY === 0) return;
     const { lx, ly } = clientToLogical(ev);
@@ -481,13 +768,15 @@ canvas.addEventListener(
 
 function toggleHud() {
   hudVisible = !hudVisible;
-  btnHud.textContent = hudVisible ? "HUD" : "HUD Off";
-  if (sabI32) Atomics.add(sabI32, 2, 1);
+  hudUserToggled = true;
+  updateHudButton();
+  fitCanvas();
 }
 
 function toggleMute() {
   muted = !muted;
   btnMute.textContent = muted ? "Unmute" : "Mute";
+  btnMute.classList.toggle("active", muted);
   if (sabI32) Atomics.add(sabI32, 3, 1);
   if (!muted) unlockAudio();
 }
@@ -502,10 +791,15 @@ function toggleFullscreen() {
 
 btnHud.addEventListener("click", toggleHud);
 btnMute.addEventListener("click", toggleMute);
-btnFull.addEventListener("click", toggleFullscreen);
-btnStop.addEventListener("click", () => {
-  stopGame();
-  dropOverlay.hidden = false;
+btnHideBar.addEventListener("click", () => {
+  toolbar.hidden = true;
+  barRestore.hidden = false;
+  fitCanvas();
+});
+barRestore.addEventListener("click", () => {
+  toolbar.hidden = false;
+  barRestore.hidden = true;
+  fitCanvas();
 });
 
 function onRomFileSelected(ev) {
@@ -519,7 +813,7 @@ romInputHero.addEventListener("change", onRomFileSelected);
 
 btnExportSav.addEventListener("click", () => {
   if (!lastSaveBytes) {
-    setStatus("No Flash save data available yet");
+    showToast("No Flash save data available yet");
     return;
   }
   const blob = new Blob([lastSaveBytes], { type: "application/octet-stream" });
@@ -532,13 +826,14 @@ btnExportSav.addEventListener("click", () => {
   a.download = `${saveBase}.sav`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  showToast(`Exported ${a.download}`);
 });
 
 savInput.addEventListener("change", async (ev) => {
   const file = ev.target.files?.[0];
   ev.target.value = "";
   if (!file || !currentRomKey) {
-    setStatus("Start the game first before importing a .sav");
+    showToast("Load a ROM before importing a .sav");
     return;
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -549,7 +844,7 @@ savInput.addEventListener("change", async (ev) => {
     key: currentRomKey,
     romBytes: currentRomBytes,
   });
-  setStatus(`Imported ${file.name} and restarted`);
+  showToast(`Imported ${file.name}`);
 });
 
 stage.addEventListener("dragover", (ev) => {

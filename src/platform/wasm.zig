@@ -7,12 +7,14 @@ const is_freestanding = builtin.os.tag == .freestanding;
 
 const env = if (is_freestanding) struct {
     extern "env" fn host_present(fb_ptr: [*]const u32, fb_len: u32, audio_ptr: [*]const i16, audio_len: u32) void;
+    extern "env" fn host_present_hud(ptr: [*]const u32, w: u32, h: u32) void;
     extern "env" fn host_poll_input() u32;
     extern "env" fn host_pace() void;
     extern "env" fn host_queued_audio_bytes() u32;
     extern "env" fn host_save_sram(ptr: [*]const u8, len: u32) void;
 } else struct {
     fn host_present(_: [*]const u32, _: u32, _: [*]const i16, _: u32) void {}
+    fn host_present_hud(_: [*]const u32, _: u32, _: u32) void {}
     fn host_poll_input() u32 {
         return 0;
     }
@@ -66,7 +68,7 @@ pub const WasmBackend = struct {
         self.last_audio_len = @intCast(samples.len);
     }
 
-    pub fn present(self: *WasmBackend, framebuf: *const [gba.width * gba.height]u32) void {
+    pub fn present(self: *WasmBackend, framebuf: *const [gba.width * gba.height]u32, hud: platform.HudFrame) void {
         // Convert 0xAARRGGBB (little-endian BGRA bytes) into 0xAABBGGRR (little-endian RGBA bytes for ImageData).
         for (framebuf, 0..) |px, i| {
             rgba_buf[i] = (px & 0xFF00_FF00) |
@@ -75,6 +77,10 @@ pub const WasmBackend = struct {
         }
         env.host_present(&rgba_buf, gba.width * gba.height, self.last_audio_ptr, self.last_audio_len);
         self.last_audio_len = 0;
+
+        if (hud.dirty and hud.width >= gba.width and hud.pixels.len >= @as(usize, hud.width) * gba.height) {
+            env.host_present_hud(hud.pixels.ptr, hud.width, gba.height);
+        }
     }
 
     pub fn queuedAudioBytes(_: *const WasmBackend) u32 {
@@ -92,6 +98,8 @@ pub const WasmBackend = struct {
             .quit = (packed_input & (1 << 16)) != 0,
             .toggle_hud = (packed_input & (1 << 17)) != 0,
             .toggle_mute = (packed_input & (1 << 18)) != 0,
+            .hud_overlay = if ((packed_input & (1 << 19)) != 0) ((packed_input & (1 << 20)) != 0) else null,
+            .hud_width = @truncate((packed_input >> 21) & 0x03FF),
         };
     }
 
@@ -121,6 +129,6 @@ test "WasmBackend queues pointer events cleanly and swaps BGRA to RGBA" {
     try std.testing.expectEqual(platform.PointerPhase.scroll_up, drained[1].phase);
 
     var fb: [gba.width * gba.height]u32 = @splat(0xFF112233);
-    wb.present(&fb);
+    wb.present(&fb, .{});
     try std.testing.expectEqual(@as(u32, 0xFF332211), WasmBackend.rgba_buf[0]);
 }

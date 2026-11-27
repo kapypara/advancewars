@@ -3,6 +3,7 @@ const sdl = @import("sdl2");
 const gba = @import("../gba/defs.zig");
 const audio = @import("../gba/audio.zig");
 const platform = @import("backend.zig");
+const touch_mod = @import("touch.zig");
 
 const max_pointer_queue: usize = 64;
 
@@ -50,6 +51,8 @@ pub const Sdl2Backend = struct {
     window: ?*sdl.SDL_Window = null,
     renderer: ?*sdl.SDL_Renderer = null,
     texture: ?*sdl.SDL_Texture = null,
+    hud_texture: ?*sdl.SDL_Texture = null,
+    hud_tex_w: u16 = 0,
     audio_dev: sdl.SDL_AudioDeviceID = 0,
     audio_started: bool = false,
     keys_pressed: u16 = 0,
@@ -163,7 +166,7 @@ pub const Sdl2Backend = struct {
         }
     }
 
-    pub fn present(self: *Sdl2Backend, framebuf: *const [gba.width * gba.height]u32) void {
+    pub fn present(self: *Sdl2Backend, framebuf: *const [gba.width * gba.height]u32, hud: platform.HudFrame) void {
         const renderer = self.renderer orelse return;
         const texture = self.texture orelse return;
 
@@ -181,6 +184,49 @@ pub const Sdl2Backend = struct {
         _ = sdl.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         _ = sdl.SDL_RenderClear(renderer);
         _ = sdl.SDL_RenderCopy(renderer, texture, null, &dst_rect);
+
+        if (hud.visible and hud.width >= gba.width and hud.pixels.len >= @as(usize, hud.width) * gba.height) {
+            var recreated = false;
+            if (self.hud_texture == null or self.hud_tex_w != hud.width) {
+                if (self.hud_texture) |old| sdl.SDL_DestroyTexture(old);
+                self.hud_texture = null;
+                self.hud_tex_w = 0;
+
+                _ = sdl.SDL_SetHint(sdl.SDL_HINT_RENDER_SCALE_QUALITY, "0");
+                if (sdl.SDL_CreateTexture(
+                    renderer,
+                    @intCast(sdl.SDL_PIXELFORMAT_ARGB8888),
+                    sdl.SDL_TEXTUREACCESS_STREAMING,
+                    @intCast(hud.width),
+                    @intCast(gba.height),
+                )) |tex| {
+                    _ = sdl.SDL_SetTextureBlendMode(tex, sdl.SDL_BLENDMODE_BLEND);
+                    self.hud_texture = tex;
+                    self.hud_tex_w = hud.width;
+                    recreated = true;
+                }
+            }
+
+            if (self.hud_texture) |tex| {
+                if (hud.dirty or recreated) {
+                    _ = sdl.SDL_UpdateTexture(
+                        tex,
+                        null,
+                        @ptrCast(hud.pixels.ptr),
+                        @intCast(@as(usize, hud.width) * @sizeOf(u32)),
+                    );
+                }
+                const hud_dst_w: i32 = @max(@divTrunc(@as(i32, hud.width) * dst_rect.h, @as(i32, @intCast(gba.height))), dst_rect.w);
+                var hud_dst = sdl.SDL_Rect{
+                    .x = @divTrunc(@as(i32, out_w) - hud_dst_w, 2),
+                    .y = dst_rect.y,
+                    .w = hud_dst_w,
+                    .h = dst_rect.h,
+                };
+                _ = sdl.SDL_RenderCopy(renderer, tex, null, &hud_dst);
+            }
+        }
+
         sdl.SDL_RenderPresent(renderer);
     }
 
@@ -244,6 +290,15 @@ pub const Sdl2Backend = struct {
         _ = sdl.SDL_SetWindowFullscreen(window, if (is_fs) 0 else sdl.SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
+    fn currentHudWidth(self: *const Sdl2Backend) u16 {
+        const window = self.window orelse return @intCast(gba.width);
+        var win_w: c_int = @intCast(gba.width);
+        var win_h: c_int = @intCast(gba.height);
+        sdl.SDL_GetWindowSize(window, &win_w, &win_h);
+        const r = computeGameRect(@intCast(win_w), @intCast(win_h));
+        return touch_mod.computeHudWidth(@intCast(win_w), r.h);
+    }
+
     pub fn poll(self: *Sdl2Backend) platform.PollResult {
         var toggle_hud = false;
         var toggle_mute = false;
@@ -255,6 +310,7 @@ pub const Sdl2Backend = struct {
                     .keys_pressed = self.keys_pressed,
                     .toggle_hud = toggle_hud,
                     .toggle_mute = toggle_mute,
+                    .hud_width = self.currentHudWidth(),
                 },
                 sdl.SDL_KEYDOWN, sdl.SDL_KEYUP => {
                     if (ev.type == sdl.SDL_KEYDOWN and ev.key.repeat == 0) {
@@ -276,9 +332,9 @@ pub const Sdl2Backend = struct {
                     }
                 },
                 sdl.SDL_MOUSEBUTTONDOWN, sdl.SDL_MOUSEBUTTONUP => {
+                    const fx: f32 = @floatFromInt(ev.button.x);
+                    const fy: f32 = @floatFromInt(ev.button.y);
                     if (ev.button.button == sdl.SDL_BUTTON_LEFT) {
-                        const fx: f32 = @floatFromInt(ev.button.x);
-                        const fy: f32 = @floatFromInt(ev.button.y);
                         const log = self.windowToLogical(fx, fy);
                         self.pushPointer(.{
                             .id = -1,
@@ -289,8 +345,6 @@ pub const Sdl2Backend = struct {
                             .logical_y = log.y,
                         });
                     } else if (ev.button.button == sdl.SDL_BUTTON_RIGHT) {
-                        const fx: f32 = @floatFromInt(ev.button.x);
-                        const fy: f32 = @floatFromInt(ev.button.y);
                         const log = self.windowToLogical(fx, fy);
                         self.pushPointer(.{
                             .id = -2,
@@ -366,6 +420,7 @@ pub const Sdl2Backend = struct {
             .keys_pressed = self.keys_pressed,
             .toggle_hud = toggle_hud,
             .toggle_mute = toggle_mute,
+            .hud_width = self.currentHudWidth(),
         };
     }
 
@@ -380,6 +435,11 @@ pub const Sdl2Backend = struct {
         if (self.audio_dev != 0) {
             sdl.SDL_CloseAudioDevice(self.audio_dev);
             self.audio_dev = 0;
+        }
+        if (self.hud_texture) |t| {
+            sdl.SDL_DestroyTexture(t);
+            self.hud_texture = null;
+            self.hud_tex_w = 0;
         }
         if (self.texture) |t| {
             sdl.SDL_DestroyTexture(t);

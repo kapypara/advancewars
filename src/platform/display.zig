@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const core = @import("awre_core");
 const rt = @import("../runtime.zig");
 
@@ -7,10 +8,12 @@ const audio = core.audio;
 const Ppu = core.ppu.Ppu;
 const Runner = core.headless.Runner;
 const Backend = core.platform.Backend;
+const HudFrame = core.platform.HudFrame;
 const PointerEvent = core.platform.PointerEvent;
 const TouchController = core.touch.TouchController;
 const GameState = core.touch.GameState;
 
+const is_freestanding = builtin.os.tag == .freestanding;
 const default_scale: u32 = 3;
 
 var s_ppu: Ppu = .{};
@@ -19,6 +22,11 @@ var s_backend: Backend = .{};
 var s_touch: TouchController = .{};
 var s_audio: audio.Mixer = .{};
 var s_present_buf: [gba.width * gba.height]u32 = @splat(0);
+var s_hud_buf: [core.touch.max_hud_width * gba.height]u32 = @splat(0);
+var s_hud_rendered: bool = false;
+var s_last_hud_visible: bool = false;
+var s_last_hud_width: u16 = gba.width;
+var s_last_hud_held: u16 = 0;
 var s_pcm_a: [audio.max_frame_samples]i8 = @splat(0);
 var s_pcm_b: [audio.max_frame_samples]i8 = @splat(0);
 var s_stereo_out: [audio.max_out_stereo_i16]i16 = @splat(0);
@@ -275,9 +283,29 @@ pub fn display_render_frame() void {
     pumpLiveAudio();
     const state = sampleGameState();
     s_touch.stepFrame(state);
-    s_touch.renderOverlay(&s_ppu.framebuf, &s_present_buf);
+    s_touch.renderGameWithReticle(&s_ppu.framebuf, &s_present_buf);
     dumpContinuousFrame(&s_present_buf, state);
-    s_backend.present(&s_present_buf);
+
+    const hud_w = s_touch.hud_width;
+    const hud_len: usize = @as(usize, hud_w) * gba.height;
+    const hud_dirty = !s_hud_rendered or
+        s_touch.hud_visible != s_last_hud_visible or
+        hud_w != s_last_hud_width or
+        s_touch.hud_held_mask != s_last_hud_held;
+    if (hud_dirty) {
+        s_touch.renderHudLayer(&s_hud_buf, hud_w, is_freestanding);
+        s_hud_rendered = true;
+        s_last_hud_visible = s_touch.hud_visible;
+        s_last_hud_width = hud_w;
+        s_last_hud_held = s_touch.hud_held_mask;
+    }
+    const hud_frame = HudFrame{
+        .visible = s_touch.hud_visible,
+        .width = hud_w,
+        .dirty = hud_dirty,
+        .pixels = s_hud_buf[0..hud_len],
+    };
+    s_backend.present(&s_present_buf, hud_frame);
 }
 
 pub fn display_poll_events() c_int {
@@ -286,7 +314,12 @@ pub fn display_poll_events() c_int {
 
     const res = s_backend.poll();
     s_live_keys_pressed = res.keys_pressed;
-    if (res.toggle_hud) {
+    if (res.hud_width >= gba.width) {
+        s_touch.setHudWidth(res.hud_width);
+    }
+    if (res.hud_overlay) |want_hud| {
+        s_touch.setHudVisible(want_hud);
+    } else if (res.toggle_hud) {
         s_touch.toggleHud();
     }
     if (res.toggle_mute) {

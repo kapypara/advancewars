@@ -21,11 +21,20 @@ pub const PointerEvent = struct {
     logical_y: f32,
 };
 
+pub const HudFrame = struct {
+    visible: bool = false,
+    width: u16 = gba.width,
+    dirty: bool = false,
+    pixels: []const u32 = &.{},
+};
+
 pub const PollResult = struct {
     quit: bool = false,
     keys_pressed: u16 = 0,
     toggle_hud: bool = false,
     toggle_mute: bool = false,
+    hud_overlay: ?bool = null,
+    hud_width: u16 = 0,
 };
 
 const NoopBackend = struct {
@@ -33,7 +42,7 @@ const NoopBackend = struct {
         return true;
     }
 
-    pub fn present(_: *NoopBackend, _: *const [gba.width * gba.height]u32) void {}
+    pub fn present(_: *NoopBackend, _: *const [gba.width * gba.height]u32, _: HudFrame) void {}
 
     pub fn pushAudio(_: *NoopBackend, _: []const i16) void {}
 

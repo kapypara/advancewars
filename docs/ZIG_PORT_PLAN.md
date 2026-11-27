@@ -96,10 +96,20 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
   - `src/zig/runtime/{validate.zig,validate_jmp.c}` -> `src/validate/` (`validate.zig`, `jmp.c`)
   - `src/zig/{main,root,runtime_abi,rt_shard}.zig` -> `src/{main,root,runtime,shard}.zig`, `src/recomp/translate_zig.zig` -> `src/recomp/translate.zig`, `gen/zig/` -> `gen/`, `tools/*.txt` -> `replays/*.txt`.
 
-## Phase 7 — Post-Port Polish & Native UX Enhancements (After Main Plan)
-- **Direct UI/Menu Mouse & Touch Hooking:** Hook Advance Wars' non-map UI screens (name entry character grid + `BACK`/`OK!`, title/main menus, unit action menus, CO select) for direct tap/click selection.
-- **Outside-Frame Touch Controls:** Render touch buttons in window/screen pillarbox and letterbox margins outside the aspect-preserved game viewport whenever extra screen space is available.
-- **Widescreen / Wider Viewport Mode:** Extend the Zig PPU beyond `240x160` for mobile and desktop widescreen screens.
+## Phase 7 — Post-Port Polish, Smart Touch/Mouse & Native UX Enhancements (In Progress)
+- **Milestone 7A — Web Chrome Redesign & Unified Pixel HUD / Outside-Frame Controls (Done):**
+  - Clean dark-slate top bar with inline monochrome wrench SVG, collapsible `Hide` toggle with middle-right (landscape) / middle-bottom (portrait) restore tab, conditional `Load ROM` (hidden when bundled/loaded), auto-fading toast notifications, and no bottom statusbar / `Stop` / `Full` buttons.
+  - Shared `TouchController.renderHudLayer` pixel-art HUD rendered onto a separate transparent `(hud_w x 160)` layer (SDL2 `hud_texture` + Web `<canvas id="hud-canvas">`) so the classic `[L]` / `[ST][R]` / `[B][A]` pixel pills keep their exact corner look and slide smoothly out into horizontal landscape margins without shrinking or overlapping the `3:2` game canvas, plus an ergonomic ~45%/55% portrait handheld split (bezel-framed screen centered in the upper half over a slate lower deck with `L`/`R` shoulders, unified pixel D-Pad, diagonal `B`/`A`, and bottom `SEL`/`ST`) and desktop auto-hide toggleable via `HUD` / `F2`.
+- **Milestone 7B — True Advance Wars RAM State Machine + Map & Unit-Range Touch Engine (Next):**
+  - Player-agnostic free-map / selected-unit / overlay-menu detection via WRAM/task table + movement-reachability grid lookup.
+  - Unit-selected behavior: 1st tap previews path on reachable tiles (2nd tap confirms `A`); tapping outside movement range deselects (`B`) and moves cursor to the clicked tile; dragging paints a tile-by-tile path preview without auto-confirming; free-map grab-drag panning; generic drag disabled in menus.
+- **Milestone 7C — Direct In-Battle Menu Clicking (Planned):**
+  - Hook Unit Action menu, Map Menu, Attack Target (2-tap preview + confirm), Unit List rows + column pager arrows, and Factory/Deploy shop (2-tap preview + confirm).
+- **Milestone 7D — Direct Campaign & Pre-Battle Menu Clicking (Planned):**
+  - Hook Title/Main menus, Yes/No prompts, Name Entry grid + `BACK`/`OK!`, CO Select, and Mission Select.
+
+## Phase 8 — Widescreen / Wider Viewport Mode (Planned)
+- Extend the PPU beyond `240x160` for desktop and mobile widescreen displays (deferred from Phase 7 so outside-frame controls stabilize cleanly first).
 
 ## Deferred / Optional (Skipped for Now)
 - **Android Native Port (`aarch64-linux-android` + Pure Touch APK):** Deferred indefinitely in favor of the Phase 5 WebAssembly port for mobile browser play with touch controls; can be revisited later using `zig build -Dtarget=aarch64-linux-android` + `touch.zig`.
