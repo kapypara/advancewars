@@ -567,6 +567,155 @@ pub fn func_08066EB4() callconv(.c) void {
     abi.popReturn();
 }
 
+fn writeArg1Byte19608AndThen(
+    comptime pool_ref: u32,
+    comptime ret1: u32,
+    comptime next_fn: fn () callconv(.c) void,
+    comptime ret2: u32,
+) void {
+    abi.fetches(9);
+    abi.pushLr();
+    const val = rt.r[1] & 0xFF;
+    rt.updateNz(val);
+    rt.r[1] = val;
+    rt.r[0] = abi.read32(pool_ref);
+    abi.write32(rt.r[0], val);
+    if (!abi.call(decls.func_08019608, ret1)) return;
+    abi.fetches(4);
+    if (!abi.call(next_fn, ret2)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+fn runBattleAction19A1C(comptime next_fn: fn () callconv(.c) void, comptime r0: u32, comptime r1: u32, comptime r2: u32) void {
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019A1C, r0)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08019608, r1)) return;
+    abi.fetches(4);
+    if (!abi.call(next_fn, r2)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Set battle flag `[0x0802D748] = u8(r1)`, open overlay `0x08019608`, and trigger `0x0802E650` (`0x0802D730`).
+pub fn func_0802D730() callconv(.c) void {
+    if (!abi.enter(0x0802D730)) return;
+    writeArg1Byte19608AndThen(0x0802D748, 0x0802D73F, decls.func_0802E650, 0x0802D743);
+}
+
+/// Set battle flag `[0x0802D764] = u8(r1)`, open overlay `0x08019608`, and trigger `0x0802E650` (`0x0802D74C`).
+pub fn func_0802D74C() callconv(.c) void {
+    if (!abi.enter(0x0802D74C)) return;
+    writeArg1Byte19608AndThen(0x0802D764, 0x0802D75B, decls.func_0802E650, 0x0802D75F);
+}
+
+/// Dispatch battle menu entry `[0x0802D960][read8([0x0802D964]+2) - 0x82]` via `0x08018400` (`0x0802D944`).
+pub fn func_0802D944() callconv(.c) void {
+    if (!abi.enter(0x0802D944)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, 0x0802D94B)) return;
+    abi.fetches(11);
+    const idx = abi.read8(abi.read32(0x0802D964) +% 2) -% 0x82;
+    rt.r[1] = abi.read32(0x0802D960);
+    rt.r[0] = abi.read32((idx << 2) +% rt.r[1]);
+    if (!abi.call(decls.func_08018400, 0x0802D95D)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Close battle submenu (`0x08019A1C`, `0x08019608`) and run `0x0802E668` (`0x0802DEBC`).
+pub fn func_0802DEBC() callconv(.c) void {
+    if (!abi.enter(0x0802DEBC)) return;
+    runBattleAction19A1C(decls.func_0802E668, 0x0802DEC3, 0x0802DEC7, 0x0802DECB);
+}
+
+/// Close battle submenu (`0x08019A1C`, `0x08019608`) and run `0x0802E6BC` (`0x0802DED0`).
+pub fn func_0802DED0() callconv(.c) void {
+    if (!abi.enter(0x0802DED0)) return;
+    runBattleAction19A1C(decls.func_0802E6BC, 0x0802DED7, 0x0802DEDB, 0x0802DEDF);
+}
+
+/// Set battle flag `[0x0802E008] = u8(r1)`, open overlay `0x08019608`, and trigger `0x0802C530` (`0x0802DFF0`).
+pub fn func_0802DFF0() callconv(.c) void {
+    if (!abi.enter(0x0802DFF0)) return;
+    writeArg1Byte19608AndThen(0x0802E008, 0x0802DFFF, decls.func_0802C530, 0x0802E003);
+}
+
+/// Set battle flag `[0x0802E028] = u8(r1)`, open overlay `0x08019608`, and apply `0x08018D84(read8([0x0802E02C]), 0x10)` (`0x0802E00C`).
+pub fn func_0802E00C() callconv(.c) void {
+    if (!abi.enter(0x0802E00C)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const val = rt.r[1] & 0xFF;
+    rt.updateNz(val);
+    rt.r[1] = val;
+    rt.r[0] = abi.read32(0x0802E028);
+    abi.write32(rt.r[0], val);
+    if (!abi.call(decls.func_08019608, 0x0802E01B)) return;
+    abi.fetches(7);
+    rt.r[0] = abi.read8(abi.read32(0x0802E02C));
+    abi.setRegNz(&rt.r[1], 0x10);
+    if (!abi.call(decls.func_08018D84, 0x0802E025)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Set battle flag `[0x0802E048] = u8(r1)`, open overlay `0x08019608`, and trigger `0x0802C5A0` (`0x0802E030`).
+pub fn func_0802E030() callconv(.c) void {
+    if (!abi.enter(0x0802E030)) return;
+    writeArg1Byte19608AndThen(0x0802E048, 0x0802E03F, decls.func_0802C5A0, 0x0802E043);
+}
+
+/// Close menu `0x08019608`, query unit state `0x08015E3C`, and invoke `0x08015EF8` (`0x0802E128`).
+pub fn func_0802E128() callconv(.c) void {
+    if (!abi.enter(0x0802E128)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019608, 0x0802E12F)) return;
+    abi.fetches(6);
+    rt.r[0] = abi.read8(abi.read32(0x0802E144) +% 1);
+    if (!abi.call(decls.func_08015E3C, 0x0802E137)) return;
+    abi.fetches(7);
+    const val: u16 = @bitCast(@as(i16, @as(i8, @bitCast(@as(u8, @truncate(rt.r[0]))))));
+    abi.setRegNz(&rt.r[0], val);
+    if (!abi.call(decls.func_08015EF8, 0x0802E141)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Reset battle window `0x08026724` and open overlay `0x08019608` (`0x0802E2A4`).
+pub fn func_0802E2A4() callconv(.c) void {
+    if (!abi.enter(0x0802E2A4)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08026724, 0x0802E2AB)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08019608, 0x0802E2AF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Mark `[0x0802E308] = 1`, dispatch `0x08029BEC(1)`, `0x08019608`, and `0x08035220` (`0x0802E2EC`).
+pub fn func_0802E2EC() callconv(.c) void {
+    if (!abi.enter(0x0802E2EC)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const dst = abi.read32(0x0802E308);
+    abi.write8(dst, 1);
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], 1);
+    if (!abi.call(decls.func_08029BEC, 0x0802E2FB)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08019608, 0x0802E2FF)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08035220, 0x0802E303)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08022220, .{ .name = "func_08022220", .linkage = .strong });
@@ -610,6 +759,17 @@ comptime {
         @export(&func_0802E5F4, .{ .name = "func_0802E5F4", .linkage = .strong });
         @export(&func_0802EF18, .{ .name = "func_0802EF18", .linkage = .strong });
         @export(&func_0802F634, .{ .name = "func_0802F634", .linkage = .strong });
+        @export(&func_0802D730, .{ .name = "func_0802D730", .linkage = .strong });
+        @export(&func_0802D74C, .{ .name = "func_0802D74C", .linkage = .strong });
+        @export(&func_0802D944, .{ .name = "func_0802D944", .linkage = .strong });
+        @export(&func_0802DEBC, .{ .name = "func_0802DEBC", .linkage = .strong });
+        @export(&func_0802DED0, .{ .name = "func_0802DED0", .linkage = .strong });
+        @export(&func_0802DFF0, .{ .name = "func_0802DFF0", .linkage = .strong });
+        @export(&func_0802E00C, .{ .name = "func_0802E00C", .linkage = .strong });
+        @export(&func_0802E030, .{ .name = "func_0802E030", .linkage = .strong });
+        @export(&func_0802E128, .{ .name = "func_0802E128", .linkage = .strong });
+        @export(&func_0802E2A4, .{ .name = "func_0802E2A4", .linkage = .strong });
+        @export(&func_0802E2EC, .{ .name = "func_0802E2EC", .linkage = .strong });
     }
 }
 

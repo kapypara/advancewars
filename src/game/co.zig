@@ -194,6 +194,158 @@ pub fn func_0803808C() callconv(.c) void {
     callCoPortrait1BF50(null, 0, 0x08038099);
 }
 
+fn popReturnR1Co() void {
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+fn callAudioC4ThenVoid(comptime next_fn: fn () callconv(.c) void, comptime ret1: u32, comptime ret2: u32) void {
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0xC4);
+    if (!abi.call(decls.func_0803D880, ret1)) return;
+    abi.fetches(4);
+    if (!abi.call(next_fn, ret2)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Trigger CO portrait setup `0x0801B8D4` and clear via `0x0801B9E0([0x0801B8D0], 0)` (`0x0801B8BC`).
+pub fn func_0801B8BC() callconv(.c) void {
+    if (!abi.enter(0x0801B8BC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_0801B8D4, 0x0801B8C3)) return;
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x0801B8D0);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0801B9E0, 0x0801B8CB)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Look up CO table field via `0x0801BE50(u8(r0))` and forward `i16` to `0x0803D890` (`0x0801BE88`).
+pub fn func_0801BE88() callconv(.c) void {
+    if (!abi.enter(0x0801BE88)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] &= 0xFF;
+    rt.updateNz(rt.r[0]);
+    if (!abi.call(func_0801BE50, 0x0801BE93)) return;
+    abi.fetches(6);
+    const s: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    abi.setRegNz(&rt.r[0], s);
+    if (!abi.call(decls.func_0803D890, 0x0801BE9B)) return;
+    abi.fetches(4);
+    popReturnR1Co();
+}
+
+/// Upload `0x200`-byte CO tag tiles `0x0801BEA0(u16(r0))` to `[0x0801BF28] + u16(r1) * 0x20` (`0x0801BF00`).
+pub fn func_0801BF00() callconv(.c) void {
+    if (!abi.enter(0x0801BF00)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[0] &= 0xFFFF;
+    const dst_idx = rt.r[1] & 0xFFFF;
+    rt.updateNz(dst_idx);
+    rt.r[4] = dst_idx;
+    if (!abi.call(func_0801BEA0, 0x0801BF11)) return;
+    abi.fetches(10);
+    rt.r[4] = (dst_idx << 5) +% abi.read32(0x0801BF28);
+    rt.r[1] = rt.r[4];
+    abi.setRegNz(&rt.r[2], 0x200);
+    if (!abi.call(decls.func_0800FFA8, 0x0801BF21)) return;
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Upload CO unit palette `0x0801BEE4(u16(r0))` to OBJ palette slot `(u16(r1) + 0x10) << 5` via `0x08011330` (`0x0801BF2C`).
+pub fn func_0801BF2C() callconv(.c) void {
+    if (!abi.enter(0x0801BF2C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[0] &= 0xFFFF;
+    const pal_idx = rt.r[1] & 0xFFFF;
+    rt.updateNz(pal_idx);
+    rt.r[4] = pal_idx;
+    if (!abi.call(func_0801BEE4, 0x0801BF3D)) return;
+    abi.fetches(9);
+    rt.r[4] = (((pal_idx +% 0x10) << 21) >> 16);
+    rt.r[1] = rt.r[4];
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_08011330, 0x0801BF4B)) return;
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Play SFX `0x23`, set flag via `0x080353A8(1)`, and update CO state `0x0801C150` (`0x0801C19C`).
+pub fn func_0801C19C() callconv(.c) void {
+    if (!abi.enter(0x0801C19C)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.setRegNz(&rt.r[0], 0x23);
+    if (!abi.call(decls.func_0803D880, 0x0801C1A5)) return;
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[0], 1);
+    if (!abi.call(decls.func_080353A8, 0x0801C1AB)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_0801C150, 0x0801C1AF)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Play SFX `0xC4` and enter CO substate `0x0801C188` (`0x0801C1B4`).
+pub fn func_0801C1B4() callconv(.c) void {
+    if (!abi.enter(0x0801C1B4)) return;
+    callAudioC4ThenVoid(decls.func_0801C188, 0x0801C1BD, 0x0801C1C1);
+}
+
+/// Tear down BG layers (`0x08011910`, `0x08011804`) and spawn CO panel proc `[0x0801C924]` (`0x0801C910`).
+pub fn func_0801C910() callconv(.c) void {
+    if (!abi.enter(0x0801C910)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08011910, 0x0801C917)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08011804, 0x0801C91B)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0801C924);
+    if (!abi.call(decls.func_0801329C, 0x0801C921)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Play SFX `0xC4` and enter CO substate `0x0801C150` (`0x0801C93C`).
+pub fn func_0801C93C() callconv(.c) void {
+    if (!abi.enter(0x0801C93C)) return;
+    callAudioC4ThenVoid(decls.func_0801C150, 0x0801C945, 0x0801C949);
+}
+
+/// Unpack both CO screen buffers `[0x0801CA2C]` and `[0x0801CA30]` via `0x0800FC9C` (`0x0801CA18`).
+pub fn func_0801CA18() callconv(.c) void {
+    if (!abi.enter(0x0801CA18)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x0801CA2C);
+    if (!abi.call(decls.func_0800FC9C, 0x0801CA21)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0801CA30);
+    if (!abi.call(decls.func_0800FC9C, 0x0801CA27)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_0801BDDC, .{ .name = "func_0801BDDC", .linkage = .strong });
@@ -206,6 +358,15 @@ comptime {
         @export(&func_08038064, .{ .name = "func_08038064", .linkage = .strong });
         @export(&func_08038078, .{ .name = "func_08038078", .linkage = .strong });
         @export(&func_0803808C, .{ .name = "func_0803808C", .linkage = .strong });
+        @export(&func_0801B8BC, .{ .name = "func_0801B8BC", .linkage = .strong });
+        @export(&func_0801BE88, .{ .name = "func_0801BE88", .linkage = .strong });
+        @export(&func_0801BF00, .{ .name = "func_0801BF00", .linkage = .strong });
+        @export(&func_0801BF2C, .{ .name = "func_0801BF2C", .linkage = .strong });
+        @export(&func_0801C19C, .{ .name = "func_0801C19C", .linkage = .strong });
+        @export(&func_0801C1B4, .{ .name = "func_0801C1B4", .linkage = .strong });
+        @export(&func_0801C910, .{ .name = "func_0801C910", .linkage = .strong });
+        @export(&func_0801C93C, .{ .name = "func_0801C93C", .linkage = .strong });
+        @export(&func_0801CA18, .{ .name = "func_0801CA18", .linkage = .strong });
     }
 }
 

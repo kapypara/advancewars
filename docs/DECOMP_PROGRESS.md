@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 17 — Early-ROM Menu Flows, Window Layers & Cutscene Opcodes
+- **Stage:** Stage 18 — Tactical Map, CO Portrait & Battle Action Dispatchers
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 854 / 7,577 (11.27%)
+- **Lifted to Clean Zig (`src/game/`):** 914 / 7,577 (12.06%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
@@ -17,13 +17,13 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/proc.zig` (73): `0x08010F04..0x08019608`, `0x0802ABF0` (`0x0300_0E10` proc opcodes, proc-script & `0x0300_1D50` cutscene script opcodes)
 - `src/game/sprite_anim.zig` (63): `0x08011CF0..0x08015A20`, `0x0801A0EC..0x0801A1BC`, `0x08049554` (`0x0300_2320` animator pool & OAM buffers)
 - `src/game/menu.zig` (61): `0x08000280..0x0800F738` (title/menu flow, mode dispatchers, sound triggers, save/campaign checks & menu proc spawners)
-- `src/game/map.zig` (19): `0x080191E8..0x0803B73C` (tilemap, palette, viewport, BG staging & cursor helpers)
+- `src/game/map.zig` (25): `0x080191E8..0x0803B73C` (tilemap, palette, viewport, BG staging & cursor helpers)
 - `src/game/campaign.zig` (38): `0x080378C8..0x08040310` (save flag shadow copy, unlock bitsets `0x0201_F9A8`, mission records & flag queries)
 - `src/game/state.zig` (74): `0x08015E10..0x0804B430` (`0x0300_4310` battle/UI substate setters & counters, `0x0201_AB34` entity flags, `0x0300_3200`/`0x0300_43C8` battle flags)
-- `src/game/ui.zig` (260): `0x08018DE4..0x08019F90`, `0x0802C660..0x08077580` (result summaries, menu grids, windows, overlay procs, fade/blend transitions)
-- `src/game/co.zig` (10): `0x0801BDDC..0x0801BEE4`, `0x08038064..0x0803808C` (CO selection reset & portrait/palette/data ROM lookups)
-- `src/game/unit.zig` (49): `0x08019970`, `0x0801B8D4..0x08028D24`, `0x0802A97C..0x08043810` (unit palette upload, marker/badge/overlay helpers & spawners)
-- `src/game/battle.zig` (41): `0x08022220..0x0802F634`, `0x08066AC8..0x08066EB4` (`computeScaledDamage`, unit health checks, battle previews, VRAM icon uploads & combat overlays/markers)
+- `src/game/ui.zig` (286): `0x0801862C..0x0802C8D8`, `0x08042D88..0x08077580` (dialogue/cursor panels, BG priority layers, result summaries, menu grids, overlay procs, transitions)
+- `src/game/co.zig` (19): `0x0801B8BC..0x0801CA18`, `0x08038064..0x0803808C` (CO selection reset, panel triggers & portrait/palette/data ROM lookups)
+- `src/game/unit.zig` (57): `0x08017B20`, `0x08019970..0x08043810` (unit palette upload, action flags, camera focus, marker/badge/overlay helpers & spawners)
+- `src/game/battle.zig` (52): `0x08022220..0x0802F634`, `0x08066AC8..0x08066EB4` (`computeScaledDamage`, battle submenus, action dispatchers, VRAM icon uploads & overlays)
 - `src/game/turn.zig` (24): `0x08032200..0x080378B8` (turn transitions, day/CO phase state setters, proc slot panel lifecycle & prompt centering)
 
 ## Subsystem Roadmap
@@ -45,7 +45,8 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 15:** VRAM/OAM uploads, battle overlays & UI menu controllers (`0x0804F8..0x0806D8`, `734 total`).
 - [x] **Stage 16:** Late-ROM audio, BIOS, Flash & UI overlay helpers (`0x08042D..0x0807CE`, `794 total`).
 - [x] **Stage 17:** Early-ROM menu flows, window layers & cutscene opcodes (`0x08002C..0x08017A`, `854 total`).
-- [ ] **Stage 18:** Clean `<=3 calls, <=75L` helpers (`0x08017A..0x08042C`).
+- [x] **Stage 18:** Tactical map, CO portrait & battle action dispatchers (`0x08017B..0x0802E2`, `914 total`).
+- [ ] **Stage 19:** Clean `<=3 calls, <=75L` helpers (`0x0802E7..0x08042C`).
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`

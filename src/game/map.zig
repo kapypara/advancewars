@@ -346,6 +346,245 @@ pub fn func_0803B3A8() callconv(.c) void {
     abi.popReturn();
 }
 
+fn popReturnR1Map() void {
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Prepare tile/window `0x08019A0C` and apply `0x08019424` with 4 `u16` args (`0x080193E4`).
+pub fn func_080193E4() callconv(.c) void {
+    if (!abi.enter(0x080193E4)) return;
+    abi.fetches(21);
+    abi.pushLr();
+    const saved_r8 = rt.r[8];
+    const saved_r4 = rt.r[4];
+    const saved_r5 = rt.r[5];
+    const saved_r6 = rt.r[6];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+    rt.r[13] -%= 8;
+
+    const a0 = rt.r[0];
+    const a1 = rt.r[1] & 0xFFFF;
+    const a2 = rt.r[2] & 0xFFFF;
+    const a3 = rt.r[3] & 0xFFFF;
+    const a4 = abi.read32(rt.r[13] +% 0x1C) & 0xFFFF;
+    rt.r[8] = a0;
+    rt.r[5] = a1;
+    rt.r[6] = a2;
+    rt.r[3] = a3;
+    rt.r[4] = a4;
+    rt.updateNz(a4);
+    abi.write32(rt.r[13] +% 4, a3);
+    if (!abi.call(decls.func_08019A0C, 0x0801940B)) return;
+
+    abi.fetches(9);
+    abi.write32(rt.r[13], a4);
+    rt.r[0] = a0;
+    rt.r[1] = a1;
+    rt.r[2] = a2;
+    rt.r[3] = abi.read32(rt.r[13] +% 4);
+    if (!abi.call(decls.func_08019424, 0x08019419)) return;
+
+    abi.fetches(8);
+    rt.r[13] +%= 8;
+    const r8_pop = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = r8_pop;
+    rt.r[3] = r8_pop;
+    rt.r[4] = saved_r4;
+    rt.r[5] = saved_r5;
+    rt.r[6] = saved_r6;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnR1Map();
+}
+
+/// Prepare tile/window `0x08019A0C` and forward to `func_080193E4(..., 0)` (`0x080195AC`).
+pub fn func_080195AC() callconv(.c) void {
+    if (!abi.enter(0x080195AC)) return;
+    abi.fetches(18);
+    abi.pushLr();
+    const saved_r8 = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+    rt.r[13] -%= 4;
+
+    const a0 = rt.r[0];
+    const a1 = rt.r[1] & 0xFFFF;
+    const a2 = rt.r[2] & 0xFFFF;
+    const a3 = rt.r[3] & 0xFFFF;
+    rt.r[8] = a0;
+    rt.r[4] = a1;
+    rt.r[5] = a2;
+    rt.r[6] = a3;
+    rt.updateNz(a3);
+    if (!abi.call(decls.func_08019A0C, 0x080195CD)) return;
+
+    abi.fetches(10);
+    abi.write32(rt.r[13], 0);
+    rt.r[0] = a0;
+    rt.r[1] = a1;
+    rt.r[2] = a2;
+    rt.r[3] = a3;
+    if (!abi.call(func_080193E4, 0x080195DD)) return;
+
+    abi.fetches(8);
+    rt.r[13] +%= 4;
+    const r8_pop = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = r8_pop;
+    rt.r[3] = r8_pop;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnR1Map();
+}
+
+fn uploadBgCharSlotFromDispcnt(comptime src_ref: u32, comptime ctrl_ref: u32, comptime base_ref: u32, comptime ret_addr: u32) bool {
+    const ctrl_val = abi.read32(abi.read32(ctrl_ref));
+    const char_bank = ((ctrl_val << 28) >> 30) << 14;
+    const dst = char_bank +% abi.read32(base_ref);
+    rt.r[0] = abi.read32(src_ref);
+    rt.r[1] = dst;
+    rt.r[2] = abi.read32(base_ref);
+    return abi.call(decls.func_0800FE24, ret_addr);
+}
+
+/// Decompress map tileset `[0x080199C8]` into active BG char bank and apply `0x0801990C(u16(r0))` (`0x080199A0`).
+pub fn func_080199A0() callconv(.c) void {
+    if (!abi.enter(0x080199A0)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[4] = rt.r[0] & 0xFFFF;
+    rt.updateNz(rt.r[4]);
+    if (!uploadBgCharSlotFromDispcnt(0x080199C8, 0x080199CC, 0x080199D0, 0x080199BD)) return;
+
+    abi.fetches(5);
+    rt.r[0] = rt.r[4];
+    if (!abi.call(decls.func_0801990C, 0x080199C3)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Decompress map tileset `[0x080199F8]` and DMA `0x20`-byte palette (`[0x08019A04] -> [0x08019A08]`) (`0x080199D4`).
+pub fn func_080199D4() callconv(.c) void {
+    if (!abi.enter(0x080199D4)) return;
+    abi.fetches(13);
+    abi.pushLr();
+    if (!uploadBgCharSlotFromDispcnt(0x080199F8, 0x080199FC, 0x08019A00, 0x080199EB)) return;
+
+    abi.fetches(7);
+    rt.r[0] = abi.read32(0x08019A04);
+    rt.r[1] = abi.read32(0x08019A08);
+    abi.setRegNz(&rt.r[2], 0x20);
+    if (!abi.call(decls.func_0800FFA8, 0x080199F5)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Forward packed map tilemap write `(base + x*2 + y*64)` to `0x0801FB14` with fixed flags (`0x0801FD54`).
+pub fn func_0801FD54() callconv(.c) void {
+    if (!abi.enter(0x0801FD54)) return;
+    abi.fetches(32);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0x10;
+
+    const x_off = (rt.r[1] << 16) >> 15;
+    const y_off = (rt.r[2] << 16) >> 10;
+    const a1 = rt.r[3] & 0xFF;
+    const a2 = abi.read32(rt.r[13] +% 0x20) & 0xFFFF;
+    const a3 = abi.read32(rt.r[13] +% 0x24) & 0xFF;
+    const stack_flag = abi.read32(rt.r[13] +% 0x28) & 0xFF;
+
+    abi.write32(rt.r[13], stack_flag);
+    abi.write32(rt.r[13] +% 4, 0);
+    abi.write32(rt.r[13] +% 8, 0);
+    abi.write32(rt.r[13] +% 0xC, 1);
+    rt.r[0] = rt.r[0] +% x_off +% y_off;
+    rt.r[1] = a1;
+    rt.r[2] = a2;
+    rt.r[3] = a3;
+    rt.r[4] = stack_flag;
+    rt.r[5] = a1;
+    rt.r[6] = a2;
+    if (!abi.call(decls.func_0801FB14, 0x0801FD91)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 0x10;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Write a 2x2 BG tilemap block (`[0x08020008]`) at wrapped viewport tile `(r0, r1)` (`0x0801FFB8`).
+pub fn func_0801FFB8() callconv(.c) void {
+    if (!abi.enter(0x0801FFB8)) return;
+    abi.fetches(41);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const cam = abi.read32(abi.read32(0x08020000));
+    const cam_x = abi.read16(cam +% 0xC);
+    const cam_y = abi.read16(cam +% 0xE);
+    const base = abi.read32(0x08020004);
+    const val: u16 = @truncate(abi.read32(0x08020008));
+
+    const off = wrappedTilemapByteOffset(@truncate(rt.r[0]), @truncate(rt.r[1]), cam_x, cam_y);
+    abi.write16(base +% off, val);
+    abi.write16(base +% off +% 2, val);
+    abi.write16(base +% off +% 0x40, val);
+    abi.write16(base +% off +% 0x42, val);
+
+    rt.r[0] = base +% off +% 0x42;
+    rt.r[1] = base +% off +% 0x40;
+    rt.r[2] = base +% 0x42;
+    rt.r[3] = val;
+    rt.r[4] = abi.read32(0x08020008);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080191E8, .{ .name = "func_080191E8", .linkage = .strong });
@@ -367,6 +606,12 @@ comptime {
         @export(&func_08039194, .{ .name = "func_08039194", .linkage = .strong });
         @export(&func_0803B3A8, .{ .name = "func_0803B3A8", .linkage = .strong });
         @export(&func_0803B73C, .{ .name = "func_0803B73C", .linkage = .strong });
+        @export(&func_080193E4, .{ .name = "func_080193E4", .linkage = .strong });
+        @export(&func_080195AC, .{ .name = "func_080195AC", .linkage = .strong });
+        @export(&func_080199A0, .{ .name = "func_080199A0", .linkage = .strong });
+        @export(&func_080199D4, .{ .name = "func_080199D4", .linkage = .strong });
+        @export(&func_0801FD54, .{ .name = "func_0801FD54", .linkage = .strong });
+        @export(&func_0801FFB8, .{ .name = "func_0801FFB8", .linkage = .strong });
     }
 }
 

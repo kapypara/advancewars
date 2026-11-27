@@ -708,6 +708,197 @@ pub fn func_08043810() callconv(.c) void {
     abi.popReturn();
 }
 
+fn popReturnR1Unit() void {
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+fn adjustMapFocusMetric(
+    comptime tbl_ref: u32,
+    comptime idx_ref: u32,
+    comptime cam_ref: u32,
+    comptime ret1: u32,
+    comptime ret2: u32,
+    comptime ret3: u32,
+) void {
+    abi.fetches(16);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const tbl = abi.read32(tbl_ref);
+    const slot_idx: i32 = abi.signExtend16(abi.read16(abi.read32(idx_ref)));
+    const slot_off: u32 = @bitCast((slot_idx *% 3) << 5);
+    const saved = abi.read32(slot_off +% tbl +% 0x18);
+    rt.r[4] = saved;
+    rt.r[0] = saved;
+    if (!abi.call(decls.func_08028D64, ret1)) return;
+
+    abi.fetches(17);
+    const diff = saved -% abi.read32(abi.read32(cam_ref));
+    rt.r[4] = diff;
+    var scaled = (diff << 2) +% diff;
+    scaled +%= scaled << 4;
+    scaled +%= scaled << 8;
+    scaled +%= scaled << 16;
+    const neg_scaled = 0 -% scaled;
+    const res: u32 = @bitCast(@as(i32, @bitCast(neg_scaled)) >> 2);
+    abi.setRegNz(&rt.r[0], res);
+    if (!abi.call(decls.func_0802430C, ret2)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08023EDC, ret3)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Upload palette for entity `r0` (`0x68` stride, field `+0x1A`) to OBJ palette slot `15` and advance script slot `+0x10` (`0x08017B20`).
+pub fn func_08017B20() callconv(.c) void {
+    if (!abi.enter(0x08017B20)) return;
+    abi.fetches(25);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const slot_id = rt.r[0] & 0xFFFF;
+    abi.write8(abi.read32(0x08017B6C), 0xF);
+    const ent_base = abi.read32(abi.read32(0x08017B74));
+    const idx = abi.read16(abi.read32(0x08017B70));
+    const pal_id = abi.read8(ent_base +% (@as(u32, idx) *% 0x68) +% 0x1A) -% 1;
+    rt.r[0] = (pal_id << 5) +% abi.read32(0x08017B78);
+    rt.r[1] = @as(u32, 0xF) << 5;
+    abi.setRegNz(&rt.r[2], 0x20);
+    rt.r[4] = slot_id;
+    if (!abi.call(decls.func_08011330, 0x08017B4F)) return;
+
+    abi.fetches(17);
+    const s_slot: i32 = abi.signExtend16(@truncate(slot_id));
+    const slot_ptr = @as(u32, @bitCast((s_slot *% 3) << 3)) +% (abi.read32(0x08017B7C) +% 4);
+    abi.write32(slot_ptr, abi.read32(slot_ptr) +% 0x10);
+    rt.r[1] = slot_ptr;
+    abi.setRegNz(&rt.r[0], 1);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnR1Unit();
+}
+
+/// Clear unit byte `+0x24` in `[0x0801C14C]` after `0x0801C0E4` and refresh via `0x0803BC2C` (`0x0801C120`).
+pub fn func_0801C120() callconv(.c) void {
+    if (!abi.enter(0x0801C120)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const unit_id = rt.r[0] & 0xFF;
+    rt.r[4] = unit_id;
+    rt.r[0] = unit_id;
+    rt.updateNz(unit_id);
+    if (!abi.call(decls.func_0801C0E4, 0x0801C12F)) return;
+
+    abi.fetches(13);
+    const units = abi.read32(abi.read32(0x0801C14C));
+    abi.write8(units +% (unit_id *% 0x68) +% 0x24, 0);
+    rt.r[0] = unit_id;
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_0803BC2C, 0x0801C145)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Scroll camera onto active map slot `*[0x0802AA34]` (`0x0802A9EC`).
+pub fn func_0802A9EC() callconv(.c) void {
+    if (!abi.enter(0x0802A9EC)) return;
+    adjustMapFocusMetric(0x0802AA30, 0x0802AA34, 0x0802AA38, 0x0802AA09, 0x0802AA27, 0x0802AA2B);
+}
+
+/// Scroll camera onto active map slot `*[0x0802AAF0]` (`0x0802AAA8`).
+pub fn func_0802AAA8() callconv(.c) void {
+    if (!abi.enter(0x0802AAA8)) return;
+    adjustMapFocusMetric(0x0802AAEC, 0x0802AAF0, 0x0802AAF4, 0x0802AAC5, 0x0802AAE3, 0x0802AAE7);
+}
+
+/// Move cursor to unit `(byte +2, byte +3)`, allocate slot via `0x080131E0`, and bind `r0` to slot (`0x0802AAF8`).
+pub fn func_0802AAF8() callconv(.c) void {
+    if (!abi.enter(0x0802AAF8)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const unit_ptr = rt.r[0];
+    rt.r[4] = unit_ptr;
+    rt.r[0] = abi.read8(unit_ptr +% 2);
+    rt.r[1] = abi.read8(unit_ptr +% 3);
+    if (!abi.call(decls.func_0802928C, 0x0802AB05)) return;
+
+    abi.fetches(6);
+    rt.r[0] = abi.read32(0x0802AB24);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_080131E0, 0x0802AB0D)) return;
+
+    abi.fetches(14);
+    const slot_idx: i32 = abi.signExtend8(@truncate(rt.r[0]));
+    const tbl = abi.read32(0x0802AB28);
+    const slot_off: u32 = @bitCast((slot_idx *% 3) << 5);
+    abi.write32(slot_off +% (tbl +% 0x18), unit_ptr);
+    rt.r[0] = @bitCast(slot_idx);
+    rt.r[1] = slot_off +% (tbl +% 0x18);
+    rt.r[2] = tbl +% 0x18;
+    rt.updateNz(slot_off);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Finish unit menu phase `0x08038240` and update unit action flag `0x0802C4C0([0x0802C518])` (`0x0802C504`).
+pub fn func_0802C504() callconv(.c) void {
+    if (!abi.enter(0x0802C504)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08038240, 0x0802C50B)) return;
+    abi.fetches(6);
+    rt.r[0] = abi.read8(abi.read32(0x0802C518));
+    if (!abi.call(decls.func_0802C4C0, 0x0802C513)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Dispatch unit action `0x0802C540([0x0802C570])` then finalize via `0x08028B80` (`0x0802C55C`).
+pub fn func_0802C55C() callconv(.c) void {
+    if (!abi.enter(0x0802C55C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read8(abi.read32(0x0802C570));
+    if (!abi.call(decls.func_0802C540, 0x0802C567)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08028B80, 0x0802C56B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Query `0x08015E3C` on `[0x0802C5DC]+1` and clear/update unit wait flag via `0x08015E70(..., 0)` (`0x0802C5C0`).
+pub fn func_0802C5C0() callconv(.c) void {
+    if (!abi.enter(0x0802C5C0)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[0] = abi.read8(abi.read32(0x0802C5DC) +% 1);
+    if (!abi.call(decls.func_08015E3C, 0x0802C5CB)) return;
+    abi.fetches(8);
+    const val: u16 = @bitCast(@as(i16, @as(i8, @bitCast(@as(u8, @truncate(rt.r[0]))))));
+    abi.setRegNz(&rt.r[0], val);
+    abi.setRegNz(&rt.r[1], 0);
+    if (!abi.call(decls.func_08015E70, 0x0802C5D7)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08019970, .{ .name = "func_08019970", .linkage = .strong });
@@ -759,6 +950,14 @@ comptime {
         @export(&func_0802C530, .{ .name = "func_0802C530", .linkage = .strong });
         @export(&func_0802C5A0, .{ .name = "func_0802C5A0", .linkage = .strong });
         @export(&func_0802C5B0, .{ .name = "func_0802C5B0", .linkage = .strong });
+        @export(&func_08017B20, .{ .name = "func_08017B20", .linkage = .strong });
+        @export(&func_0801C120, .{ .name = "func_0801C120", .linkage = .strong });
+        @export(&func_0802A9EC, .{ .name = "func_0802A9EC", .linkage = .strong });
+        @export(&func_0802AAA8, .{ .name = "func_0802AAA8", .linkage = .strong });
+        @export(&func_0802AAF8, .{ .name = "func_0802AAF8", .linkage = .strong });
+        @export(&func_0802C504, .{ .name = "func_0802C504", .linkage = .strong });
+        @export(&func_0802C55C, .{ .name = "func_0802C55C", .linkage = .strong });
+        @export(&func_0802C5C0, .{ .name = "func_0802C5C0", .linkage = .strong });
     }
 }
 
