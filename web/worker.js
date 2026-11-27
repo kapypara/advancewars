@@ -38,7 +38,10 @@ self.onmessage = async (ev) => {
             audioCopy = new Int16Array(memBuf, audioPtr >>> 0, audioLen >>> 0).slice();
             transfers.push(audioCopy.buffer);
           }
-          self.postMessage({ type: "frame", width, height, pixels, audio: audioCopy }, transfers);
+          const packedDelta = typeof wasm.awre_cam_delta === "function" ? wasm.awre_cam_delta() >>> 0 : 0;
+          const camDx = (packedDelta << 16) >> 16;
+          const camDy = packedDelta >> 16;
+          self.postMessage({ type: "frame", width, height, pixels, audio: audioCopy, camDx, camDy }, transfers);
 
           fpsFrames += 1;
           const now = performance.now();

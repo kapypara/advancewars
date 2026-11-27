@@ -44,8 +44,8 @@ fn computeMarginCoord(
     return wx;
 }
 
-/// Render off-screen battle map terrain and fog-of-war into left/right widescreen side margins on BG3.
-pub fn renderTerrainMargins(
+/// Render full-width battle map terrain and fog-of-war across `0..vw` on BG3 with zero center/margin seam.
+pub fn renderTerrainFull(
     ppu: *Ppu,
     mem: gba.PpuMemory,
     scene: WideScene,
@@ -67,29 +67,23 @@ pub fn renderTerrainMargins(
     const row_off: usize = readLe16(scene.ewram, map_base_off + 0x4682 + my * 2);
     const max_wx: i32 = @as(i32, scene.map_width) * 16;
 
-    const spans = [2][2]usize{
-        .{ 0, pad_l },
-        .{ pad_l + gba.width, vw },
-    };
-    for (spans) |span| {
-        for (span[0]..span[1]) |sx| {
-            const wx = computeMarginCoord(sx, pad_l, scene.view_wx, max_wx, bg_mos, bg_h) orelse continue;
-            const mx: usize = @intCast(wx >> 4);
-            const cell_idx: usize = row_off + mx;
-            if (map_base_off + 0x234A + cell_idx >= 0x40000 or
-                map_base_off + 0x0A22 + cell_idx * 2 + 1 >= 0x40000) continue;
+    for (0..vw) |sx| {
+        const wx = computeMarginCoord(sx, pad_l, scene.view_wx, max_wx, bg_mos, bg_h) orelse continue;
+        const mx: usize = @intCast(wx >> 4);
+        const cell_idx: usize = row_off + mx;
+        if (map_base_off + 0x234A + cell_idx >= 0x40000 or
+            map_base_off + 0x0A22 + cell_idx * 2 + 1 >= 0x40000) continue;
 
-            const vis = scene.ewram[map_base_off + 0x234A + cell_idx];
-            const tile_id: usize = readLe16(scene.ewram, map_base_off + 0x0A22 + cell_idx * 2);
-            const sub_x: usize = @intCast((wx >> 3) & 1);
-            const rom_off: usize = 0x0D1FC0 + tile_id * 8 + sub_x * 4 + sub_y * 2;
-            if (rom_off + 1 >= scene.rom_len) continue;
+        const vis = scene.ewram[map_base_off + 0x234A + cell_idx];
+        const tile_id: usize = readLe16(scene.ewram, map_base_off + 0x0A22 + cell_idx * 2);
+        const sub_x: usize = @intCast((wx >> 3) & 1);
+        const rom_off: usize = 0x0D1FC0 + tile_id * 8 + sub_x * 4 + sub_y * 2;
+        if (rom_off + 1 >= scene.rom_len) continue;
 
-            var e: u16 = readLe16(scene.rom, rom_off);
-            if (vis == 0) e +%= 0x4000;
-            const px_bm: u32 = @intCast(wx & 7);
-            ppu.plotTilePixel(mem, sx, 3, char_base, bpp8, e, px_bm, py_bm);
-        }
+        var e: u16 = readLe16(scene.rom, rom_off);
+        if (vis == 0) e +%= 0x4000;
+        const px_bm: u32 = @intCast(wx & 7);
+        ppu.plotTilePixel(mem, sx, 3, char_base, bpp8, e, px_bm, py_bm);
     }
 }
 
@@ -113,7 +107,7 @@ pub fn renderReachabilityMargins(
     const row_off: usize = row_ptr & 0x3FFFF;
     const max_wx: i32 = @as(i32, scene.map_width) * 16;
     const pad_i: i32 = @intCast(pad_l);
-    const highlight_color: u16 = 0x03FF; // Yellow tint blended via PPU semi-transparent BG2 alpha
+    const highlight_color: u16 = 0x7FFF; // Bright highlight blended via PPU semi-transparent BG2 alpha
 
     const spans = [2][2]usize{
         .{ 0, pad_l },
@@ -132,8 +126,8 @@ pub fn renderReachabilityMargins(
     }
 }
 
-/// Render off-screen visible battle units into left/right widescreen side margins on BG1.
-pub fn renderUnitsMargins(
+/// Render full-width visible battle units across `0..vw` on BG1 with zero center/margin seam.
+pub fn renderUnitsFull(
     ppu: *Ppu,
     mem: gba.PpuMemory,
     scene: WideScene,
@@ -160,49 +154,43 @@ pub fn renderUnitsMargins(
     const row_off: usize = readLe16(scene.ewram, map_base_off + 0x4682 + my * 2);
     const max_wx: i32 = @as(i32, scene.map_width) * 16;
 
-    const spans = [2][2]usize{
-        .{ 0, pad_l },
-        .{ pad_l + gba.width, vw },
-    };
-    for (spans) |span| {
-        for (span[0]..span[1]) |sx| {
-            const wx = computeMarginCoord(sx, pad_l, scene.view_wx, max_wx, bg_mos, bg_h) orelse continue;
-            const mx: usize = @intCast(wx >> 4);
-            const cell_idx: usize = row_off + mx;
-            if (map_base_off + 0x234A + cell_idx >= 0x40000 or
-                map_base_off + 0x051A + cell_idx >= 0x40000) continue;
+    for (0..vw) |sx| {
+        const wx = computeMarginCoord(sx, pad_l, scene.view_wx, max_wx, bg_mos, bg_h) orelse continue;
+        const mx: usize = @intCast(wx >> 4);
+        const cell_idx: usize = row_off + mx;
+        if (map_base_off + 0x234A + cell_idx >= 0x40000 or
+            map_base_off + 0x051A + cell_idx >= 0x40000) continue;
 
-            if (scene.ewram[map_base_off + 0x234A + cell_idx] == 0) continue;
+        if (scene.ewram[map_base_off + 0x234A + cell_idx] == 0) continue;
 
-            const uid: usize = scene.ewram[map_base_off + 0x051A + cell_idx];
-            if (uid == 0) continue;
+        const uid: usize = scene.ewram[map_base_off + 0x051A + cell_idx];
+        if (uid == 0) continue;
 
-            const u_off: usize = 0x19F34 + uid * 12;
-            if (u_off + 11 >= 0x40000) continue;
-            const utype: usize = scene.ewram[u_off];
-            const flags = scene.ewram[u_off + 1];
-            if (utype == 0 or (flags & 0x04) != 0) continue;
+        const u_off: usize = 0x19F34 + uid * 12;
+        if (u_off + 11 >= 0x40000) continue;
+        const utype: usize = scene.ewram[u_off];
+        const flags = scene.ewram[u_off + 1];
+        if (utype == 0 or (flags & 0x04) != 0) continue;
 
-            const army_idx: usize = (uid - 1) >> 6;
-            const style_off: usize = 0x1AB34 + (army_idx + 1) * 0x68 + 0x1A;
-            const style: usize = if (style_off < 0x40000) scene.ewram[style_off] else 0;
-            const tid_off: usize = 0x28_2F2C + style * 0x32 + utype * 2;
-            if (tid_off + 1 >= scene.rom_len) continue;
-            const tid_base: u16 = readLe16(scene.rom, tid_off) *% 4;
+        const army_idx: usize = (uid - 1) >> 6;
+        const style_off: usize = 0x1AB34 + (army_idx + 1) * 0x68 + 0x1A;
+        const style: usize = if (style_off < 0x40000) scene.ewram[style_off] else 0;
+        const tid_off: usize = 0x28_2F2C + style * 0x32 + utype * 2;
+        if (tid_off + 1 >= scene.rom_len) continue;
+        const tid_base: u16 = readLe16(scene.rom, tid_off) *% 4;
 
-            const pal_idx: usize = if ((flags & 1) != 0) 0 else (army_idx + 1);
-            const pal_off: usize = 0x08_0D50 + pal_idx * 2;
-            if (pal_off + 1 >= scene.rom_len) continue;
-            const pal_base: u16 = readLe16(scene.rom, pal_off);
+        const pal_idx: usize = if ((flags & 1) != 0) 0 else (army_idx + 1);
+        const pal_off: usize = 0x08_0D50 + pal_idx * 2;
+        if (pal_off + 1 >= scene.rom_len) continue;
+        const pal_base: u16 = readLe16(scene.rom, pal_off);
 
-            const sub_x: usize = @intCast((wx >> 3) & 1);
-            const is_flipped = (army_idx & 1) == 0;
-            const sub_idx: u16 = @intCast(sub_y * 2 + (if (is_flipped) 1 - sub_x else sub_x));
-            const hflip: u16 = if (is_flipped) 0x0400 else 0;
-            const e: u16 = pal_base +% tid_base +% sub_idx +% hflip;
-            const px_bm: u32 = @intCast(wx & 7);
-            ppu.plotTilePixel(mem, sx, 1, char_base, bpp8, e, px_bm, py_bm);
-        }
+        const sub_x: usize = @intCast((wx >> 3) & 1);
+        const is_flipped = (army_idx & 1) == 0;
+        const sub_idx: u16 = @intCast(sub_y * 2 + (if (is_flipped) 1 - sub_x else sub_x));
+        const hflip: u16 = if (is_flipped) 0x0400 else 0;
+        const e: u16 = pal_base +% tid_base +% sub_idx +% hflip;
+        const px_bm: u32 = @intCast(wx & 7);
+        ppu.plotTilePixel(mem, sx, 1, char_base, bpp8, e, px_bm, py_bm);
     }
 }
 
@@ -237,8 +225,8 @@ fn propertyAttr2(scene: WideScene, btype: u8, owner: u8, vis: u8) ?u16 {
     return attr2;
 }
 
-/// Render off-screen map buildings/properties into left/right widescreen side margins from IWRAM's OAM list.
-pub fn renderPropertiesMargins(
+/// Render full-width map buildings/properties across `0..vw` from IWRAM's OAM list.
+pub fn renderPropertiesFull(
     ppu: *Ppu,
     mem: gba.PpuMemory,
     scene: WideScene,
@@ -257,7 +245,6 @@ pub fn renderPropertiesMargins(
     if (count == 0) return;
 
     const pad_i: i32 = @intCast(pad_l);
-    const right_start: usize = pad_l + gba.width;
     const map_base_off: usize = 0x157F8;
 
     var rev = count;
@@ -275,8 +262,6 @@ pub fn renderPropertiesMargins(
         const wx0: i32 = @as(i32, @intCast(mx)) * 16;
         const ox: i32 = wx0 - scene.view_wx + pad_i;
         if (ox + 16 <= 0 or ox >= @as(i32, @intCast(vw))) continue;
-        // Only fill side margins; native [pad_l, pad_l + 240) is rendered via GBA OAM.
-        if (ox >= @as(i32, @intCast(pad_l)) and ox + 16 <= @as(i32, @intCast(right_start))) continue;
 
         const row_off: usize = readLe16(scene.ewram, map_base_off + 0x4682 + my * 2);
         const cell_idx: usize = row_off + mx;
@@ -296,7 +281,6 @@ pub fn renderPropertiesMargins(
             const sx_i = ox + px;
             if (sx_i < 0 or sx_i >= @as(i32, @intCast(vw))) continue;
             const sx: usize = @intCast(sx_i);
-            if (sx >= pad_l and sx < right_start) continue;
 
             const fx_u: u32 = @intCast(px);
             const tx: u32 = fx_u >> 3;
@@ -350,11 +334,15 @@ test "WideScene renders off-screen terrain with map-bounds clamp and fog shift" 
     @memset(rom, 0);
 
     const map_base: usize = 0x157F8;
+    // mx=0 & mx=1 visible (vis=1, tid=1), mx=16 in fog (vis=0, tid=1)
     ewram[map_base + 0x234A + 0] = 1;
     ewram[map_base + 0x0A22 + 0] = 1;
+    ewram[map_base + 0x234A + 1] = 1;
+    ewram[map_base + 0x0A22 + 1 * 2] = 1;
     ewram[map_base + 0x234A + 16] = 0;
     ewram[map_base + 0x0A22 + 16 * 2] = 1;
     rom[0x0D1FC0 + 1 * 8 + 0] = 1;
+    rom[0x0D1FC0 + 1 * 8 + 4] = 1;
 
     var mem = TestMem{};
     TestMem.write16(&mem.io_regs, gba.io_reg.dispcnt, 0x0800);
@@ -382,6 +370,8 @@ test "WideScene renders off-screen terrain with map-bounds clamp and fog shift" 
     try std.testing.expectEqual(@as(u32, 0xFF000000), wide[0]);
     try std.testing.expectEqual(@as(u32, 0xFF000000), wide[23]);
     try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[24]);
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[39]); // left margin edge
+    try std.testing.expectEqual(@as(u32, 0xFFFF0000), wide[40]); // center region rendered uniformly
     try std.testing.expectEqual(@as(u32, 0xFF00FF00), wide[280]);
 }
 

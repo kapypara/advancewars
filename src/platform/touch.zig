@@ -720,7 +720,7 @@ pub const TouchController = struct {
         const pad_l_f: f32 = (hud_w_f - gba_w_f) * 0.5;
         const map_mode = (state.mode == .battle_free_map or state.mode == .battle_unit_selected);
         const battle_menu_mode = switch (state.mode) {
-            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info, .frontend_rules => true,
+            .battle_popup_menu, .battle_unit_list, .battle_deploy_shop, .battle_intel_status, .battle_co_info, .frontend_co_setup, .frontend_rules => true,
             else => false,
         };
         const in_standard_bounds = lx >= 0 and ly >= 0 and lx < gba_w_f and ly < gba_h_f;
@@ -978,19 +978,37 @@ pub const TouchController = struct {
                 }
             },
             .frontend_co_setup => {
-                self.cancelNavigation();
-                if (lx >= 170 and ly < 30) {
+                if (lx >= 164 and lx < 236 and ly >= 6 and ly < 26) {
+                    self.cancelNavigation();
                     self.enqueuePulse(gba.Key.a.mask(), 4, 2);
-                } else if (ly >= 30 and ly < 64) {
-                    self.enqueuePulse(gba.Key.up.mask(), 4, 2);
-                } else if (ly >= 96 and ly < 128) {
-                    self.enqueuePulse(gba.Key.down.mask(), 4, 2);
-                } else if (ly >= 64 and ly < 96) {
-                    self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                    return;
+                }
+                const px_i: i32 = @intFromFloat(@floor(lx));
+                const py_i: i32 = @intFromFloat(@floor(ly));
+                const p_count: i32 = @max(@divTrunc(@as(i32, state.menu_count), 2), 2);
+                const card_x0: i32 = if (state.menu_x > 0) state.menu_x else 46;
+                const card_y: i32 = if (state.menu_y > 0) state.menu_y else 64;
+                const spacing: i32 = if (p_count == 2) 96 else if (p_count == 3) 72 else 56;
+                const card_w: i32 = @min(@as(i32, 60), spacing);
+                var p: i32 = 0;
+                while (p < p_count) : (p += 1) {
+                    const x0 = card_x0 + p * spacing;
+                    if (px_i >= x0 - 4 and px_i < x0 + card_w and py_i >= card_y - 20 and py_i < card_y + 56) {
+                        const target: u8 = @intCast(p * 2 + (if (px_i < x0 + 32) @as(i32, 0) else @as(i32, 1)));
+                        if (target != state.menu_selected) {
+                            self.cancelNavigation();
+                            self.startHorizontalMenuNavigation(target, state);
+                        } else {
+                            self.cancelNavigation();
+                            const mask = if (py_i >= card_y + 16) gba.Key.down.mask() else gba.Key.up.mask();
+                            self.enqueuePulse(mask, 4, 2);
+                        }
+                        return;
+                    }
                 }
             },
             .frontend_rules => {
-                if (lx >= 164 and lx < 236 and ly >= 8 and ly < 32) {
+                if (lx >= 164 and lx < 236 and ly >= 6 and ly < 23) {
                     self.cancelNavigation();
                     self.enqueuePulse(gba.Key.a.mask(), 4, 2);
                     return;
@@ -1001,14 +1019,14 @@ pub const TouchController = struct {
                     const idx_raw = @divTrunc(px_i - 7, 32);
                     if (idx_raw >= 0 and idx_raw < 7) {
                         const idx: u8 = @intCast(idx_raw);
-                        const by: i32 = 84 - @as(i32, idx) * 8;
-                        if (py_i >= by - 14 and py_i < by + 62) {
+                        const cy: i32 = 98 - @as(i32, idx) * 8;
+                        if (py_i >= cy - 28 and py_i < cy + 28) {
                             if (idx != state.menu_selected) {
                                 self.cancelNavigation();
                                 self.startHorizontalMenuNavigation(idx, state);
                             } else {
                                 self.cancelNavigation();
-                                const mask = if (py_i >= by + 38) gba.Key.down.mask() else gba.Key.up.mask();
+                                const mask = if (py_i >= cy) gba.Key.down.mask() else gba.Key.up.mask();
                                 self.enqueuePulse(mask, 4, 2);
                             }
                             return;
@@ -1157,6 +1175,7 @@ pub const TouchController = struct {
             state.mode != .battle_deploy_shop and
             state.mode != .yes_no_prompt and
             state.mode != .frontend_map_select and
+            state.mode != .frontend_co_setup and
             state.mode != .frontend_rules)
         {
             self.clearMenuNavigation();
@@ -1191,7 +1210,7 @@ pub const TouchController = struct {
                 self.menu_nav_in_gap = true;
                 self.menu_nav_timer = nav_gap_frames;
             } else {
-                const horiz = self.menu_nav_horizontal or state.mode == .yes_no_prompt or state.mode == .frontend_rules;
+                const horiz = self.menu_nav_horizontal or state.mode == .yes_no_prompt or state.mode == .frontend_co_setup or state.mode == .frontend_rules;
                 self.menu_nav_key_mask = if (horiz)
                     (if (state.menu_selected < target) gba.Key.right.mask() else gba.Key.left.mask())
                 else
@@ -2272,24 +2291,64 @@ test "Frontend Main Menu, Map Select, and CO Setup tap zones" {
     try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
     for (0..8) |_| tc.stepFrame(ms_state);
 
-    // CO Setup: PRESS A -> A, upper band -> Up, lower band -> Down.
-    const co_state = GameState{ .mode = .frontend_co_setup };
+    // CO Setup: PRESS A -> A, card tap jumps horizontally across cards, up/down arrows step vertically, margin -> B.
+    tc.setHudWidth(410);
+    var co_state = GameState{
+        .mode = .frontend_co_setup,
+        .menu_count = 4,
+        .menu_selected = 0,
+        .menu_x = 46,
+        .menu_y = 64,
+    };
     tc.handlePointer(.{ .id = 9, .phase = .down, .x = 200, .y = 16, .logical_x = 200, .logical_y = 16 }, co_state);
     tc.handlePointer(.{ .id = 9, .phase = .up, .x = 200, .y = 16, .logical_x = 200, .logical_y = 16 }, co_state);
     tc.stepFrame(co_state);
     try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
     for (0..8) |_| tc.stepFrame(co_state);
 
-    tc.handlePointer(.{ .id = 10, .phase = .down, .x = 60, .y = 48, .logical_x = 60, .logical_y = 48 }, co_state);
-    tc.handlePointer(.{ .id = 10, .phase = .up, .x = 60, .y = 48, .logical_x = 60, .logical_y = 48 }, co_state);
+    // Tap left half of card 1 (CO portrait, target = 2) at x = 156, y = 76 -> steps right from 0 -> 2.
+    tc.handlePointer(.{ .id = 10, .phase = .down, .x = 156, .y = 76, .logical_x = 156, .logical_y = 76 }, co_state);
+    tc.handlePointer(.{ .id = 10, .phase = .up, .x = 156, .y = 76, .logical_x = 156, .logical_y = 76 }, co_state);
+    for (0..20) |_| {
+        tc.stepFrame(co_state);
+        if (tc.menu_nav_timer == nav_pulse_frames - 1 and !tc.menu_nav_in_gap and (tc.activeKeys() & gba.Key.right.mask()) != 0) {
+            co_state.menu_selected += 1;
+        }
+        if (co_state.menu_selected == 2) break;
+    }
+    try std.testing.expectEqual(@as(u8, 2), co_state.menu_selected);
+    for (0..8) |_| tc.stepFrame(co_state);
+
+    // Tap right half of card 1 (2P/COM badge, target = 3) at x = 184, y = 76 -> steps right from 2 -> 3.
+    tc.handlePointer(.{ .id = 11, .phase = .down, .x = 184, .y = 76, .logical_x = 184, .logical_y = 76 }, co_state);
+    tc.handlePointer(.{ .id = 11, .phase = .up, .x = 184, .y = 76, .logical_x = 184, .logical_y = 76 }, co_state);
+    for (0..12) |_| {
+        tc.stepFrame(co_state);
+        if (tc.menu_nav_timer == nav_pulse_frames - 1 and !tc.menu_nav_in_gap and (tc.activeKeys() & gba.Key.right.mask()) != 0) {
+            co_state.menu_selected += 1;
+        }
+        if (co_state.menu_selected == 3) break;
+    }
+    try std.testing.expectEqual(@as(u8, 3), co_state.menu_selected);
+    for (0..8) |_| tc.stepFrame(co_state);
+
+    // Tap above center on selected card 1 badge (y=60) -> Key.up; below center (y=92) -> Key.down; extended margin -> Key.b.
+    tc.handlePointer(.{ .id = 12, .phase = .down, .x = 184, .y = 60, .logical_x = 184, .logical_y = 60 }, co_state);
+    tc.handlePointer(.{ .id = 12, .phase = .up, .x = 184, .y = 60, .logical_x = 184, .logical_y = 60 }, co_state);
     tc.stepFrame(co_state);
     try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
     for (0..8) |_| tc.stepFrame(co_state);
 
-    tc.handlePointer(.{ .id = 11, .phase = .down, .x = 60, .y = 112, .logical_x = 60, .logical_y = 112 }, co_state);
-    tc.handlePointer(.{ .id = 11, .phase = .up, .x = 60, .y = 112, .logical_x = 60, .logical_y = 112 }, co_state);
+    tc.handlePointer(.{ .id = 13, .phase = .down, .x = 184, .y = 92, .logical_x = 184, .logical_y = 92 }, co_state);
+    tc.handlePointer(.{ .id = 13, .phase = .up, .x = 184, .y = 92, .logical_x = 184, .logical_y = 92 }, co_state);
     tc.stepFrame(co_state);
     try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(co_state);
+
+    tc.handlePointer(.{ .id = 14, .phase = .down, .x = -30, .y = 80, .logical_x = -30, .logical_y = 80 }, co_state);
+    tc.handlePointer(.{ .id = 14, .phase = .up, .x = -30, .y = 80, .logical_x = -30, .logical_y = 80 }, co_state);
+    tc.stepFrame(co_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
 }
 
 test "Battle deploy shop 2-tap preview/buy, scroll arrows, INTEL ignore, and natural scroll" {
@@ -2515,28 +2574,53 @@ test "VS Rules full direct touch supports bubble selection, value arrows, PRESS 
     try std.testing.expectEqual(@as(u8, 2), rules_state.menu_selected);
     for (0..8) |_| tc.stepFrame(rules_state);
 
-    // 2. Tap selected Funds bubble center/top (x=87, y=80) -> Key.up; tap below arrow (y=112) -> Key.down.
-    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 87, .y = 80, .logical_x = 87, .logical_y = 80 }, rules_state);
-    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 87, .y = 80, .logical_x = 87, .logical_y = 80 }, rules_state);
+    // 2. Tap selected Funds bubble top/above (x=87, y=64) -> Key.up; tap bottom/below (y=96) -> Key.down.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 87, .y = 64, .logical_x = 87, .logical_y = 64 }, rules_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 87, .y = 64, .logical_x = 87, .logical_y = 64 }, rules_state);
     tc.stepFrame(rules_state);
     try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
     for (0..8) |_| tc.stepFrame(rules_state);
 
-    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 87, .y = 112, .logical_x = 87, .logical_y = 112 }, rules_state);
-    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 87, .y = 112, .logical_x = 87, .logical_y = 112 }, rules_state);
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 87, .y = 96, .logical_x = 87, .logical_y = 96 }, rules_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 87, .y = 96, .logical_x = 87, .logical_y = 96 }, rules_state);
     tc.stepFrame(rules_state);
     try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
     for (0..8) |_| tc.stepFrame(rules_state);
 
-    // 3. Tap PRESS A (x=196, y=20) -> Key.a; tap left extended margin (lx=-40, y=60) -> Key.b.
-    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 196, .y = 20, .logical_x = 196, .logical_y = 20 }, rules_state);
-    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 196, .y = 20, .logical_x = 196, .logical_y = 20 }, rules_state);
+    // 3. Tap diagonally higher Visuals bubble (idx=6, x=214, y=50) -> steps right to idx 6, then UP arrow (y=27) and DOWN arrow (y=70).
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 214, .y = 50, .logical_x = 214, .logical_y = 50 }, rules_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 214, .y = 50, .logical_x = 214, .logical_y = 50 }, rules_state);
+    for (0..36) |_| {
+        tc.stepFrame(rules_state);
+        if (tc.menu_nav_timer == nav_pulse_frames - 1 and !tc.menu_nav_in_gap and (tc.activeKeys() & gba.Key.right.mask()) != 0) {
+            rules_state.menu_selected += 1;
+        }
+        if (rules_state.menu_selected == 6) break;
+    }
+    try std.testing.expectEqual(@as(u8, 6), rules_state.menu_selected);
+    for (0..8) |_| tc.stepFrame(rules_state);
+
+    tc.handlePointer(.{ .id = 5, .phase = .down, .x = 214, .y = 27, .logical_x = 214, .logical_y = 27 }, rules_state);
+    tc.handlePointer(.{ .id = 5, .phase = .up, .x = 214, .y = 27, .logical_x = 214, .logical_y = 27 }, rules_state);
+    tc.stepFrame(rules_state);
+    try std.testing.expectEqual(gba.Key.up.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(rules_state);
+
+    tc.handlePointer(.{ .id = 6, .phase = .down, .x = 214, .y = 70, .logical_x = 214, .logical_y = 70 }, rules_state);
+    tc.handlePointer(.{ .id = 6, .phase = .up, .x = 214, .y = 70, .logical_x = 214, .logical_y = 70 }, rules_state);
+    tc.stepFrame(rules_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(rules_state);
+
+    // 4. Tap PRESS A (x=196, y=16) -> Key.a; tap left extended margin (lx=-40, y=60) -> Key.b.
+    tc.handlePointer(.{ .id = 7, .phase = .down, .x = 196, .y = 16, .logical_x = 196, .logical_y = 16 }, rules_state);
+    tc.handlePointer(.{ .id = 7, .phase = .up, .x = 196, .y = 16, .logical_x = 196, .logical_y = 16 }, rules_state);
     tc.stepFrame(rules_state);
     try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
     for (0..8) |_| tc.stepFrame(rules_state);
 
-    tc.handlePointer(.{ .id = 5, .phase = .down, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
-    tc.handlePointer(.{ .id = 5, .phase = .up, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
+    tc.handlePointer(.{ .id = 8, .phase = .down, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
+    tc.handlePointer(.{ .id = 8, .phase = .up, .x = -40, .y = 60, .logical_x = -40, .logical_y = 60 }, rules_state);
     tc.stepFrame(rules_state);
     try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
 }

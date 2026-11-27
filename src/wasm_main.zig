@@ -44,3 +44,7 @@ pub export fn awre_run_wasm() void {
 pub export fn awre_push_pointer(id: i32, phase: u32, lx: f32, ly: f32) void {
     core.platform.WasmBackend.pushPointerRaw(id, phase, lx, ly);
 }
+
+pub export fn awre_cam_delta() u32 {
+    return core.platform.WasmBackend.lastCamDelta();
+}

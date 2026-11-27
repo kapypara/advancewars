@@ -25,6 +25,8 @@ pub const VideoFrame = struct {
     pixels: []const u32,
     width: u16 = gba.width,
     height: u16 = gba.height,
+    cam_dx: i16 = 0,
+    cam_dy: i16 = 0,
 };
 
 pub const HudFrame = struct {

@@ -34,6 +34,11 @@ var s_wide_width: u16 = gba.width;
 var s_has_prev_battle_cam: bool = false;
 var s_prev_battle_cam_x: i16 = 0;
 var s_prev_battle_cam_y: i16 = 0;
+var s_last_view_wx: i32 = 0;
+var s_last_view_wy: i32 = 0;
+var s_has_last_view: bool = false;
+var s_frame_cam_dx: i16 = 0;
+var s_frame_cam_dy: i16 = 0;
 var s_pcm_a: [audio.max_frame_samples]i8 = @splat(0);
 var s_pcm_b: [audio.max_frame_samples]i8 = @splat(0);
 var s_stereo_out: [audio.max_out_stereo_i16]i16 = @splat(0);
@@ -198,6 +203,24 @@ fn sampleGameState() GameState {
                 break :blk .frontend_rules;
             }
             if (co_setup_active) {
+                var p_count: u8 = 0;
+                var min_x: i16 = 240;
+                var card_y: i16 = 64;
+                for (0..40) |slot| {
+                    const base = 0x0300_0E10 + @as(u32, @intCast(slot)) * 0x60;
+                    if (peek32(base) == 0x083B_93C8) {
+                        const cx: i16 = @bitCast(peek16(base + 0x28));
+                        const cy: i16 = @bitCast(peek16(base + 0x2A));
+                        if (cx >= 0 and cx < min_x) min_x = cx;
+                        if (cy >= 0 and cy < 160) card_y = cy;
+                        p_count +|= 1;
+                    }
+                }
+                const clamped_p = std.math.clamp(p_count, 2, 4);
+                menu_count = clamped_p * 2;
+                menu_selected = @min(peek8(0x0200_0036), menu_count -| 1);
+                menu_x = if (min_x < 240) min_x else 46;
+                menu_y = card_y;
                 break :blk .frontend_co_setup;
             }
         }
@@ -536,6 +559,24 @@ pub fn display_render_line(y: c_int) void {
                 }
             }
             s_has_prev_battle_cam = keep_prev_cam;
+            if (wide_scene) |ws| {
+                if (s_has_last_view) {
+                    const dx = ws.view_wx - s_last_view_wx;
+                    const dy = ws.view_wy - s_last_view_wy;
+                    s_frame_cam_dx = if (dx != 0 and @abs(dx) <= 12) @intCast(dx) else 0;
+                    s_frame_cam_dy = if (dy != 0 and @abs(dy) <= 12) @intCast(dy) else 0;
+                } else {
+                    s_frame_cam_dx = 0;
+                    s_frame_cam_dy = 0;
+                }
+                s_last_view_wx = ws.view_wx;
+                s_last_view_wy = ws.view_wy;
+                s_has_last_view = true;
+            } else {
+                s_has_last_view = false;
+                s_frame_cam_dx = 0;
+                s_frame_cam_dy = 0;
+            }
             s_ppu.setViewport(s_wide_width, wide_bg_mask, false);
             s_ppu.setWideScene(wide_scene);
         }
@@ -582,6 +623,8 @@ pub fn display_render_frame() void {
         .pixels = s_present_buf[0..present_len],
         .width = @intCast(view_w),
         .height = gba.height,
+        .cam_dx = s_frame_cam_dx,
+        .cam_dy = s_frame_cam_dy,
     };
     const hud_frame = HudFrame{
         .visible = s_touch.hud_visible,

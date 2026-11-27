@@ -164,6 +164,18 @@ pub const Ppu = struct {
         const py: u32 = by & 7;
         const wide_stride: u32 = if ((size & 1) != 0) 2 else 1;
         const extend_wide = vw > gba.width and ((self.wide_bg_mask & (@as(u4, 1) << @intCast(bg))) != 0);
+        if (bg == 3 and vw > gba.width and !extend_wide) {
+            if (self.wide_scene) |scene| {
+                renderer.renderTerrainFull(self, mem, scene, vw, pad_l, char_base, bpp8, bg_mos, bg_h, eff_y);
+                return;
+            }
+        } else if (bg == 1 and vw > gba.width and !extend_wide and char_base == 0 and screen_base == 30 * 0x800) {
+            if (self.wide_scene) |scene| {
+                renderer.renderUnitsFull(self, mem, scene, vw, pad_l, vofs, char_base, bpp8, bg_mos, bg_h, eff_y);
+                return;
+            }
+        }
+
         const loop_len: usize = if (extend_wide) vw else gba.width;
         const pad_i: i32 = @intCast(pad_l);
         const hofs_i: i32 = @intCast(hofs);
@@ -187,17 +199,9 @@ pub const Ppu = struct {
             self.plotTilePixel(mem, dst_x, bg, char_base, bpp8, e, px, py);
         }
 
-        if (bg == 3 and vw > gba.width and !extend_wide) {
-            if (self.wide_scene) |scene| {
-                renderer.renderTerrainMargins(self, mem, scene, vw, pad_l, char_base, bpp8, bg_mos, bg_h, eff_y);
-            }
-        } else if (bg == 2 and vw > gba.width and !extend_wide) {
+        if (bg == 2 and vw > gba.width and !extend_wide) {
             if (self.wide_scene) |scene| {
                 renderer.renderReachabilityMargins(self, scene, vw, pad_l, eff_y);
-            }
-        } else if (bg == 1 and vw > gba.width and !extend_wide and char_base == 0 and screen_base == 30 * 0x800) {
-            if (self.wide_scene) |scene| {
-                renderer.renderUnitsMargins(self, mem, scene, vw, pad_l, vofs, char_base, bpp8, bg_mos, bg_h, eff_y);
             }
         }
     }
@@ -291,6 +295,7 @@ pub const Ppu = struct {
             const shape: usize = a0 >> 14;
             const size: usize = a1 >> 14;
             if (shape > 2) continue;
+            if (prio == 3 and vw > gba.width and self.wide_scene != null and shape == 2 and size == 2) continue;
 
             const w = obj_width[shape][size];
             const h = obj_height[shape][size];
@@ -387,7 +392,7 @@ pub const Ppu = struct {
 
         if (prio == 3 and vw > gba.width) {
             if (self.wide_scene) |scene| {
-                renderer.renderPropertiesMargins(self, mem, scene, y, vw, pad_l);
+                renderer.renderPropertiesFull(self, mem, scene, y, vw, pad_l);
             }
         }
     }

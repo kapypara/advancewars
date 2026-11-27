@@ -33,9 +33,14 @@ pub const WasmBackend = struct {
     var s_ptr_count: usize = 0;
     var rgba_buf: [gba.max_wide_width * gba.height]u32 = @splat(0);
     var empty_audio: [2]i16 = .{ 0, 0 };
+    var s_last_cam_delta: u32 = 0;
 
     last_audio_ptr: [*]const i16 = &empty_audio,
     last_audio_len: u32 = 0,
+
+    pub fn lastCamDelta() u32 {
+        return s_last_cam_delta;
+    }
 
     pub fn pushPointerRaw(id: i32, phase_raw: u32, lx: f32, ly: f32) void {
         if (phase_raw > @intFromEnum(platform.PointerPhase.scroll_down)) return;
@@ -77,6 +82,8 @@ pub const WasmBackend = struct {
                 ((px & 0x00FF_0000) >> 16) |
                 ((px & 0x0000_00FF) << 16);
         }
+        s_last_cam_delta = @as(u32, @as(u16, @bitCast(frame.cam_dx))) |
+            (@as(u32, @as(u16, @bitCast(frame.cam_dy))) << 16);
         env.host_present(&rgba_buf, frame.width, frame.height, self.last_audio_ptr, self.last_audio_len);
         self.last_audio_len = 0;
 
@@ -136,6 +143,7 @@ test "WasmBackend queues pointer events cleanly and swaps BGRA to RGBA" {
     try std.testing.expectEqual(platform.PointerPhase.scroll_up, drained[1].phase);
 
     var fb: [gba.width * gba.height]u32 = @splat(0xFF112233);
-    wb.present(.{ .pixels = &fb, .width = gba.width, .height = gba.height }, .{});
+    wb.present(.{ .pixels = &fb, .width = gba.width, .height = gba.height, .cam_dx = -4, .cam_dy = 4 }, .{});
     try std.testing.expectEqual(@as(u32, 0xFF332211), WasmBackend.rgba_buf[0]);
+    try std.testing.expectEqual(@as(u32, 0x0004_FFFC), WasmBackend.lastCamDelta());
 }

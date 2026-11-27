@@ -1,3 +1,5 @@
+import { createPresenter } from "./gl_presenter.js";
+
 const GBA_W = 240;
 const GBA_H = 160;
 const PTR_CAP = 64;
@@ -37,7 +39,7 @@ const barRestore = document.getElementById("bar-restore");
 const loadRomBtn = document.getElementById("load-rom-btn");
 const screenZone = document.getElementById("screen-zone");
 const canvas = document.getElementById("screen");
-const ctx = canvas.getContext("2d", { alpha: false });
+const presenter = createPresenter(canvas);
 const hudCanvas = document.getElementById("hud-canvas");
 const hudCtx = hudCanvas.getContext("2d", { alpha: true });
 const stage = document.getElementById("stage");
@@ -87,6 +89,22 @@ let audioNode = null;
 let audioInitPromise = null;
 let wasmCache = null;
 let toastTimer = null;
+let hasUploadedFrame = false;
+let frameDirty = false;
+let rafId = 0;
+
+function renderFrameLoop() {
+  rafId = 0;
+  if (!hasUploadedFrame || !frameDirty) return;
+  presenter.draw();
+  frameDirty = false;
+}
+
+function schedulePresent() {
+  if (!rafId && hasUploadedFrame) {
+    rafId = requestAnimationFrame(renderFrameLoop);
+  }
+}
 
 let kbKeyMask = 0;
 let extKeyMask = 0;
@@ -318,6 +336,11 @@ function fitCanvas() {
   const ch = Math.floor(Math.max(0, h));
   canvas.style.width = `${cw}px`;
   canvas.style.height = `${ch}px`;
+  presenter.resize(cw, ch, window.devicePixelRatio || 1);
+  if (hasUploadedFrame) {
+    frameDirty = true;
+    schedulePresent();
+  }
 
   stageWideWidth = !isPortraitHud && ch > 0 ? computeHudWidthPx(availW, ch) : GBA_W;
   hudWidth = inFrameHud && ch > 0 ? stageWideWidth : GBA_W;
@@ -445,11 +468,8 @@ async function startSession({ name, key, romBytes }) {
 
   worker = new Worker("worker.js", { type: "module" });
   currentFrameW = GBA_W;
-  if (canvas.width !== GBA_W || canvas.height !== GBA_H) {
-    canvas.width = GBA_W;
-    canvas.height = GBA_H;
-  }
-  let imgData = ctx.createImageData(GBA_W, GBA_H);
+  hasUploadedFrame = false;
+  frameDirty = false;
   let hudImgData = null;
 
   worker.onmessage = async (ev) => {
@@ -458,14 +478,11 @@ async function startSession({ name, key, romBytes }) {
     if (msg.type === "frame") {
       const fw = msg.width || GBA_W;
       const fh = msg.height || GBA_H;
-      if (fw !== currentFrameW || canvas.width !== fw || canvas.height !== fh) {
-        currentFrameW = fw;
-        canvas.width = fw;
-        canvas.height = fh;
-        imgData = ctx.createImageData(fw, fh);
-      }
-      imgData.data.set(msg.pixels);
-      ctx.putImageData(imgData, 0, 0);
+      currentFrameW = fw;
+      presenter.upload(fw, fh, msg.pixels);
+      hasUploadedFrame = true;
+      frameDirty = true;
+      schedulePresent();
       if (msg.audio && audioNode && audioCtx && audioCtx.state === "running" && !muted) {
         audioNode.port.postMessage(msg.audio, [msg.audio.buffer]);
       }

@@ -113,16 +113,13 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
 - Extended wide margins across frontend scenes (`BG3` / `BG2` backmost wallpaper across menus, Hachi's Shop dialogs, and transitions), affine BGs, in-battle full-screen menus (Unit List `0x082E_CF68`, Battle Intel Status `0x082E_B550`, Officer Dossier `0x082E_B114`), and **Battle Map Widescreen** (off-screen terrain, fog-of-war, `prio=3` OAM buildings/properties, and `BG1` units across maps up to `64x64` including `42x15` Ball Islands, with seam-free camera tracking, wide-margin map tapping/path-painting, and extended-margin menu closing), toggleable via `F4` / `Wide` (defaulting ON).
 
 ## Phase 9 — Upgraded Wide Renderer (`src/gba/renderer.zig`) & Touch Polish
-- **Milestone 9A — Unified Wide Scene Compositor (`src/gba/renderer.zig`) (Done):**
-  - Separated Advance Wars wide-scene composition out of `src/gba/ppu.zig` into `src/gba/renderer.zig` (`WideScene`), keeping `ppu.zig` a pure GBA PPU (`100%` bit-exact `240x160` fallback):
-    - Terrain + fog-of-war across left/right margins (`renderTerrainMargins`).
-    - Uncropped wide-margin unit movement/attack reachability highlights blended via `BLDALPHA` (`renderReachabilityMargins`).
-    - Off-screen visible units (`renderUnitsMargins`) and IWRAM property buildings (`renderPropertiesMargins`).
-- **Milestone 9B — VS Rules Full Touch & Non-Inverted X-Axis Dragging (`src/platform/touch.zig`) (Done):**
-  - Added full direct touch for the VS Rules screen (`.frontend_rules` on proc `0x083B_9244`: `Fog`, `Weather`, `Funds`, `Turn`, `Capt`, `Power`, `Visuals` horizontal bubble stepping + up/down value arrows, `PRESS A` confirm, and extended-margin `B` close).
+- **Milestone 9A — Unified Full-Width Scene Compositor (`src/gba/renderer.zig`) (Done):**
+  - Separated Advance Wars wide-scene composition out of `src/gba/ppu.zig` into `src/gba/renderer.zig` (`WideScene` + `Ppu.setWideScene`), rendering the entire `0..vw` viewport in one unified pass for terrain/fog (`renderTerrainFull`), visible units (`renderUnitsFull`), and `prio=3` property buildings (`renderPropertiesFull`) with zero center/margin edge seam, plus blended side-margin movement reachability highlights (`renderReachabilityMargins`) and 100% bit-exact `240x160` fallback.
+- **Milestone 9B — VS Rules/Teams Direct Touch & Non-Inverted X-Axis Dragging (`src/platform/touch.zig`) (Done):**
+  - Added direct touch for VS Rules (`0x083B_9244`: 7 diagonal bubbles, up/down arrows, `PRESS A`, extended-margin `B`) and VS Teams (`0x083B_93C8`: direct player-card selection via `0x0200_0036`, up/down cycling, `PRESS A`, extended-margin `B`).
   - Fixed inverted X-axis menu dragging across `src/platform/touch.zig` so horizontal drags move directly with the pointer/finger (`drag right -> Key.right`, `drag left -> Key.left`), keeping natural scrolling only on vertical Y-axis lists.
-- **Milestone 9C (Optional) — High-FPS Camera & GPU Tile Rendering:**
-  - Optional smooth sub-tile camera interpolation at native display refresh rates (120Hz+) and GPU tile/quad upload (WebGL/Canvas2D) to reduce CPU pixel-loop overhead.
+- **Milestone 9C — WebGL2 Crisp Pixel Presenter (`web/gl_presenter.js`) (Done):**
+  - Added `web/gl_presenter.js` WebGL2 quad presenter with pure `NEAREST` crisp pixel-art sampling (HiDPI backing buffer and automatic Canvas2D fallback) synchronized to a clean `requestAnimationFrame` loop (`0%` idle GPU, zero UI jitter).
 
 ## Deferred / Optional (Skipped for Now)
 - **Android Native Port (`aarch64-linux-android` + Pure Touch APK):** Deferred indefinitely in favor of the Phase 5 WebAssembly port for mobile browser play with touch controls; can be revisited later using `zig build -Dtarget=aarch64-linux-android` + `touch.zig`.
