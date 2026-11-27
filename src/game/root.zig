@@ -11,6 +11,8 @@ pub const sound = @import("sound.zig");
 pub const hw = @import("hw.zig");
 pub const proc = @import("proc.zig");
 pub const sprite_anim = @import("sprite_anim.zig");
+pub const campaign = @import("campaign.zig");
+pub const state = @import("state.zig");
 
 comptime {
     _ = abi;
@@ -22,6 +24,8 @@ comptime {
     _ = hw;
     _ = proc;
     _ = sprite_anim;
+    _ = campaign;
+    _ = state;
 }
 
 test {
@@ -34,4 +38,6 @@ test {
     _ = hw;
     _ = proc;
     _ = sprite_anim;
+    _ = campaign;
+    _ = state;
 }

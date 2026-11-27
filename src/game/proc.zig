@@ -184,6 +184,132 @@ pub fn func_08017154() callconv(.c) void {
     scriptWrite16Or32(32, 0x08017174);
 }
 
+/// Clear secondary script lock halfword `[0x0300_0DA4] = 0` (`0x080172F0`).
+pub fn func_080172F0() callconv(.c) void {
+    if (!abi.enter(0x080172F0)) return;
+    abi.fetches(6);
+    const dst = abi.read32(0x080172F8);
+    abi.write16(dst, 0);
+    rt.r[1] = dst;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Sync display halfword `[0x0300_3358] = read16(0x0300_0DC0)` (`0x0801735C`).
+pub fn func_0801735C() callconv(.c) void {
+    if (!abi.enter(0x0801735C)) return;
+    abi.fetches(7);
+    const dst = abi.read32(0x08017368);
+    const val = abi.read16(abi.read32(0x0801736C));
+    abi.write16(dst, val);
+    rt.r[0] = dst;
+    rt.r[1] = val;
+    abi.retLr();
+}
+
+/// Secondary script command: copy `[cmd+4]` word into global `[0x0300_31F8]`, step `cmd += 0x10`, return `0` (`0x08017E04`).
+pub fn func_08017E04() callconv(.c) void {
+    if (!abi.enter(0x08017E04)) return;
+    abi.fetches(18);
+    const dst = abi.read32(0x08017E24);
+    const base = abi.read32(0x08017E28);
+    const idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const off: u32 = @bitCast(@as(i32, idx) *% @as(i32, types.script_slot_stride));
+    const cur_ptr_addr = off +% (base +% 4);
+    const cmd = abi.read32(cur_ptr_addr);
+    const val = abi.read32(cmd +% 4);
+    abi.write32(dst, val);
+    abi.write32(cur_ptr_addr, cmd +% 0x10);
+    rt.r[1] = cur_ptr_addr;
+    rt.r[2] = val;
+    rt.r[3] = dst;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Secondary script command: store `[cmd+4]` word into slot `+0x08`, step `cmd += 0x10`, return `0` (`0x08017E2C`).
+pub fn func_08017E2C() callconv(.c) void {
+    if (!abi.enter(0x08017E2C)) return;
+    abi.fetches(20);
+    const base = abi.read32(0x08017E50);
+    const idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const off: u32 = @bitCast(@as(i32, idx) *% @as(i32, types.script_slot_stride));
+    const dst = off +% (base +% 8);
+    const cur_ptr_addr = off +% (base +% 4);
+    const cmd = abi.read32(cur_ptr_addr);
+    const val = abi.read32(cmd +% 4);
+    abi.write32(dst, val);
+    abi.write32(cur_ptr_addr, cmd +% 0x10);
+    rt.r[1] = cur_ptr_addr;
+    rt.r[2] = val;
+    rt.r[3] = dst;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Cutscene command no-op preserving registers (`0x08018094`).
+pub fn func_08018094() callconv(.c) void {
+    if (!abi.enter(0x08018094)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
+fn scriptUpdateCursorTile(comptime relative: bool, comptime cursor_ref: u32, comptime pool_ref: u32) void {
+    abi.fetches(if (relative) 26 else 22);
+    const cursor_addr = abi.read32(cursor_ref);
+    const base = abi.read32(pool_ref);
+    const idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const off: u32 = @bitCast(@as(i32, idx) *% @as(i32, types.script_slot_stride));
+    const cur_ptr_addr = off +% (base +% 4);
+    const cmd = abi.read32(cur_ptr_addr);
+    const raw_x = abi.read16(cmd +% 8);
+    const raw_y = abi.read16(cmd +% 0xA);
+    if (relative) {
+        const cur_x = abi.read16(cursor_addr);
+        abi.write16(cursor_addr, cur_x +% raw_x);
+        const cur_y = abi.read16(cursor_addr +% 2);
+        abi.write16(cursor_addr +% 2, cur_y +% raw_y);
+        rt.r[2] = cur_y;
+    } else {
+        abi.write16(cursor_addr, raw_x);
+        abi.write16(cursor_addr +% 2, raw_y);
+        rt.r[2] = base +% 4;
+    }
+    abi.write32(cur_ptr_addr, cmd +% 0x10);
+    rt.r[1] = cur_ptr_addr;
+    rt.r[3] = cursor_addr;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Secondary script command: set cursor tile `(x, y)` at `0x0300_36A4` (`0x080180EC`).
+pub fn func_080180EC() callconv(.c) void {
+    if (!abi.enter(0x080180EC)) return;
+    scriptUpdateCursorTile(false, 0x08018114, 0x08018118);
+}
+
+/// Secondary script command: add `(dx, dy)` to cursor tile at `0x0300_36A4` (`0x0801811C`).
+pub fn func_0801811C() callconv(.c) void {
+    if (!abi.enter(0x0801811C)) return;
+    scriptUpdateCursorTile(true, 0x0801814C, 0x08018150);
+}
+
+/// Secondary script command: advance `cmd += 0x10` and return `1` (`0x08018240`).
+pub fn func_08018240() callconv(.c) void {
+    if (!abi.enter(0x08018240)) return;
+    abi.fetches(15);
+    const base = abi.read32(0x0801825C);
+    const idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const off: u32 = @bitCast(@as(i32, idx) *% @as(i32, types.script_slot_stride));
+    const cur_ptr_addr = off +% (base +% 4);
+    const cmd = abi.read32(cur_ptr_addr);
+    abi.write32(cur_ptr_addr, cmd +% 0x10);
+    rt.r[1] = cur_ptr_addr;
+    rt.r[2] = base +% 4;
+    abi.setRegNz(&rt.r[0], 1);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08013D14, .{ .name = "func_08013D14", .linkage = .strong });
@@ -196,6 +322,14 @@ comptime {
         @export(&func_08017108, .{ .name = "func_08017108", .linkage = .strong });
         @export(&func_08017130, .{ .name = "func_08017130", .linkage = .strong });
         @export(&func_08017154, .{ .name = "func_08017154", .linkage = .strong });
+        @export(&func_080172F0, .{ .name = "func_080172F0", .linkage = .strong });
+        @export(&func_0801735C, .{ .name = "func_0801735C", .linkage = .strong });
+        @export(&func_08017E04, .{ .name = "func_08017E04", .linkage = .strong });
+        @export(&func_08017E2C, .{ .name = "func_08017E2C", .linkage = .strong });
+        @export(&func_08018094, .{ .name = "func_08018094", .linkage = .strong });
+        @export(&func_080180EC, .{ .name = "func_080180EC", .linkage = .strong });
+        @export(&func_0801811C, .{ .name = "func_0801811C", .linkage = .strong });
+        @export(&func_08018240, .{ .name = "func_08018240", .linkage = .strong });
     }
 }
 

@@ -205,6 +205,50 @@ pub fn func_08014CE8() callconv(.c) void {
     rt.recompReturn(rt.r[14]);
 }
 
+/// Set animator 24.8 fixed-point offset `(i16(r1) << 8, i16(r2) << 8)` at `+0x14/+0x18` (`0x0801A0EC`).
+pub fn func_0801A0EC() callconv(.c) void {
+    if (!abi.enter(0x0801A0EC)) return;
+    abi.fetches(13);
+    const anim_base = abi.read32(0x0801A104);
+    const slot = (rt.r[0] *% @as(u32, types.anim_slot_stride)) +% anim_base;
+    const fx1: i32 = @as(i32, @as(i16, @bitCast(@as(u16, @truncate(rt.r[1]))))) << 8;
+    const fx2: i32 = @as(i32, @as(i16, @bitCast(@as(u16, @truncate(rt.r[2]))))) << 8;
+    const val_x: u32 = @bitCast(fx1);
+    const val_y: u32 = @bitCast(fx2);
+    abi.write32(slot +% 0x14, val_x);
+    abi.write32(slot +% 0x18, val_y);
+    rt.r[0] = anim_base;
+    rt.r[1] = val_x;
+    abi.setRegNz(&rt.r[2], val_y);
+    rt.r[3] = slot;
+    abi.retLr();
+}
+
+/// Read animator `+0x2C` word for slot `r0` (`0x0801A1AC`).
+pub fn func_0801A1AC() callconv(.c) void {
+    if (!abi.enter(0x0801A1AC)) return;
+    abi.fetches(8);
+    const anim_base = abi.read32(0x0801A1B8);
+    const slot = (rt.r[0] *% @as(u32, types.anim_slot_stride)) +% anim_base;
+    rt.r[1] = anim_base;
+    rt.r[0] = abi.read32(slot +% 0x2C);
+    abi.retLr();
+}
+
+/// Read and clear animator `+0x2C` word for slot `r0` (`0x0801A1BC`).
+pub fn func_0801A1BC() callconv(.c) void {
+    if (!abi.enter(0x0801A1BC)) return;
+    abi.fetches(10);
+    const anim_base = abi.read32(0x0801A1CC);
+    const slot = (rt.r[0] *% @as(u32, types.anim_slot_stride)) +% anim_base;
+    const prev = abi.read32(slot +% 0x2C);
+    abi.write32(slot +% 0x2C, 0);
+    rt.r[0] = prev;
+    rt.r[1] = slot;
+    abi.setRegNz(&rt.r[2], 0);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08013598, .{ .name = "func_08013598", .linkage = .strong });
@@ -219,6 +263,9 @@ comptime {
         @export(&func_08013878, .{ .name = "func_08013878", .linkage = .strong });
         @export(&func_080138CC, .{ .name = "func_080138CC", .linkage = .strong });
         @export(&func_08014CE8, .{ .name = "func_08014CE8", .linkage = .strong });
+        @export(&func_0801A0EC, .{ .name = "func_0801A0EC", .linkage = .strong });
+        @export(&func_0801A1AC, .{ .name = "func_0801A1AC", .linkage = .strong });
+        @export(&func_0801A1BC, .{ .name = "func_0801A1BC", .linkage = .strong });
     }
 }
 
