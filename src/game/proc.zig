@@ -4,6 +4,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
+const decls = @import("decls");
 const abi = @import("abi.zig");
 const types = @import("types.zig");
 
@@ -445,6 +446,85 @@ pub fn func_08018240() callconv(.c) void {
     abi.retLr();
 }
 
+/// Test whether proc template `0x0828_1D10` is currently running (`0x08018C40` -> `0x0801836C(tbl) != -1`).
+pub fn func_08018C40() callconv(.c) void {
+    if (!abi.enter(0x08018C40)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08018C5C);
+    if (!abi.call(decls.func_0801836C, 0x08018C49)) return;
+    abi.fetches(11);
+    const val_i16 = abi.signExtend16(@truncate(rt.r[0]));
+    const active: u32 = if (val_i16 != -1) 1 else 0;
+    rt.r[1] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.setRegNz(&rt.r[0], active);
+    rt.r[15] = rt.r[1];
+    rt.recompReturn(rt.r[1]);
+}
+
+/// Forwarder calling `0x08018F94` (`0x08019120`).
+pub fn func_08019120() callconv(.c) void {
+    if (!abi.enter(0x08019120)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08018F94, 0x08019127)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Dispatch `[0x0828_1D60]` script helper via `0x0801329C` and return handle in `r0` (`0x08019608`).
+pub fn func_08019608() callconv(.c) void {
+    if (!abi.enter(0x08019608)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08019614);
+    if (!abi.call(decls.func_0801329C, 0x08019611)) return;
+    abi.fetches(4);
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Wrapper invoking `func_08019608` (discarding return address into `r0`) (`0x08019254`).
+pub fn func_08019254() callconv(.c) void {
+    if (!abi.enter(0x08019254)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(func_08019608, 0x0801925B)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Wrapper invoking `func_08019608` (discarding return address into `r0`) (`0x08019260`).
+pub fn func_08019260() callconv(.c) void {
+    if (!abi.enter(0x08019260)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(func_08019608, 0x08019267)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Convert `0x08019288()` byte/halfword count `u16(n) -> (n + 3) >> 3` (`0x080192DC`).
+pub fn func_080192DC() callconv(.c) void {
+    if (!abi.enter(0x080192DC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08019288, 0x080192E3)) return;
+    abi.fetches(8);
+    const raw: u32 = @as(u16, @truncate(rt.r[0]));
+    const sum = raw +% 3;
+    const chunks = sum >> 3;
+    rt.r[1] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.setRegNz(&rt.r[0], chunks);
+    rt.r[15] = rt.r[1];
+    rt.recompReturn(rt.r[1]);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08013D14, .{ .name = "func_08013D14", .linkage = .strong });
@@ -471,6 +551,12 @@ comptime {
         @export(&func_080180EC, .{ .name = "func_080180EC", .linkage = .strong });
         @export(&func_0801811C, .{ .name = "func_0801811C", .linkage = .strong });
         @export(&func_08018240, .{ .name = "func_08018240", .linkage = .strong });
+        @export(&func_08018C40, .{ .name = "func_08018C40", .linkage = .strong });
+        @export(&func_08019120, .{ .name = "func_08019120", .linkage = .strong });
+        @export(&func_08019254, .{ .name = "func_08019254", .linkage = .strong });
+        @export(&func_08019260, .{ .name = "func_08019260", .linkage = .strong });
+        @export(&func_080192DC, .{ .name = "func_080192DC", .linkage = .strong });
+        @export(&func_08019608, .{ .name = "func_08019608", .linkage = .strong });
         @export(&func_0802ABF0, .{ .name = "func_0802ABF0", .linkage = .strong });
     }
 }

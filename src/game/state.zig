@@ -3,6 +3,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
+const decls = @import("decls");
 const abi = @import("abi.zig");
 const types = @import("types.zig");
 
@@ -566,12 +567,25 @@ pub fn func_0803A2E0() callconv(.c) void {
     abi.retLr();
 }
 
+/// Clear `[0x0300_1D44] = 0` and call `0x08035230` (`0x08018CB4`).
+pub fn func_08018CB4() callconv(.c) void {
+    if (!abi.enter(0x08018CB4)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    abi.write32(abi.read32(0x08018CC4), 0);
+    abi.setRegNz(&rt.r[0], 0);
+    if (!abi.call(decls.func_08035230, 0x08018CC1)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08018AAC, .{ .name = "func_08018AAC", .linkage = .strong });
         @export(&func_08018C60, .{ .name = "func_08018C60", .linkage = .strong });
         @export(&func_08018C6C, .{ .name = "func_08018C6C", .linkage = .strong });
         @export(&func_08018C9C, .{ .name = "func_08018C9C", .linkage = .strong });
+        @export(&func_08018CB4, .{ .name = "func_08018CB4", .linkage = .strong });
         @export(&func_08019248, .{ .name = "func_08019248", .linkage = .strong });
         @export(&func_08019A0C, .{ .name = "func_08019A0C", .linkage = .strong });
         @export(&func_0801BDF0, .{ .name = "func_0801BDF0", .linkage = .strong });

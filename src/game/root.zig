@@ -15,6 +15,8 @@ pub const campaign = @import("campaign.zig");
 pub const state = @import("state.zig");
 pub const map = @import("map.zig");
 pub const ui = @import("ui.zig");
+pub const co = @import("co.zig");
+pub const unit = @import("unit.zig");
 
 comptime {
     _ = abi;
@@ -30,6 +32,8 @@ comptime {
     _ = state;
     _ = map;
     _ = ui;
+    _ = co;
+    _ = unit;
 }
 
 test {
@@ -46,4 +50,6 @@ test {
     _ = state;
     _ = map;
     _ = ui;
+    _ = co;
+    _ = unit;
 }

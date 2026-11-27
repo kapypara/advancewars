@@ -3,6 +3,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
+const decls = @import("decls");
 const abi = @import("abi.zig");
 const types = @import("types.zig");
 
@@ -162,9 +163,67 @@ pub fn func_0803B73C() callconv(.c) void {
     abi.retLr();
 }
 
+/// Sync pixel cursor (`0x0300_36A0`) from object `obj.0x24`, `(obj.0x22 << 4) + obj.0x26` (`0x080191E8`).
+pub fn func_080191E8() callconv(.c) void {
+    if (!abi.enter(0x080191E8)) return;
+    abi.fetches(15);
+    abi.pushLr();
+    const obj = rt.r[0];
+    const x: u32 = @bitCast(abi.signExtend16(abi.read16(obj +% 0x24)));
+    const y_base: i32 = abi.signExtend16(abi.read16(obj +% 0x22)) << 4;
+    const y_off: i32 = abi.read16(obj +% 0x26);
+    const y_val: u32 = @bitCast(@as(i32, @as(i16, @truncate(y_base +% y_off))));
+    rt.r[3] = 0x22;
+    rt.r[2] = x;
+    abi.setRegNz(&rt.r[1], y_val);
+    rt.r[0] = x;
+    if (!abi.call(func_0802055C, 0x08019203)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Upload map tiles (`0x080A_4698 -> 0x0600_2E00`, `0x80` words) and clear `obj.0x20` (`0x080202A0`).
+pub fn func_080202A0() callconv(.c) void {
+    if (!abi.enter(0x080202A0)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[4] = rt.r[0];
+    rt.r[0] = abi.read32(0x080202B8);
+    rt.r[1] = abi.read32(0x080202BC);
+    abi.setRegNz(&rt.r[2], 0x80);
+    if (!abi.call(decls.func_0800FFA8, 0x080202AF)) return;
+    abi.fetches(7);
+    abi.write16(rt.r[4] +% 0x20, 0);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Load palette from `0x080A_22F8[( *(0x0300_4358) >> 1 & 7 ) * 2]` to slot `0x210` (`0x10` bytes) (`0x08020510`).
+pub fn func_08020510() callconv(.c) void {
+    if (!abi.enter(0x08020510)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    const state_word = abi.read32(abi.read32(0x08020530));
+    const idx = (state_word >> 1) & 7;
+    const pal_base = abi.read32(0x08020534);
+    rt.r[0] = (idx << 1) +% pal_base;
+    rt.r[1] = 0x210;
+    abi.setRegNz(&rt.r[2], 0x10);
+    if (!abi.call(decls.func_08011398, 0x0802052D)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
+        @export(&func_080191E8, .{ .name = "func_080191E8", .linkage = .strong });
         @export(&func_0801FD98, .{ .name = "func_0801FD98", .linkage = .strong });
+        @export(&func_080202A0, .{ .name = "func_080202A0", .linkage = .strong });
+        @export(&func_08020510, .{ .name = "func_08020510", .linkage = .strong });
         @export(&func_0802055C, .{ .name = "func_0802055C", .linkage = .strong });
         @export(&func_08020568, .{ .name = "func_08020568", .linkage = .strong });
         @export(&func_08033108, .{ .name = "func_08033108", .linkage = .strong });
