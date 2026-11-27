@@ -10,6 +10,13 @@ class AwreAudioProcessor extends AudioWorkletProcessor {
     this.reportTick = 0;
 
     this.port.onmessage = (ev) => {
+      if (ev.data === "clear") {
+        this.readPos = 0;
+        this.writePos = 0;
+        this.count = 0;
+        this.port.postMessage(0);
+        return;
+      }
       const chunk = ev.data;
       if (!(chunk instanceof Int16Array)) return;
       for (let i = 0; i < chunk.length; i++) {

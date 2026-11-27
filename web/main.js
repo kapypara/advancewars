@@ -185,12 +185,29 @@ async function sha256Hex(bytes) {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function clearAudioBuffer() {
+  if (audioNode) {
+    try {
+      audioNode.port.postMessage("clear");
+    } catch (_) {}
+  }
+  if (sabI32) {
+    Atomics.store(sabI32, 4, 0);
+  }
+}
+
 async function ensureAudio() {
+  if (audioCtx && audioCtx.state === "closed") {
+    audioCtx = null;
+    audioNode = null;
+    audioInitPromise = null;
+  }
   if (!audioCtx) {
     if (!audioInitPromise) {
       audioInitPromise = (async () => {
-        const ac = new AudioContext({ sampleRate: 48000 });
-        if (ac.state === "suspended") {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ac = new AudioCtx({ sampleRate: 48000 });
+        if (ac.state !== "running") {
           ac.resume().catch(() => {});
         }
         await ac.audioWorklet.addModule("audio-worklet.js");
@@ -205,6 +222,14 @@ async function ensureAudio() {
             Atomics.store(sabI32, 4, ev.data | 0);
           }
         };
+        ac.addEventListener("statechange", () => {
+          if (ac !== audioCtx) return;
+          if (ac.state === "running") {
+            if (!muted) clearAudioBuffer();
+          } else if (ac.state !== "closed" && !document.hidden && !muted) {
+            ac.resume().catch(() => {});
+          }
+        });
         audioCtx = ac;
         audioNode = node;
       })().catch((err) => {
@@ -214,7 +239,7 @@ async function ensureAudio() {
     }
     return audioInitPromise;
   }
-  if (audioCtx.state === "suspended") {
+  if (audioCtx.state !== "running") {
     await audioCtx.resume();
   }
 }
@@ -230,9 +255,9 @@ async function fetchWasmBytes() {
 
 function unlockAudio() {
   if (muted) return;
-  if (!audioCtx) {
+  if (!audioCtx || audioCtx.state === "closed") {
     ensureAudio().catch(() => {});
-  } else if (audioCtx.state === "suspended") {
+  } else if (audioCtx.state !== "running") {
     audioCtx.resume().catch(() => {});
   }
 }
@@ -786,8 +811,15 @@ window.addEventListener("keyup", (ev) => {
 
 window.addEventListener("blur", releaseAllInputs);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) releaseAllInputs();
+  if (document.hidden) {
+    releaseAllInputs();
+    clearAudioBuffer();
+  } else {
+    unlockAudio();
+  }
 });
+window.addEventListener("pageshow", unlockAudio);
+window.addEventListener("focus", unlockAudio);
 
 // Pointer + touch + right-click (B) + scroll wheel (Up/Down)
 stage.addEventListener("contextmenu", (ev) => ev.preventDefault());
@@ -821,6 +853,8 @@ window.addEventListener(
   },
   { capture: true }
 );
+window.addEventListener("touchend", unlockAudio, { capture: true, passive: true });
+window.addEventListener("keydown", unlockAudio, { capture: true });
 
 stage.addEventListener("pointerdown", (ev) => {
   if (ev.target.closest("#pad-deck, #drop-overlay")) return;
