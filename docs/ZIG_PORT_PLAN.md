@@ -103,9 +103,9 @@ Executed before Phase 5 to eliminate generated C sources and CMake/Clang compile
 - **Milestone 7B — True Advance Wars RAM State Machine + Map & Unit-Range Touch Engine (Done):**
   - Replaced the ambiguous dialog flag with a verified player-agnostic RAM + 40-slot proc state machine (`0x0300_4478 == 0x0803_849D` battle scene, `0x0300_43C8`/`0x0300_4470` modal locks, `0x0300_357C == 5` human turn phase across P1–P4, `0x0300_35EC` substate `0`/`1`, `0x0300_0E10` proc table for dialog `0x0828_0E0C` & frontend root `0x082F_1160`, `0x0201_57F8` map workspace/camera, and `0x0300_3600` EWRAM movement-reachability row pointers).
   - Unit-selected behavior: 1st tap previews path on reachable tiles via BFS (`findReachableNextStep`), 2nd tap on cursor confirms `A`; tapping outside movement range simply cancels/deselects (`B`); dragging smoothly paints a tile-by-tile path preview without auto-confirming; free-map drag mimics finger motion; menus (`.battle_overlay` & `.frontend_menu`) support natural scrolling + tap `A`.
-- **Milestone 7C — Direct In-Battle Menu Clicking (Next):**
-  - Hook Unit Action menu, Map Menu, Attack Target (2-tap preview + confirm), Unit List rows + column pager arrows, and Factory/Deploy shop (2-tap preview + confirm).
-- **Milestone 7D — Direct Campaign & Pre-Battle Menu Clicking (Planned):**
+- **Milestone 7C — Direct In-Battle Menu Clicking (Done):**
+  - Hooked Action/Map popup menus (`0x0828_1D60`/`0x0828_1D80` item count/selected/cursor pos) for direct row clicking (same-row `A`, other-row step + auto-confirm `A`, outside tap `B`), Unit List (`0x082E_CF68` visible rows relative to `+0x20` scroll + `<`/`>` column pager arrows, 2-tap select & jump), and Attack Target (`0x0828_B56C` 2-tap cycle preview + confirm `A`), keeping natural scrolling across all overlay menus; Factory/Deploy shop retains natural scroll + tap `A` fallback until verified on a Base map.
+- **Milestone 7D — Direct Campaign & Pre-Battle Menu Clicking (Next):**
   - Hook Title/Main menus, Yes/No prompts, Name Entry grid + `BACK`/`OK!`, CO Select, and Mission Select.
 
 ## Phase 8 — Widescreen / Wider Viewport Mode (Planned)

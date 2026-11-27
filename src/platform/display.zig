@@ -81,16 +81,21 @@ fn readRamSignedBytes(addr: u32, dst: []i8) void {
     }
 }
 
-fn hasActiveProc(script_addr: u32) bool {
+fn findActiveProcSlot(script_addr: u32) ?u32 {
     const proc_table_base: u32 = 0x0300_0E10;
     const proc_stride: u32 = 0x60;
     const proc_count: usize = 40;
     for (0..proc_count) |slot| {
-        if (peek32(proc_table_base + @as(u32, @intCast(slot)) * proc_stride) == script_addr) {
-            return true;
+        const base = proc_table_base + @as(u32, @intCast(slot)) * proc_stride;
+        if (peek32(base) == script_addr) {
+            return base;
         }
     }
-    return false;
+    return null;
+}
+
+fn hasActiveProc(script_addr: u32) bool {
+    return findActiveProcSlot(script_addr) != null;
 }
 
 fn sampleGameState() GameState {
@@ -128,6 +133,11 @@ fn sampleGameState() GameState {
     else
         @intCast(bg3_vofs);
 
+    var menu_x: i16 = 0;
+    var menu_y: i16 = 0;
+    var menu_count: u8 = 0;
+    var menu_selected: u8 = 0;
+
     const mode: UiMode = if (disp_mode == 4)
         .title
     else if (in_battle_scene and disp_mode == 0 and battle_lock == 0 and battle_lock2 == 0 and turn_phase == 5) blk: {
@@ -141,8 +151,37 @@ fn sampleGameState() GameState {
         .dialog
     else if (!in_battle_scene or battle_lock < 0)
         .frontend_menu
-    else
-        .battle_overlay;
+    else blk: {
+        if (disp_mode == 0) {
+            if (findActiveProcSlot(0x0828_1D60)) |main_slot| {
+                if (findActiveProcSlot(0x0828_1D80)) |cur_slot| {
+                    const item_count = peek8(main_slot + 0x3F);
+                    if (item_count >= 1 and item_count <= 12) {
+                        menu_count = item_count;
+                        menu_selected = peek8(main_slot + 0x40);
+                        menu_x = @bitCast(peek16(cur_slot + 0x24));
+                        menu_y = @bitCast(peek16(cur_slot + 0x26));
+                        break :blk .battle_popup_menu;
+                    }
+                }
+            }
+            if (findActiveProcSlot(0x082E_CF68)) |ul_slot| {
+                const cursor_abs = peek8(ul_slot + 0x1F);
+                const scroll_top = peek8(ul_slot + 0x20);
+                const unit_count = peek8(ul_slot + 0x21);
+                const vis = unit_count -| scroll_top;
+                menu_count = if (vis > 0) @min(vis, @as(u8, 6)) else 6;
+                menu_selected = cursor_abs -| scroll_top;
+                menu_x = 8;
+                menu_y = 56;
+                break :blk .battle_unit_list;
+            }
+            if (hasActiveProc(0x0828_B56C)) {
+                break :blk .battle_attack_target;
+            }
+        }
+        break :blk .battle_overlay;
+    };
 
     var state = GameState{
         .mode = mode,
@@ -152,6 +191,10 @@ fn sampleGameState() GameState {
         .cursor_y = cursor_y,
         .cam_x = cam_x,
         .cam_y = cam_y,
+        .menu_x = menu_x,
+        .menu_y = menu_y,
+        .menu_count = menu_count,
+        .menu_selected = menu_selected,
     };
 
     if (mode == .battle_unit_selected and state.map_width > 0 and state.map_height > 0) {

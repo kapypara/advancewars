@@ -108,6 +108,9 @@ pub const UiMode = enum {
     dialog,
     battle_free_map,
     battle_unit_selected,
+    battle_popup_menu,
+    battle_unit_list,
+    battle_attack_target,
     battle_overlay,
     frontend_menu,
 };
@@ -121,6 +124,10 @@ pub const GameState = struct {
     cursor_y: u16 = 0,
     cam_x: i16 = 0,
     cam_y: i16 = 0,
+    menu_x: i16 = 0,
+    menu_y: i16 = 0,
+    menu_count: u8 = 0,
+    menu_selected: u8 = 0,
     reach_rows: [max_map_dim]u32 = @splat(0),
 
     pub fn isMapInteractive(self: GameState) bool {
@@ -210,6 +217,24 @@ pub const TouchController = struct {
     nav_stall_frames: u16 = 0,
     nav_steps: u16 = 0,
 
+    menu_nav_target: ?u8 = null,
+    menu_nav_confirm: bool = false,
+    menu_nav_timer: u8 = 0,
+    menu_nav_in_gap: bool = false,
+    menu_nav_last_idx: u8 = 0,
+    menu_nav_stall: u8 = 0,
+    menu_nav_key_mask: u16 = 0,
+
+    atk_target_goal: ?TileCoord = null,
+    atk_cycle_start: TileCoord = .{},
+    atk_cycle_moved: bool = false,
+    atk_cycle_steps: u8 = 0,
+    atk_cycle_timer: u8 = 0,
+    atk_cycle_in_gap: bool = false,
+    atk_cycle_last_cur: TileCoord = .{},
+    atk_cycle_stall: u8 = 0,
+    atk_cycle_key_mask: u16 = 0,
+
     reticle_tile: ?TileCoord = null,
     reticle_cam_x: i16 = 0,
     reticle_cam_y: i16 = 0,
@@ -247,6 +272,8 @@ pub const TouchController = struct {
         return self.hud_held_mask |
             self.pulse_active_mask |
             self.nav_key_mask |
+            self.menu_nav_key_mask |
+            self.atk_cycle_key_mask |
             (if (self.right_held) gba.Key.b.mask() else 0);
     }
 
@@ -303,11 +330,57 @@ pub const TouchController = struct {
         self.reticle_timer = 18;
     }
 
+    fn clearMenuNavigation(self: *TouchController) void {
+        self.menu_nav_target = null;
+        self.menu_nav_confirm = false;
+        self.menu_nav_timer = 0;
+        self.menu_nav_in_gap = false;
+        self.menu_nav_last_idx = 0;
+        self.menu_nav_stall = 0;
+        self.menu_nav_key_mask = 0;
+    }
+
+    fn startMenuNavigation(self: *TouchController, target: u8, confirm: bool, state: GameState) void {
+        self.menu_nav_target = target;
+        self.menu_nav_confirm = confirm;
+        self.menu_nav_timer = 0;
+        self.menu_nav_in_gap = false;
+        self.menu_nav_last_idx = state.menu_selected;
+        self.menu_nav_stall = 0;
+        self.menu_nav_key_mask = 0;
+    }
+
+    fn clearAttackTargetCycle(self: *TouchController) void {
+        self.atk_target_goal = null;
+        self.atk_cycle_start = .{};
+        self.atk_cycle_moved = false;
+        self.atk_cycle_steps = 0;
+        self.atk_cycle_timer = 0;
+        self.atk_cycle_in_gap = false;
+        self.atk_cycle_last_cur = .{};
+        self.atk_cycle_stall = 0;
+        self.atk_cycle_key_mask = 0;
+    }
+
+    fn startAttackTargetCycle(self: *TouchController, goal: TileCoord, state: GameState) void {
+        self.atk_target_goal = goal;
+        self.atk_cycle_start = .{ .x = state.cursor_x, .y = state.cursor_y };
+        self.atk_cycle_moved = false;
+        self.atk_cycle_steps = 0;
+        self.atk_cycle_timer = 0;
+        self.atk_cycle_in_gap = false;
+        self.atk_cycle_last_cur = .{ .x = state.cursor_x, .y = state.cursor_y };
+        self.atk_cycle_stall = 0;
+        self.atk_cycle_key_mask = 0;
+    }
+
     fn cancelNavigation(self: *TouchController) void {
         self.nav_target = null;
         self.nav_key_mask = 0;
         self.nav_timer = 0;
         self.nav_in_gap = false;
+        self.clearMenuNavigation();
+        self.clearAttackTargetCycle();
     }
 
     fn recomputeHudMask(self: *TouchController) void {
@@ -482,7 +555,13 @@ pub const TouchController = struct {
                             }
                         }
                     }
-                } else if (slot.mode_on_down == .battle_overlay or slot.mode_on_down == .frontend_menu) {
+                } else if (slot.mode_on_down == .battle_popup_menu or
+                    slot.mode_on_down == .battle_unit_list or
+                    slot.mode_on_down == .battle_attack_target or
+                    slot.mode_on_down == .battle_overlay or
+                    slot.mode_on_down == .dialog or
+                    slot.mode_on_down == .frontend_menu)
+                {
                     if (!slot.dragged and dist_sq >= drag_threshold_sq) {
                         slot.dragged = true;
                         slot.drag_kind = .scroll_menu;
@@ -601,6 +680,58 @@ pub const TouchController = struct {
                     self.enqueuePulse(gba.Key.b.mask(), 4, 2);
                 }
             },
+            .battle_popup_menu => {
+                const px_i: i32 = @intFromFloat(@floor(lx));
+                const py_i: i32 = @intFromFloat(@floor(ly));
+                const x0: i32 = @as(i32, state.menu_x) - 10;
+                const x1: i32 = @as(i32, state.menu_x) + 68;
+                const y0: i32 = state.menu_y;
+                const y1: i32 = y0 + @as(i32, state.menu_count) * 16;
+                self.cancelNavigation();
+                if (state.menu_count > 0 and px_i >= x0 and px_i < x1 and py_i >= y0 and py_i < y1) {
+                    const row: u8 = @intCast(@divTrunc(py_i - y0, 16));
+                    if (row == state.menu_selected) {
+                        self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                    } else {
+                        self.startMenuNavigation(row, true, state);
+                    }
+                } else {
+                    self.enqueuePulse(gba.Key.b.mask(), 4, 2);
+                }
+            },
+            .battle_unit_list => {
+                if (ly >= 32 and ly < 52) {
+                    if (lx >= 44 and lx < 68) {
+                        self.cancelNavigation();
+                        self.enqueuePulse(gba.Key.left.mask(), 4, 2);
+                        return;
+                    } else if (lx >= 96 and lx < 120) {
+                        self.cancelNavigation();
+                        self.enqueuePulse(gba.Key.right.mask(), 4, 2);
+                        return;
+                    }
+                }
+                const py_i: i32 = @intFromFloat(@floor(ly));
+                const vis_count: i32 = if (state.menu_count > 0) @as(i32, state.menu_count) else 6;
+                if (lx >= 8 and lx < 232 and py_i >= 56 and py_i < 56 + vis_count * 16) {
+                    const row: u8 = @intCast(@divTrunc(py_i - 56, 16));
+                    self.cancelNavigation();
+                    if (row == state.menu_selected) {
+                        self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                    } else {
+                        self.startMenuNavigation(row, false, state);
+                    }
+                }
+            },
+            .battle_attack_target => {
+                const tile = screenToTile(lx, ly, state);
+                self.cancelNavigation();
+                if (tile.x == state.cursor_x and tile.y == state.cursor_y) {
+                    self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+                } else {
+                    self.startAttackTargetCycle(tile, state);
+                }
+            },
             .battle_overlay => {
                 self.cancelNavigation();
                 self.enqueuePulse(gba.Key.a.mask(), 4, 2);
@@ -640,6 +771,8 @@ pub const TouchController = struct {
 
         self.stepPulseQueue();
         self.stepNavigation(state);
+        self.stepMenuNavigation(state);
+        self.stepAttackTargetCycle(state);
     }
 
     fn stepPulseQueue(self: *TouchController) void {
@@ -738,6 +871,102 @@ pub const TouchController = struct {
 
         if (self.nav_timer > 0) {
             self.nav_timer -= 1;
+        }
+    }
+
+    fn stepMenuNavigation(self: *TouchController, state: GameState) void {
+        const target = self.menu_nav_target orelse {
+            self.menu_nav_key_mask = 0;
+            return;
+        };
+        if (state.mode != .battle_popup_menu and state.mode != .battle_unit_list) {
+            self.clearMenuNavigation();
+            return;
+        }
+        if (state.menu_selected == target) {
+            const confirm = self.menu_nav_confirm;
+            self.clearMenuNavigation();
+            if (confirm) {
+                self.enqueuePulse(gba.Key.a.mask(), 4, 2);
+            }
+            return;
+        }
+
+        if (state.menu_selected != self.menu_nav_last_idx) {
+            self.menu_nav_last_idx = state.menu_selected;
+            self.menu_nav_stall = 0;
+        } else {
+            self.menu_nav_stall += 1;
+            if (self.menu_nav_stall >= 24) {
+                self.clearMenuNavigation();
+                return;
+            }
+        }
+
+        if (self.menu_nav_timer == 0) {
+            if (self.menu_nav_in_gap) {
+                self.menu_nav_in_gap = false;
+            }
+            if (self.menu_nav_key_mask != 0) {
+                self.menu_nav_key_mask = 0;
+                self.menu_nav_in_gap = true;
+                self.menu_nav_timer = nav_gap_frames;
+            } else {
+                self.menu_nav_key_mask = if (state.menu_selected < target) gba.Key.down.mask() else gba.Key.up.mask();
+                self.menu_nav_timer = nav_pulse_frames;
+            }
+        }
+        if (self.menu_nav_timer > 0) {
+            self.menu_nav_timer -= 1;
+        }
+    }
+
+    fn stepAttackTargetCycle(self: *TouchController, state: GameState) void {
+        const goal = self.atk_target_goal orelse {
+            self.atk_cycle_key_mask = 0;
+            return;
+        };
+        if (state.mode != .battle_attack_target) {
+            self.clearAttackTargetCycle();
+            return;
+        }
+        if (state.cursor_x == goal.x and state.cursor_y == goal.y) {
+            self.clearAttackTargetCycle();
+            return;
+        }
+
+        if (state.cursor_x != self.atk_cycle_last_cur.x or state.cursor_y != self.atk_cycle_last_cur.y) {
+            self.atk_cycle_last_cur = .{ .x = state.cursor_x, .y = state.cursor_y };
+            self.atk_cycle_moved = true;
+            self.atk_cycle_stall = 0;
+            self.atk_cycle_steps += 1;
+            if ((state.cursor_x == self.atk_cycle_start.x and state.cursor_y == self.atk_cycle_start.y) or self.atk_cycle_steps >= 16) {
+                self.clearAttackTargetCycle();
+                return;
+            }
+        } else {
+            self.atk_cycle_stall += 1;
+            if (self.atk_cycle_stall >= 14) {
+                self.clearAttackTargetCycle();
+                return;
+            }
+        }
+
+        if (self.atk_cycle_timer == 0) {
+            if (self.atk_cycle_in_gap) {
+                self.atk_cycle_in_gap = false;
+            }
+            if (self.atk_cycle_key_mask != 0) {
+                self.atk_cycle_key_mask = 0;
+                self.atk_cycle_in_gap = true;
+                self.atk_cycle_timer = nav_gap_frames;
+            } else {
+                self.atk_cycle_key_mask = gba.Key.right.mask();
+                self.atk_cycle_timer = nav_pulse_frames;
+            }
+        }
+        if (self.atk_cycle_timer > 0) {
+            self.atk_cycle_timer -= 1;
         }
     }
 
@@ -1018,6 +1247,16 @@ test "Dialog tap emits A and Mode 4 title tap emits Start" {
     try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
 
     for (0..8) |_| tc.stepFrame(dialog_state);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
+
+    // Dragging right in dialog (e.g. Yes / No save prompt) emits Key.left and clears queue on lift without A.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 80, .y = 120, .logical_x = 80, .logical_y = 120 }, dialog_state);
+    tc.handlePointer(.{ .id = 2, .phase = .move, .x = 128, .y = 120, .logical_x = 128, .logical_y = 120 }, dialog_state);
+    tc.stepFrame(dialog_state);
+    try std.testing.expectEqual(gba.Key.left.mask(), tc.activeKeys());
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 128, .y = 120, .logical_x = 128, .logical_y = 120 }, dialog_state);
+    try std.testing.expectEqual(@as(usize, 0), tc.pulse_count);
+    for (0..6) |_| tc.stepFrame(dialog_state);
     try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 
     const title_state = GameState{ .mode = .title };
@@ -1351,4 +1590,149 @@ test "Smooth drag-paint preserves step cadence and battle_overlay clears stale r
     const overlay_state = GameState{ .mode = .battle_overlay, .map_width = 10, .map_height = 10 };
     tc.stepFrame(overlay_state);
     try std.testing.expectEqual(@as(u8, 0), tc.reticle_timer);
+}
+
+test "Battle popup menu direct row click, outside B cancel, and natural scroll" {
+    var tc = TouchController{};
+    var pop_state = GameState{
+        .mode = .battle_popup_menu,
+        .menu_x = 168,
+        .menu_y = 16,
+        .menu_count = 4,
+        .menu_selected = 0,
+    };
+
+    // Clicking same row (0, y=24) confirms A immediately.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 195, .y = 24, .logical_x = 195, .logical_y = 24 }, pop_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 195, .y = 24, .logical_x = 195, .logical_y = 24 }, pop_state);
+    tc.stepFrame(pop_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(pop_state);
+
+    // Clicking row 2 (y=56) steps Down twice, then auto-confirms A.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 195, .y = 56, .logical_x = 195, .logical_y = 56 }, pop_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 195, .y = 56, .logical_x = 195, .logical_y = 56 }, pop_state);
+    var confirmed_a = false;
+    for (0..30) |_| {
+        tc.stepFrame(pop_state);
+        const k = tc.activeKeys();
+        if (tc.menu_nav_timer == nav_pulse_frames - 1 and !tc.menu_nav_in_gap and (k & gba.Key.down.mask()) != 0) {
+            pop_state.menu_selected += 1;
+        }
+        if ((k & gba.Key.a.mask()) != 0) {
+            confirmed_a = true;
+            break;
+        }
+    }
+    try std.testing.expectEqual(@as(u8, 2), pop_state.menu_selected);
+    try std.testing.expect(confirmed_a);
+    for (0..8) |_| tc.stepFrame(pop_state);
+
+    // Tapping outside popup box emits B to close menu.
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 40, .y = 80, .logical_x = 40, .logical_y = 80 }, pop_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 40, .y = 80, .logical_x = 40, .logical_y = 80 }, pop_state);
+    tc.stepFrame(pop_state);
+    try std.testing.expectEqual(gba.Key.b.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(pop_state);
+
+    // Natural scroll swipe up -> Key.down still works inside popup menu.
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 100, .y = 90, .logical_x = 100, .logical_y = 90 }, pop_state);
+    tc.handlePointer(.{ .id = 4, .phase = .move, .x = 100, .y = 42, .logical_x = 100, .logical_y = 42 }, pop_state);
+    tc.stepFrame(pop_state);
+    try std.testing.expectEqual(gba.Key.down.mask(), tc.activeKeys());
+}
+
+test "Battle unit list header pager arrows and 2-tap row selection" {
+    var tc = TouchController{};
+    var ul_state = GameState{
+        .mode = .battle_unit_list,
+        .menu_x = 8,
+        .menu_y = 56,
+        .menu_count = 6,
+        .menu_selected = 0,
+    };
+
+    // Right column pager arrow '>' (108, 42) emits Key.right; left '<' (56, 42) emits Key.left.
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 108, .y = 42, .logical_x = 108, .logical_y = 42 }, ul_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 108, .y = 42, .logical_x = 108, .logical_y = 42 }, ul_state);
+    tc.stepFrame(ul_state);
+    try std.testing.expectEqual(gba.Key.right.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(ul_state);
+
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 56, .y = 42, .logical_x = 56, .logical_y = 42 }, ul_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 56, .y = 42, .logical_x = 56, .logical_y = 42 }, ul_state);
+    tc.stepFrame(ul_state);
+    try std.testing.expectEqual(gba.Key.left.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(ul_state);
+
+    // 1st tap on row 3 (y=112) steps to row 3 WITHOUT confirming A.
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 100, .y = 112, .logical_x = 100, .logical_y = 112 }, ul_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 100, .y = 112, .logical_x = 100, .logical_y = 112 }, ul_state);
+    for (0..30) |_| {
+        tc.stepFrame(ul_state);
+        const k = tc.activeKeys();
+        try std.testing.expectEqual(@as(u16, 0), k & gba.Key.a.mask());
+        if (tc.menu_nav_timer == nav_pulse_frames - 1 and !tc.menu_nav_in_gap and (k & gba.Key.down.mask()) != 0) {
+            ul_state.menu_selected += 1;
+        }
+    }
+    try std.testing.expectEqual(@as(u8, 3), ul_state.menu_selected);
+
+    // 2nd tap on row 3 confirms A.
+    tc.handlePointer(.{ .id = 4, .phase = .down, .x = 100, .y = 112, .logical_x = 100, .logical_y = 112 }, ul_state);
+    tc.handlePointer(.{ .id = 4, .phase = .up, .x = 100, .y = 112, .logical_x = 100, .logical_y = 112 }, ul_state);
+    tc.stepFrame(ul_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+}
+
+test "Battle attack target 2-tap preview cycling and wrap abort" {
+    var tc = TouchController{};
+    var atk_state = GameState{
+        .mode = .battle_attack_target,
+        .map_width = 15,
+        .map_height = 10,
+        .cursor_x = 4,
+        .cursor_y = 2,
+    };
+
+    // 1st tap on target tile (7, 3) -> px (120, 56) cycles Key.right without emitting A.
+    const targets = [_]TileCoord{ .{ .x = 4, .y = 2 }, .{ .x = 7, .y = 3 } };
+    var t_idx: usize = 0;
+    tc.handlePointer(.{ .id = 1, .phase = .down, .x = 120, .y = 56, .logical_x = 120, .logical_y = 56 }, atk_state);
+    tc.handlePointer(.{ .id = 1, .phase = .up, .x = 120, .y = 56, .logical_x = 120, .logical_y = 56 }, atk_state);
+    for (0..20) |_| {
+        tc.stepFrame(atk_state);
+        const k = tc.activeKeys();
+        try std.testing.expectEqual(@as(u16, 0), k & gba.Key.a.mask());
+        if (tc.atk_cycle_timer == nav_pulse_frames - 1 and !tc.atk_cycle_in_gap and (k & gba.Key.right.mask()) != 0) {
+            t_idx = (t_idx + 1) % targets.len;
+            atk_state.cursor_x = targets[t_idx].x;
+            atk_state.cursor_y = targets[t_idx].y;
+        }
+    }
+    try std.testing.expectEqual(@as(u16, 7), atk_state.cursor_x);
+    try std.testing.expectEqual(@as(u16, 3), atk_state.cursor_y);
+
+    // 2nd tap on current target (7, 3) emits A to confirm attack.
+    tc.handlePointer(.{ .id = 2, .phase = .down, .x = 120, .y = 56, .logical_x = 120, .logical_y = 56 }, atk_state);
+    tc.handlePointer(.{ .id = 2, .phase = .up, .x = 120, .y = 56, .logical_x = 120, .logical_y = 56 }, atk_state);
+    tc.stepFrame(atk_state);
+    try std.testing.expectEqual(gba.Key.a.mask(), tc.activeKeys());
+    for (0..8) |_| tc.stepFrame(atk_state);
+
+    // Tapping non-target tile (1, 1) -> px (24, 24) wraps cleanly back to start and stops without firing A.
+    tc.handlePointer(.{ .id = 3, .phase = .down, .x = 24, .y = 24, .logical_x = 24, .logical_y = 24 }, atk_state);
+    tc.handlePointer(.{ .id = 3, .phase = .up, .x = 24, .y = 24, .logical_x = 24, .logical_y = 24 }, atk_state);
+    for (0..25) |_| {
+        tc.stepFrame(atk_state);
+        const k = tc.activeKeys();
+        try std.testing.expectEqual(@as(u16, 0), k & gba.Key.a.mask());
+        if (tc.atk_cycle_timer == nav_pulse_frames - 1 and !tc.atk_cycle_in_gap and (k & gba.Key.right.mask()) != 0) {
+            t_idx = (t_idx + 1) % targets.len;
+            atk_state.cursor_x = targets[t_idx].x;
+            atk_state.cursor_y = targets[t_idx].y;
+        }
+    }
+    try std.testing.expect(tc.atk_target_goal == null);
+    try std.testing.expectEqual(@as(u16, 0), tc.activeKeys());
 }
