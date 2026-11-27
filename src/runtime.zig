@@ -443,15 +443,23 @@ fn checkInterrupts() void {
 // ---- Scanline Scheduler ----
 fn advanceCycles(cycles: u32) void {
     if (soft_reset_pending) return;
-    cycle_counter +%= cycles;
-    scanline_cycles +%= cycles;
 
-    validate_mod.checkDeadline(cycle_counter);
+    var remaining: u32 = cycles;
+    while (remaining > 0) {
+        // Slice cycles at HBlank/scanline boundaries so scanline_cycles never overshoots
+        // past a boundary before a re-entrant IRQ handler runs at that boundary.
+        const next_boundary: u32 = if (!hblank_done) hblank_start_cycle else cycles_per_scanline;
+        const to_boundary: u32 = if (scanline_cycles < next_boundary) next_boundary - scanline_cycles else 0;
+        const step: u32 = @min(remaining, to_boundary);
+        if (step > 0) {
+            cycle_counter +%= step;
+            scanline_cycles +%= step;
+            remaining -= step;
+            validate_mod.checkDeadline(cycle_counter);
+            const timer_irqs = timer_state.tick(step);
+            if (timer_irqs != 0) raiseIrqBits(timer_irqs);
+        }
 
-    const timer_irqs = timer_state.tick(cycles);
-    if (timer_irqs != 0) raiseIrqBits(timer_irqs);
-
-    while (true) {
         if (!hblank_done and scanline_cycles >= hblank_start_cycle) {
             hblank_done = true;
             if (scanline < visible_scanlines and !validate_mod.g_validating) {
@@ -468,73 +476,76 @@ fn advanceCycles(cycles: u32) void {
             if (soft_reset_pending) return;
             continue;
         }
-        if (scanline_cycles < cycles_per_scanline) break;
-        scanline_cycles -= cycles_per_scanline;
-        hblank_done = false;
+        if (scanline_cycles >= cycles_per_scanline) {
+            scanline_cycles -= cycles_per_scanline;
+            hblank_done = false;
 
-        const prev_scanline = scanline;
-        scanline = (scanline + 1) % scanlines_per_frame;
+            const prev_scanline = scanline;
+            scanline = (scanline + 1) % scanlines_per_frame;
 
-        io_regs_buf[0x006] = @truncate(scanline & 0xFF);
-        io_regs_buf[0x007] = 0;
+            io_regs_buf[0x006] = @truncate(scanline & 0xFF);
+            io_regs_buf[0x007] = 0;
 
-        var dispstat = ioRead16(0x004);
-        const vcount_target = (dispstat >> 8) & 0xFF;
-        dispstat &= ~@as(u16, 0x0007);
-        if (scanline >= visible_scanlines) dispstat |= 1;
-        if (scanline == vcount_target) dispstat |= 4;
-        ioWrite16(0x004, dispstat);
+            var dispstat = ioRead16(0x004);
+            const vcount_target = (dispstat >> 8) & 0xFF;
+            dispstat &= ~@as(u16, 0x0007);
+            if (scanline >= visible_scanlines) dispstat |= 1;
+            if (scanline == vcount_target) dispstat |= 4;
+            ioWrite16(0x004, dispstat);
 
-        if (scanline == visible_scanlines and prev_scanline != visible_scanlines) {
-            ioWrite16(0x202, ioRead16(0x202) | 1);
-            dma_state.triggerVBlank(&dma_bus);
+            if (scanline == visible_scanlines and prev_scanline != visible_scanlines) {
+                ioWrite16(0x202, ioRead16(0x202) | 1);
+                dma_state.triggerVBlank(&dma_bus);
 
-            frame_count +%= 1;
+                frame_count +%= 1;
 
-            const keys = disp.display_get_keys();
-            io_regs_buf[0x130] = @truncate(keys);
-            io_regs_buf[0x131] = @truncate(keys >> 8);
+                const keys = disp.display_get_keys();
+                io_regs_buf[0x130] = @truncate(keys);
+                io_regs_buf[0x131] = @truncate(keys >> 8);
 
-            if (!validate_mod.g_validating) {
-                disp.display_render_frame();
+                if (!validate_mod.g_validating) {
+                    disp.display_render_frame();
+                }
+                disp.display_pace();
+
+                checkHistFrame();
+                writeDumpAtSnapshot();
+                if (!validate_mod.g_validating) pollBackupFlush();
+
+                const log_every = disp.display_log_every();
+                if (frame_count <= 5 or (log_every != 0 and @mod(frame_count, @as(u32, @intCast(log_every))) == 0)) {
+                    const dispcnt = ioRead16(0x000);
+                    const pal0 = @as(u16, palette_buf[0]) | (@as(u16, palette_buf[1]) << 8);
+                    const pal1 = @as(u16, palette_buf[2]) | (@as(u16, palette_buf[3]) << 8);
+                    core.gba.logPrint(
+                        "[frame {d}] DISPCNT=0x{X:0>4} mode={d} BG={d}{d}{d}{d} OBJ={d} BLDCNT=0x{X:0>4} BLDY={d} pal0=0x{X:0>4} pal1=0x{X:0>4}\n",
+                        .{
+                            frame_count,
+                            dispcnt,
+                            dispcnt & 7,
+                            (dispcnt >> 8) & 1,
+                            (dispcnt >> 9) & 1,
+                            (dispcnt >> 10) & 1,
+                            (dispcnt >> 11) & 1,
+                            (dispcnt >> 12) & 1,
+                            ioRead16(0x050),
+                            ioRead16(0x054) & 31,
+                            pal0,
+                            pal1,
+                        },
+                    );
+                }
             }
-            disp.display_pace();
 
-            checkHistFrame();
-            writeDumpAtSnapshot();
-            if (!validate_mod.g_validating) pollBackupFlush();
-
-            const log_every = disp.display_log_every();
-            if (frame_count <= 5 or (log_every != 0 and @mod(frame_count, @as(u32, @intCast(log_every))) == 0)) {
-                const dispcnt = ioRead16(0x000);
-                const pal0 = @as(u16, palette_buf[0]) | (@as(u16, palette_buf[1]) << 8);
-                const pal1 = @as(u16, palette_buf[2]) | (@as(u16, palette_buf[3]) << 8);
-                core.gba.logPrint(
-                    "[frame {d}] DISPCNT=0x{X:0>4} mode={d} BG={d}{d}{d}{d} OBJ={d} BLDCNT=0x{X:0>4} BLDY={d} pal0=0x{X:0>4} pal1=0x{X:0>4}\n",
-                    .{
-                        frame_count,
-                        dispcnt,
-                        dispcnt & 7,
-                        (dispcnt >> 8) & 1,
-                        (dispcnt >> 9) & 1,
-                        (dispcnt >> 10) & 1,
-                        (dispcnt >> 11) & 1,
-                        (dispcnt >> 12) & 1,
-                        ioRead16(0x050),
-                        ioRead16(0x054) & 31,
-                        pal0,
-                        pal1,
-                    },
-                );
+            if (scanline == vcount_target and (dispstat & 0x20) != 0) {
+                ioWrite16(0x202, ioRead16(0x202) | 4);
             }
-        }
 
-        if (scanline == vcount_target and (dispstat & 0x20) != 0) {
-            ioWrite16(0x202, ioRead16(0x202) | 4);
+            checkInterrupts();
+            if (soft_reset_pending) return;
+            continue;
         }
-
-        checkInterrupts();
-        if (soft_reset_pending) return;
+        if (step == 0) break;
     }
 
     if (cycle_counter -% last_poll_cycle > poll_interval) {
