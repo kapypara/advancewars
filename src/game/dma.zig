@@ -4,6 +4,7 @@ const std = @import("std");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_6 = @import("low_peel_6.zig");
@@ -11,17 +12,17 @@ const types = @import("types.zig");
 
 /// Convert a byte count (`u16`) to halfword transfer count (`>> 1`) for `CpuSet`.
 pub inline fn byteCountToHalfwords(byte_count: u32) u32 {
-    return (byte_count & 0xFFFF) >> 1;
+    return hal.dma.byteCountToHalfwords(byte_count);
 }
 
 /// Convert a byte count (`u16`) to word transfer count (`>> 2`) for `CpuFastSet`.
 pub inline fn byteCountToWords(byte_count: u32) u32 {
-    return (byte_count & 0xFFFF) >> 2;
+    return hal.dma.byteCountToWords(byte_count);
 }
 
 /// Copy `size_bytes` from `src` to `dst` via `CpuSet` 16-bit transfers (`0x0800FD94`).
 pub fn cpuCopy16(src: u32, dst: u32, size_bytes: u32) void {
-    bios.cpuSet(src, dst, byteCountToHalfwords(size_bytes));
+    hal.dma.copy16(src, dst, size_bytes);
 }
 
 pub fn func_0800FD94() callconv(.c) void {
@@ -36,22 +37,18 @@ pub fn func_0800FD94() callconv(.c) void {
 
 /// Copy `size_bytes` from `src` to `dst` via `CpuFastSet` 32-bit transfers (`0x0800FDCC`).
 pub fn cpuFastCopy32(src: u32, dst: u32, size_bytes: u32) void {
-    bios.cpuFastSet(src, dst, byteCountToWords(size_bytes));
+    hal.dma.fastCopy32(src, dst, size_bytes);
 }
 
 /// Return true when `size_bytes` (`u16`) is a multiple of 32 bytes for `CpuFastSet`.
 pub inline fn isFastCopyAligned(size_bytes: u32) bool {
-    return (size_bytes & 0x1F) == 0;
+    return hal.dma.isFastCopyAligned(size_bytes);
 }
 
 /// [Phase 4 API — uncalled while func_0800FDA4 preserves exact abi.fetches/SWI branches]
 /// Copy `size_bytes` from `src` to `dst` via `CpuFastSet` when 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
 pub fn cpuCopyAuto(src: u32, dst: u32, size_bytes: u32) void {
-    if (isFastCopyAligned(size_bytes)) {
-        cpuFastCopy32(src, dst, size_bytes);
-    } else {
-        cpuCopy16(src, dst, size_bytes);
-    }
+    hal.dma.copyAuto(src, dst, size_bytes);
 }
 
 /// Typed cross-module bridge calling `func_0800FDA4(src, dst, size_bytes)` with exact ABI registers.
@@ -144,7 +141,7 @@ pub fn func_0800FFA8() callconv(.c) void {
     abi.setRegNz(&rt.r[2], rt.r[2] >> 16);
     rt.cpuAdd(&rt.r[6], rt.r[2], 0, true);
 
-    const imm = abi.read16(types.addr.dma_immediate_flag);
+    const imm = hal.dma.readImmediateFlag();
     rt.r[0] = imm;
     rt.cpuSub(null, rt.r[0], 0, true);
     if (!rt.CPU_Z) {
@@ -157,9 +154,9 @@ pub fn func_0800FFA8() callconv(.c) void {
         abi.fetches(6);
         const count_addr = types.addr.dma_queue_count;
         rt.r[4] = count_addr;
-        const prev_count = abi.read16(count_addr);
+        const prev_count = hal.dma.readQueueCount();
         rt.r[0] = prev_count;
-        rt.cpuSub(null, rt.r[0], types.dma_queue_cap, true);
+        rt.cpuSub(null, rt.r[0], hal.dma.queue_cap, true);
         if (rt.CPU_Z) {
             abi.fetches(4);
             abi.setRegNz(&rt.r[0], 1);
@@ -167,16 +164,10 @@ pub fn func_0800FFA8() callconv(.c) void {
         } else {
             abi.fetches(59);
             const buf_base = types.addr.dma_queue_buf;
-            const entry_off = @as(u32, @bitCast(@as(i32, @as(i16, @bitCast(prev_count))) * @as(i32, @sizeOf(types.DmaQueueEntry))));
-            const entry_addr = buf_base +% entry_off;
-            abi.write32(entry_addr +% @offsetOf(types.DmaQueueEntry, "src"), rt.r[3]);
-            abi.write32(entry_addr +% @offsetOf(types.DmaQueueEntry, "dst"), rt.r[5]);
-            abi.write16(entry_addr +% @offsetOf(types.DmaQueueEntry, "size"), @truncate(rt.r[6]));
-            const old_mode = abi.read8(entry_addr +% @offsetOf(types.DmaQueueEntry, "mode"));
-            abi.write8(entry_addr +% @offsetOf(types.DmaQueueEntry, "mode"), 0);
+            const old_mode = hal.dma.writeQueueEntry(prev_count, rt.r[3], rt.r[5], @truncate(rt.r[6]), 0);
 
             const next_count: u16 = prev_count +% 1;
-            abi.write16(count_addr, next_count);
+            hal.dma.writeQueueCount(next_count);
             rt.r[2] = buf_base;
             rt.r[1] = old_mode;
             rt.r[3] = 0;

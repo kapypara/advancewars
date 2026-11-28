@@ -1,6 +1,7 @@
 //! Unified Hardware Abstraction Layer (HAL) for GBA BIOS/SWI and platform interfaces.
 //! Phase 5A routes all 23 BIOS `abi.swi(...)` call sites through `hal.bios.*`.
 //! Phase 5B centralizes `KEYINPUT` (`0x0400_0130`) polling and Flash (`0x0E00_0000`) / save bitset interfaces through `hal.input.*` and `hal.save.*`.
+//! Phase 5C centralizes VBlank DMA transfer/queue and m4a audio track/BGM state interfaces through `hal.dma.*` and `hal.audio.*`.
 
 const std = @import("std");
 const rt = @import("runtime");
@@ -213,6 +214,135 @@ pub const save = struct {
     }
 };
 
+/// GBA DMA transfer & VBlank deferred copy queue abstraction boundary.
+pub const dma = struct {
+    pub const QueueEntry = types.DmaQueueEntry;
+    pub const queue_cap: usize = types.dma_queue_cap;
+
+    pub inline fn byteCountToHalfwords(byte_count: u32) u32 {
+        return (byte_count & 0xFFFF) >> 1;
+    }
+
+    pub inline fn byteCountToWords(byte_count: u32) u32 {
+        return (byte_count & 0xFFFF) >> 2;
+    }
+
+    pub inline fn isFastCopyAligned(size_bytes: u32) bool {
+        return (size_bytes & 0x1F) == 0;
+    }
+
+    pub inline fn copy16(src: u32, dst: u32, size_bytes: u32) void {
+        bios.cpuSet(src, dst, byteCountToHalfwords(size_bytes));
+    }
+
+    pub inline fn fastCopy32(src: u32, dst: u32, size_bytes: u32) void {
+        bios.cpuFastSet(src, dst, byteCountToWords(size_bytes));
+    }
+
+    pub inline fn copyAuto(src: u32, dst: u32, size_bytes: u32) void {
+        if (isFastCopyAligned(size_bytes)) {
+            fastCopy32(src, dst, size_bytes);
+        } else {
+            copy16(src, dst, size_bytes);
+        }
+    }
+
+    pub inline fn readImmediateFlag() u16 {
+        return mem.readU16(types.addr.dma_immediate_flag);
+    }
+
+    pub inline fn isImmediateMode() bool {
+        return readImmediateFlag() != 0;
+    }
+
+    pub inline fn readQueueCount() u16 {
+        return mem.readU16(types.addr.dma_queue_count);
+    }
+
+    pub inline fn writeQueueCount(count: u16) void {
+        mem.writeU16(types.addr.dma_queue_count, count);
+    }
+
+    pub inline fn queueEntryAddr(index: u16) u32 {
+        return types.addr.dma_queue_buf +% @as(u32, @bitCast(@as(i32, @as(i16, @bitCast(index))) * @as(i32, @sizeOf(QueueEntry))));
+    }
+
+    pub inline fn writeQueueEntry(index: u16, src: u32, dst: u32, size: u16, mode: u8) u8 {
+        const entry_addr = queueEntryAddr(index);
+        mem.writeU32(entry_addr +% @offsetOf(QueueEntry, "src"), src);
+        mem.writeU32(entry_addr +% @offsetOf(QueueEntry, "dst"), dst);
+        mem.writeU16(entry_addr +% @offsetOf(QueueEntry, "size"), size);
+        const old_mode = mem.readU8(entry_addr +% @offsetOf(QueueEntry, "mode"));
+        mem.writeU8(entry_addr +% @offsetOf(QueueEntry, "mode"), mode);
+        return old_mode;
+    }
+};
+
+/// GBA m4a audio driver track cursor & BGM state abstraction boundary.
+pub const audio = struct {
+    pub const bgm_none: u16 = types.bgm_none;
+    pub const track_cmd_cursor_off: u32 = 0x40;
+
+    pub const TrackOffset = struct {
+        pub const mod_type: u32 = 0x1E;
+        pub const mod_depth: u32 = 0x1F;
+        pub const mod_speed: u32 = 0x26;
+        pub const mod_delay: u32 = 0x27;
+        pub const param_2c: u32 = 0x2C;
+        pub const param_2d: u32 = 0x2D;
+        pub const param_2e: u32 = 0x2E;
+        pub const param_2f: u32 = 0x2F;
+    };
+
+    pub inline fn readBgmEnabledFlag() u8 {
+        return mem.readU8(types.addr.battle_ui_state +% 0xC);
+    }
+
+    pub inline fn isBgmEnabled() bool {
+        return readBgmEnabledFlag() != 0;
+    }
+
+    pub inline fn deferPendingBgm(track_id: u16) void {
+        mem.writeU16(types.addr.pending_bgm_id, track_id);
+        mem.writeU16(types.addr.active_bgm_id, bgm_none);
+    }
+
+    pub inline fn readPendingBgm() u16 {
+        return mem.readU16(types.addr.pending_bgm_id);
+    }
+
+    pub inline fn readActiveBgm() u16 {
+        return mem.readU16(types.addr.active_bgm_id);
+    }
+
+    pub inline fn clearActiveBgm() void {
+        mem.writeU16(types.addr.active_bgm_id, bgm_none);
+    }
+
+    pub const TrackStep = struct { next_ptr: u32, field_addr: u32, val: u8 };
+
+    pub inline fn stepTrackByte(track_addr: u32, comptime field_off: u32) TrackStep {
+        const cmd_ptr = mem.readU32(track_addr +% track_cmd_cursor_off);
+        const val = mem.readU8(cmd_ptr);
+        const field_addr = track_addr +% field_off;
+        mem.writeU8(field_addr, val);
+        const next_ptr = cmd_ptr +% 1;
+        mem.writeU32(track_addr +% track_cmd_cursor_off, next_ptr);
+        return .{ .next_ptr = next_ptr, .field_addr = field_addr, .val = val };
+    }
+
+    pub inline fn readLe32(addr: u32) struct { word: u32, b3_shifted: u32 } {
+        const b0: u32 = mem.readU8(addr);
+        const b1: u32 = mem.readU8(addr +% 1);
+        const b2: u32 = mem.readU8(addr +% 2);
+        const b3: u32 = mem.readU8(addr +% 3);
+        return .{
+            .word = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24),
+            .b3_shifted = b3 << 24,
+        };
+    }
+};
+
 test "hal.divPure matches GBA BIOS Div quotient, remainder, and abs_quot" {
     const pos = divPure(23, 5);
     try std.testing.expectEqual(@as(i32, 4), pos.quot);
@@ -279,4 +409,21 @@ test "hal.save Flash geometry and bitLocation addressing" {
     try std.testing.expectEqual(@as(u32, types.addr.save_flags + 0x1B), loc.addr);
     try std.testing.expectEqual(@as(u3, 1), loc.shift);
     try std.testing.expectEqual(@as(u8, 0x02), loc.mask);
+}
+
+test "hal.dma transfer sizing and queue entry addressing" {
+    try std.testing.expectEqual(@as(u32, 0x20), dma.byteCountToHalfwords(0x40));
+    try std.testing.expectEqual(@as(u32, 0x1C0), dma.byteCountToWords(0x700));
+    try std.testing.expect(dma.isFastCopyAligned(0x200));
+    try std.testing.expect(!dma.isFastCopyAligned(0x204));
+    try std.testing.expectEqual(types.addr.dma_queue_buf, dma.queueEntryAddr(0));
+    try std.testing.expectEqual(types.addr.dma_queue_buf + 12, dma.queueEntryAddr(1));
+    try std.testing.expectEqual(types.addr.dma_queue_buf + 47 * 12, dma.queueEntryAddr(47));
+}
+
+test "hal.audio track offsets and BGM constants" {
+    try std.testing.expectEqual(@as(u16, 0xFFFF), audio.bgm_none);
+    try std.testing.expectEqual(@as(u32, 0x40), audio.track_cmd_cursor_off);
+    try std.testing.expectEqual(@as(u32, 0x1E), audio.TrackOffset.mod_type);
+    try std.testing.expectEqual(@as(u32, 0x2F), audio.TrackOffset.param_2f);
 }

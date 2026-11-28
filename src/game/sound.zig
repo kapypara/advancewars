@@ -6,6 +6,7 @@ const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_13 = @import("low_peel_13.zig");
 const low_peel_2 = @import("low_peel_2.zig");
@@ -13,47 +14,26 @@ const low_peel_4 = @import("low_peel_4.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_8 = @import("low_peel_8.zig");
 const low_peel_9 = @import("low_peel_9.zig");
-const mem = @import("mem.zig");
 const proc = @import("proc.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 
 /// Byte offset of the current bytecode sequence cursor inside `MusicPlayerTrack`.
-pub const track_cmd_cursor_off: u32 = 0x40;
+pub const track_cmd_cursor_off: u32 = hal.audio.track_cmd_cursor_off;
 
-pub const TrackOffset = struct {
-    pub const mod_type: u32 = 0x1E;
-    pub const mod_depth: u32 = 0x1F;
-    pub const mod_speed: u32 = 0x26;
-    pub const mod_delay: u32 = 0x27;
-    pub const param_2c: u32 = 0x2C;
-    pub const param_2d: u32 = 0x2D;
-    pub const param_2e: u32 = 0x2E;
-    pub const param_2f: u32 = 0x2F;
-};
+pub const TrackOffset = hal.audio.TrackOffset;
 
 /// Advance `track + 0x40` command pointer by 1 byte, storing the byte at `track + field_off`.
 pub inline fn advanceTrackByte(track_addr: u32, comptime field_off: u32) u32 {
-    const cmd_ptr = abi.read32(track_addr +% track_cmd_cursor_off);
-    const val = abi.read8(cmd_ptr);
-    abi.write8(track_addr +% field_off, val);
-    const next_ptr = cmd_ptr +% 1;
-    abi.write32(track_addr +% track_cmd_cursor_off, next_ptr);
-    return next_ptr;
+    return hal.audio.stepTrackByte(track_addr, field_off).next_ptr;
 }
 
 fn readTrackCmdHandler(comptime field_off: u32, comptime fetches_n: u32, comptime r2_is_ptr: bool) void {
     abi.fetches(fetches_n);
-    const track = rt.r[1];
-    const cmd_ptr = abi.read32(track +% track_cmd_cursor_off);
-    const val = abi.read8(cmd_ptr);
-    const field_addr = track +% field_off;
-    abi.write8(field_addr, val);
-    const next_ptr = cmd_ptr +% 1;
-    abi.write32(track +% track_cmd_cursor_off, next_ptr);
-    rt.r[2] = if (r2_is_ptr) field_addr else val;
-    abi.setRegNz(&rt.r[0], next_ptr);
+    const step = hal.audio.stepTrackByte(rt.r[1], field_off);
+    rt.r[2] = if (r2_is_ptr) step.field_addr else step.val;
+    abi.setRegNz(&rt.r[0], step.next_ptr);
     abi.retLr();
 }
 
@@ -187,18 +167,14 @@ pub fn func_080795B4() callconv(.c) void {
 
     const track = rt.r[1];
     const cmd = abi.read32(track +% track_cmd_cursor_off);
-    const b0: u32 = abi.read8(cmd);
-    const b1: u32 = abi.read8(cmd +% 1);
-    const b2: u32 = abi.read8(cmd +% 2);
-    const b3: u32 = abi.read8(cmd +% 3);
-    const word: u32 = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
-    abi.write32(track +% 0x28, word);
+    const fetched = hal.audio.readLe32(cmd);
+    abi.write32(track +% 0x28, fetched.word);
     const next_cmd = cmd +% 4;
     abi.write32(track +% track_cmd_cursor_off, next_cmd);
 
     rt.r[2] = next_cmd;
-    rt.r[3] = b3 << 24;
-    rt.updateNz(word);
+    rt.r[3] = fetched.b3_shifted;
+    rt.updateNz(fetched.word);
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
     const lr_val = abi.read32(rt.r[13]);
@@ -323,16 +299,15 @@ pub fn func_0803D890() callconv(.c) void {
     abi.setRegNz(&rt.r[0], rt.r[0] << 16);
     abi.setRegNz(&rt.r[1], track_id);
 
-    const bgm_enabled = mem.readU8(types.addr.battle_ui_state +% 0xC);
+    const bgm_enabled = hal.audio.readBgmEnabledFlag();
     rt.r[0] = bgm_enabled;
     rt.cpuSub(null, bgm_enabled, 0, true);
     if (bgm_enabled == 0) {
         abi.fetches(8);
-        mem.writeU16(types.addr.pending_bgm_id, track_id);
-        mem.writeU16(types.addr.active_bgm_id, types.bgm_none);
+        hal.audio.deferPendingBgm(track_id);
         rt.r[1] = types.addr.active_bgm_id;
-        rt.r[2] = types.bgm_none;
-        rt.cpuAdd(&rt.r[0], types.bgm_none, 0, true);
+        rt.r[2] = hal.audio.bgm_none;
+        rt.cpuAdd(&rt.r[0], hal.audio.bgm_none, 0, true);
     } else {
         abi.fetches(6);
         const signed_id: i16 = @bitCast(track_id);
