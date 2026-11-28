@@ -10,6 +10,7 @@ const battle = @import("battle.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_7 = @import("low_peel_7.zig");
@@ -1129,7 +1130,7 @@ pub fn func_080168D8() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(decls.func_08016438, 0x080168DF)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08016820, 0x080168E3)) return;
+    if (!abi.call(low_peel_10.func_08016820, 0x080168E3)) return;
     abi.fetches(4);
     abi.popReturn();
 }

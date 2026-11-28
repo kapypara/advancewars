@@ -3,16 +3,17 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
+const low_peel_13 = @import("low_peel_13.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_4 = @import("low_peel_4.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_8 = @import("low_peel_8.zig");
+const low_peel_9 = @import("low_peel_9.zig");
 const mem = @import("mem.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
@@ -101,7 +102,7 @@ pub fn func_0803D79C() callconv(.c) void {
     if (!abi.enter(0x0803D79C)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08077C04, 0x0803D7A3)) return;
+    if (!abi.call(low_peel_9.func_08077C04, 0x0803D7A3)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -468,7 +469,7 @@ pub fn func_080782F0() callconv(.c) void {
     rt.r[2] = player_ptr;
     rt.r[1] = abi.read32(entry);
     rt.r[0] = player_ptr;
-    if (!abi.call(decls.func_080789E8, 0x08078311)) return;
+    if (!abi.call(low_peel_13.func_080789E8, 0x08078311)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -724,7 +725,7 @@ pub fn func_0803D7B8() callconv(.c) void {
         rt.r[0] = abi.read32(e.pool);
         rt.r[2] = abi.read16(param_ptr);
         rt.r[1] = player_ptr;
-        if (!abi.call(decls.func_080791DC, e.ret)) return;
+        if (!abi.call(low_peel_9.func_080791DC, e.ret)) return;
     }
 
     abi.fetches(5);

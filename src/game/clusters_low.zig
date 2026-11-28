@@ -11,12 +11,15 @@ const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_10 = @import("low_peel_10.zig");
+const low_peel_13 = @import("low_peel_13.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_4 = @import("low_peel_4.zig");
 const low_peel_5 = @import("low_peel_5.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_7 = @import("low_peel_7.zig");
+const low_peel_9 = @import("low_peel_9.zig");
 const math = @import("math.zig");
 const proc = @import("proc.zig");
 const sound = @import("sound.zig");
@@ -113,7 +116,7 @@ fn run0800F8FC(start_block: u32) void {
     abi.setRegNz(&rt.r[7], 0);
     abi.setRegNz(&rt.r[7], rt.r[7] << 7);
     abi.setRegNz(&rt.r[0], rt.r[0]);
-    decls.func_0800F90C();
+    low_peel_10.func_0800F90C();
 }
 
 pub fn func_0800F8FC() callconv(.c) void {
@@ -130,7 +133,7 @@ pub fn func_0800F902() callconv(.c) void {
 fn run08070506() void {
     abi.fetches(3);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
-    decls.func_08070508();
+    low_peel_13.func_08070508();
 }
 
 fn run08070502(start_block: u32) void {
@@ -246,7 +249,7 @@ fn run080700EE(start_block: u32) void {
     }
     abi.fetches(3);
     abi.setRegNz(&rt.r[0], rt.r[0]);
-    decls.func_080700FC();
+    low_peel_13.func_080700FC();
 }
 
 pub fn func_080700EE() callconv(.c) void {
@@ -579,7 +582,7 @@ fn run0800FB9C(start_block: u32) void {
         abi.copyRegFlags(&rt.r[2], rt.r[6]);
         if (!abi.call(low_peel_6.func_0800FADC, 0x0800FBBB)) return;
         abi.fetches(3);
-        if (!abi.call(decls.func_0807AD88, 0x0800FBBF)) return;
+        if (!abi.call(low_peel_9.func_0807AD88, 0x0800FBBF)) return;
     }
     abi.fetches(3);
     abi.fetches(4);
@@ -1201,7 +1204,7 @@ pub fn func_08027B7E() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0x0);
     abi.write32(rt.r[13] +% 0x0, rt.r[1]);
     abi.setRegNz(&rt.r[3], 0x0);
-    if (!abi.call(decls.func_080133C0, 0x08027BA9)) return;
+    if (!abi.call(low_peel_10.func_080133C0, 0x08027BA9)) return;
     abi.fetches(9);
     abi.copyRegFlags(&rt.r[4], rt.r[0]);
     signExt8(4);

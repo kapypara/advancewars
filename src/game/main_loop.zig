@@ -7,6 +7,8 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const hw = @import("hw.zig");
+const low_peel_10 = @import("low_peel_10.zig");
+const low_peel_11 = @import("low_peel_11.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const mem = @import("mem.zig");
 const sound = @import("sound.zig");
@@ -57,7 +59,7 @@ fn func_080383F8() callconv(.c) void {
             .{ .func = sprite_anim.func_080159CC, .ret = 0x08038407 },
             .{ .func = hw.func_0801122C, .ret = 0x0803840B },
             .{ .func = func_0805BA34, .ret = 0x0803840F },
-            .{ .func = decls.func_08018530, .ret = 0x08038413 },
+            .{ .func = low_peel_10.func_08018530, .ret = 0x08038413 },
             .{ .func = low_peel_6.func_080138F8, .ret = 0x08038417 },
             .{ .func = hw.func_080134E0, .ret = 0x0803841B },
             .{ .func = low_peel_6.func_08015874, .ret = 0x0803841F },
@@ -118,7 +120,7 @@ fn func_0803849C() callconv(.c) void {
                 .{ .func = sprite_anim.func_080159F0, .ret = 0x080384B9 },
                 .{ .func = hw.func_0801122C, .ret = 0x080384BD },
                 .{ .func = func_0805BA34, .ret = 0x080384C1 },
-                .{ .func = decls.func_08018530, .ret = 0x080384C5 },
+                .{ .func = low_peel_10.func_08018530, .ret = 0x080384C5 },
             };
             inline for (pre_steps) |step| {
                 abi.fetches(4);
@@ -134,7 +136,7 @@ fn func_0803849C() callconv(.c) void {
                 rt.cpuSub(null, submode, 1, true);
                 if (submode == 1) {
                     abi.fetches(4);
-                    if (!abi.call(decls.func_08034A1C, 0x080384D5)) return;
+                    if (!abi.call(low_peel_11.func_08034A1C, 0x080384D5)) return;
                 }
             }
 

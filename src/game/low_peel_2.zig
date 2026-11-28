@@ -9,6 +9,7 @@ const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_5 = @import("low_peel_5.zig");
 const low_peel_7 = @import("low_peel_7.zig");
+const low_peel_9 = @import("low_peel_9.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
@@ -4351,7 +4352,7 @@ pub fn func_080775B0() callconv(.c) void {
             abi.fetches(4);
             rt.cpuAdd(&rt.r[3], rt.r[3], 0x1, true);
             abi.write32(rt.r[0] +% 0x0, rt.r[3]);
-            decls.func_080775C2(); return;
+            low_peel_9.func_080775C2(); return;
         },
         else => unreachable,
     }

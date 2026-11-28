@@ -10,6 +10,9 @@ const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_10 = @import("low_peel_10.zig");
+const low_peel_11 = @import("low_peel_11.zig");
+const low_peel_12 = @import("low_peel_12.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_4 = @import("low_peel_4.zig");
@@ -17,6 +20,7 @@ const low_peel_5 = @import("low_peel_5.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_7 = @import("low_peel_7.zig");
 const low_peel_8 = @import("low_peel_8.zig");
+const low_peel_9 = @import("low_peel_9.zig");
 const map = @import("map.zig");
 const math = @import("math.zig");
 const mem = @import("mem.zig");
@@ -192,7 +196,7 @@ pub fn func_080343F4() callconv(.c) void {
     abi.pushLr();
     rt.r[0] = abi.read32(0x08034404);
     rt.r[1] = @bitCast(@as(i32, -1));
-    if (!abi.call(decls.func_08030C28, 0x08034401)) return;
+    if (!abi.call(low_peel_11.func_08030C28, 0x08034401)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -610,7 +614,7 @@ pub fn func_08031F68() callconv(.c) void {
     abi.write16(mgr +% 4, 5);
     abi.write8(abi.read32(0x08031F94) +% 0x32, 1);
     rt.r[0] = abi.read32(0x08031F98);
-    if (!abi.call(decls.func_08030C28, 0x08031F83)) return;
+    if (!abi.call(low_peel_11.func_08030C28, 0x08031F83)) return;
 
     abi.fetches(6);
     rt.r[0] = abi.read8(abi.read32(0x08031F9C));
@@ -651,7 +655,7 @@ pub fn func_080328E8() callconv(.c) void {
     rt.r[1] = abi.read16(obj +% 0x1E);
     rt.r[2] = abi.read16(obj +% 0x20);
     abi.setRegNz(&rt.r[3], 0x80 << 2);
-    if (!abi.call(decls.func_080498C4, 0x080328FB)) return;
+    if (!abi.call(low_peel_12.func_080498C4, 0x080328FB)) return;
 
     abi.fetches(6);
     rt.r[0] = abi.read8(abi.read32(0x08032908));
@@ -672,7 +676,7 @@ pub fn func_08032B1C() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 5);
     abi.setRegNz(&rt.r[2], 0xC);
     abi.setRegNz(&rt.r[3], 0xA);
-    if (!abi.call(decls.func_080197D8, 0x08032B2B)) return;
+    if (!abi.call(low_peel_10.func_080197D8, 0x08032B2B)) return;
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
     if (!abi.call(func_08032240, 0x08032B31)) return;
@@ -758,7 +762,7 @@ pub fn func_080338B8() callconv(.c) void {
     abi.pushLr();
     rt.r[13] -%= 4;
     abi.write32(rt.r[13], rt.r[4]);
-    if (!abi.call(decls.func_080337A8, 0x080338BF)) return;
+    if (!abi.call(low_peel_11.func_080337A8, 0x080338BF)) return;
 
     abi.fetches(18);
     const s = abi.read32(abi.read32(0x080338E4));
@@ -782,9 +786,9 @@ pub fn func_08033FF8() callconv(.c) void {
     if (!abi.enter(0x08033FF8)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08033D38, 0x08033FFF)) return;
+    if (!abi.call(low_peel_11.func_08033D38, 0x08033FFF)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08033C90, 0x08034003)) return;
+    if (!abi.call(low_peel_11.func_08033C90, 0x08034003)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -959,9 +963,9 @@ pub fn func_080357C8() callconv(.c) void {
     if (!abi.enter(0x080357C8)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08035488, 0x080357CF)) return;
+    if (!abi.call(low_peel_11.func_08035488, 0x080357CF)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080355B4, 0x080357D3)) return;
+    if (!abi.call(low_peel_11.func_080355B4, 0x080357D3)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1035,13 +1039,13 @@ pub fn func_08035DAC() callconv(.c) void {
     rt.r[0] = abi.read32(0x08035DC8);
     abi.setRegNz(&rt.r[1], 1);
     abi.setRegNz(&rt.r[2], 0);
-    if (!abi.call(decls.func_08079244, 0x08035DB9)) return;
+    if (!abi.call(low_peel_9.func_08079244, 0x08035DB9)) return;
 
     abi.fetches(7);
     rt.r[0] = abi.read32(0x08035DCC);
     abi.setRegNz(&rt.r[1], 1);
     abi.setRegNz(&rt.r[2], 0);
-    if (!abi.call(decls.func_08079244, 0x08035DC3)) return;
+    if (!abi.call(low_peel_9.func_08079244, 0x08035DC3)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -1072,7 +1076,7 @@ pub fn func_080320E4() callconv(.c) void {
     abi.fetches(7);
     abi.setRegNz(&rt.r[0], 1);
     rt.r[1] = 0 -% @as(u32, 0xC1);
-    if (!abi.call(decls.func_0807AE60, 0x0803210F)) return;
+    if (!abi.call(low_peel_9.func_0807AE60, 0x0803210F)) return;
 
     abi.fetches(13);
     const target_obj = abi.read32(abi.read32(0x08032128));
@@ -1230,7 +1234,7 @@ pub fn func_08033300() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 8);
     rt.r[2] = bg_buf;
     rt.r[3] = abi.read32(0x08033380);
-    if (!abi.call(decls.func_08012A68, 0x08033363)) return;
+    if (!abi.call(low_peel_10.func_08012A68, 0x08033363)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_1.func_08011804, 0x08033367)) return;
@@ -1390,13 +1394,13 @@ pub fn func_08034CC0() callconv(.c) void {
     if (!abi.call(map.func_0801F058, 0x08034CC7)) return;
     abi.fetches(6);
     rt.r[0] = abi.read8(abi.read32(0x08034CE0) +% 2);
-    if (!abi.call(decls.func_0801F17C, 0x08034CCF)) return;
+    if (!abi.call(low_peel_10.func_0801F17C, 0x08034CCF)) return;
     abi.fetches(4);
     if (!abi.call(map.func_0801F0E4, 0x08034CD3)) return;
     abi.fetches(4);
     if (!abi.call(map.func_0801F0FC, 0x08034CD7)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08024D9C, 0x08034CDB)) return;
+    if (!abi.call(low_peel_11.func_08024D9C, 0x08034CDB)) return;
     abi.fetches(4);
     abi.popReturn();
 }

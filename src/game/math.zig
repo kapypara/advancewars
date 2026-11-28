@@ -7,6 +7,7 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hw = @import("hw.zig");
+const low_peel_13 = @import("low_peel_13.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const types = @import("types.zig");
 
@@ -696,13 +697,13 @@ fn softfpDoubleAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
     abi.write32(rt.r[13] +% 0x48, rt.r[3]);
     rt.r[0] = rt.r[13] +% 0x3C;
     rt.r[1] = rt.r[13];
-    if (!abi.call(decls.func_0807B8B4, r1)) return;
+    if (!abi.call(low_peel_13.func_0807B8B4, r1)) return;
 
     abi.fetches(7);
     rt.r[0] = rt.r[13] +% 0x44;
     rt.r[4] = rt.r[13] +% 0x14;
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807B8B4, r2)) return;
+    if (!abi.call(low_peel_13.func_0807B8B4, r2)) return;
 
     abi.fetches(if (sub) 11 else 7);
     if (sub) {
@@ -714,7 +715,7 @@ fn softfpDoubleAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
     if (!abi.call(decls.func_0807B98C, r3)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_0807B76C, r4)) return;
+    if (!abi.call(low_peel_13.func_0807B76C, r4)) return;
 
     abi.fetches(4);
     rt.r[13] +%= 0x4C;
@@ -749,13 +750,13 @@ pub fn func_0807C190() callconv(.c) void {
     abi.write32(rt.r[13] +% 0x34, rt.r[3]);
     rt.r[0] = rt.r[13] +% 0x28;
     rt.r[1] = rt.r[13];
-    if (!abi.call(decls.func_0807B8B4, 0x0807C1A5)) return;
+    if (!abi.call(low_peel_13.func_0807B8B4, 0x0807C1A5)) return;
 
     abi.fetches(7);
     rt.r[0] = rt.r[13] +% 0x30;
     rt.r[4] = rt.r[13] +% 0x14;
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807B8B4, 0x0807C1AF)) return;
+    if (!abi.call(low_peel_13.func_0807B8B4, 0x0807C1AF)) return;
 
     abi.fetches(6);
     rt.r[0] = rt.r[13];
@@ -779,13 +780,13 @@ fn softfpFloatAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
     abi.write32(rt.r[13] +% 0x34, rt.r[1]);
     rt.r[0] = rt.r[13] +% 0x30;
     rt.r[1] = rt.r[13];
-    if (!abi.call(decls.func_0807C5C0, r1)) return;
+    if (!abi.call(low_peel_13.func_0807C5C0, r1)) return;
 
     abi.fetches(7);
     rt.r[0] = rt.r[13] +% 0x34;
     rt.r[4] = rt.r[13] +% 0x10;
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807C5C0, r2)) return;
+    if (!abi.call(low_peel_13.func_0807C5C0, r2)) return;
 
     abi.fetches(if (sub) 11 else 7);
     if (sub) {
@@ -797,7 +798,7 @@ fn softfpFloatAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
     if (!abi.call(decls.func_0807C63C, r3)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_0807C508, r4)) return;
+    if (!abi.call(low_peel_13.func_0807C508, r4)) return;
 
     abi.fetches(4);
     rt.r[13] +%= 0x38;
@@ -830,13 +831,13 @@ pub fn func_0807CB4C() callconv(.c) void {
     abi.write32(rt.r[13] +% 0x24, rt.r[1]);
     rt.r[0] = rt.r[13] +% 0x20;
     rt.r[1] = rt.r[13];
-    if (!abi.call(decls.func_0807C5C0, 0x0807CB5D)) return;
+    if (!abi.call(low_peel_13.func_0807C5C0, 0x0807CB5D)) return;
 
     abi.fetches(7);
     rt.r[0] = rt.r[13] +% 0x24;
     rt.r[4] = rt.r[13] +% 0x10;
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807C5C0, 0x0807CB67)) return;
+    if (!abi.call(low_peel_13.func_0807C5C0, 0x0807CB67)) return;
 
     abi.fetches(6);
     rt.r[0] = rt.r[13];
@@ -865,7 +866,7 @@ pub fn func_0807CE28() callconv(.c) void {
     abi.write32(rt.r[13] +% 0x14, rt.r[0]);
     rt.r[0] = rt.r[13] +% 0x14;
     rt.r[1] = rt.r[13] +% 0x4;
-    if (!abi.call(decls.func_0807C5C0, 0x0807CE37)) return;
+    if (!abi.call(low_peel_13.func_0807C5C0, 0x0807CE37)) return;
 
     abi.fetches(15);
     rt.r[0] = abi.read32(rt.r[13] +% 0x4);

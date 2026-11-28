@@ -3,13 +3,13 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_13 = @import("low_peel_13.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const proc = @import("proc.zig");
 const sprite_anim = @import("sprite_anim.zig");
@@ -2597,7 +2597,7 @@ fn enter_0806EC18(start_block: u32) void {
             abi.setRegNz(&rt.r[0], 0x80);
             abi.setRegNz(&rt.r[0], rt.r[0] << 2);
             abi.write16(rt.r[1] +% 0x4, @truncate(rt.r[0]));
-            if (!abi.call(decls.func_0806E4B8, 0x0806EE37)) return;
+            if (!abi.call(low_peel_13.func_0806E4B8, 0x0806EE37)) return;
             continue :blk 37;
         },
         37 => {

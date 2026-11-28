@@ -9,12 +9,16 @@ const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_10 = @import("low_peel_10.zig");
+const low_peel_12 = @import("low_peel_12.zig");
+const low_peel_13 = @import("low_peel_13.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_5 = @import("low_peel_5.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_7 = @import("low_peel_7.zig");
 const low_peel_8 = @import("low_peel_8.zig");
+const low_peel_9 = @import("low_peel_9.zig");
 const math = @import("math.zig");
 const menu = @import("menu.zig");
 const sprite_anim = @import("sprite_anim.zig");
@@ -171,7 +175,7 @@ pub fn func_08060706() callconv(.c) void {
     if (!abi.enter(0x08060706)) return;
     abi.fetches(3);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
-    decls.func_08060708();
+    low_peel_12.func_08060708();
 }
 
 pub fn func_0806F426() callconv(.c) void {
@@ -201,7 +205,7 @@ pub fn func_080055A8() callconv(.c) void {
     abi.fetches(4);
     rt.updateNz(rt.r[1] << 14);
     abi.setRegNz(&rt.r[0], 0);
-    decls.func_080055AC();
+    low_peel_10.func_080055AC();
 }
 
 pub fn func_0800FC10() callconv(.c) void {
@@ -285,7 +289,7 @@ pub fn func_0805F70E() callconv(.c) void {
     rt.cpuAdd(&rt.r[6], rt.r[6], 0, true);
     rt.r[0] = abi.read8(rt.r[6] +% 0x17);
     abi.setRegNz(&rt.r[3], 0);
-    decls.func_0805F71C();
+    low_peel_12.func_0805F71C();
 }
 
 pub fn func_08033374() callconv(.c) void {
@@ -312,7 +316,7 @@ pub fn func_0800BBEC() callconv(.c) void {
     rt.r[10] = 0;
     abi.setRegNz(&rt.r[2], rt.r[4] >> 8);
     abi.setRegNz(&rt.r[0], 0);
-    decls.func_0800BBFC();
+    low_peel_10.func_0800BBFC();
 }
 
 pub fn func_0802FDF8() callconv(.c) void {
@@ -410,7 +414,7 @@ pub fn func_0807C49E() callconv(.c) void {
     abi.write32(rt.r[13] +% 0xC, rt.r[3]);
     abi.write32(rt.r[13] +% 0x10, rt.r[4]);
     rt.r[0] = rt.r[13];
-    if (!abi.call(decls.func_0807B76C, 0x0807C4B9)) return;
+    if (!abi.call(low_peel_13.func_0807B76C, 0x0807C4B9)) return;
     abi.fetches(7);
     rt.r[13] +%= 0x14;
     popRegsSeq(&.{4});
@@ -497,7 +501,7 @@ pub fn func_08059DD4() callconv(.c) void {
             .{ &sprite_anim.func_08014B3C, @as(u32, 0x08059DF7) },
             .{ &low_peel_6.func_080138F8, @as(u32, 0x08059DFB) },
             .{ &low_peel_6.func_0801A0A8, @as(u32, 0x08059DFF) },
-            .{ &decls.func_0807AD88, @as(u32, 0x08059E03) },
+            .{ &low_peel_9.func_0807AD88, @as(u32, 0x08059E03) },
             .{ &decls.func_08010144, @as(u32, 0x08059E07) },
             .{ &low_peel_6.func_08010574, @as(u32, 0x08059E0B) },
             .{ &low_peel_3.func_0801A06C, @as(u32, 0x08059E0F) },
@@ -541,7 +545,7 @@ pub fn func_0800020C() callconv(.c) void {
             },
             0x08000266 => {
                 abi.fetches(4);
-                if (!abi.call(decls.func_080049EC, 0x0800026B)) return;
+                if (!abi.call(low_peel_10.func_080049EC, 0x0800026B)) return;
                 abi.fetches(3);
             },
             0x0800026C => {
@@ -714,7 +718,7 @@ pub fn func_080642C8() callconv(.c) void {
         10 => {
             abi.fetches(5);
             abi.write8(rt.r[4] +% 0xA, @truncate(rt.r[0]));
-            switch (callCheckJumpTarget(decls.func_08061A64, 0x080643AF, 0x080643CF)) {
+            switch (callCheckJumpTarget(low_peel_9.func_08061A64, 0x080643AF, 0x080643CF)) {
                 .jumped => continue :blk 14,
                 .ret => return,
                 .next => continue :blk 11,
@@ -751,7 +755,7 @@ pub fn func_080642C8() callconv(.c) void {
         },
         16 => {
             abi.fetches(4);
-            switch (callCheckJumpTarget(decls.func_08065590, 0x080643E1, 0x080643CF)) {
+            switch (callCheckJumpTarget(low_peel_13.func_08065590, 0x080643E1, 0x080643CF)) {
                 .jumped => continue :blk 14,
                 .ret => return,
                 .next => continue :blk 17,
