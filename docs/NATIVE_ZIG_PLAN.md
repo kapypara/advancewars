@@ -39,6 +39,7 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
 - **3A — Low-Level Utilities & Top Hot Loops (`math.zig`, `main_loop.zig`, `tail_low.zig`, `bios.zig`, `dma.zig`):**
   - Pure Zig PRNG (`nextRngSeed`), fixed-point Q12 3x3 matrix*vector (`mulMat3Vec3Q12` in [math.zig](../src/game/math.zig)).
   - Top 3 dynamic hot functions (`97.7%` of Field Training calls) refactored/documented: `func_08038824` (soft-reset key combo) and `func_080383F8` (per-frame 8-step tick dispatcher) lifted to [main_loop.zig](../src/game/main_loop.zig); `func_0807B44C` documented as GCC `__call_via_r0` trampoline in [tail_low.zig](../src/game/tail_low.zig).
+  - Next 3 hottest active peeled functions (`54,154` calls in `low_peel_6.zig`) lifted into domain modules: `func_08018B68` (`lookupGuardTable` in [menu.zig](../src/game/menu.zig)), `func_080112C0` (palette RAM sync in [hw.zig](../src/game/hw.zig)), `func_08013984` (proc slot tick in [proc.zig](../src/game/proc.zig)).
   - Remaining: `CpuSet`/`CpuFastSet`/`LZ77`/`HuffUnComp` callers & DMA helpers (`dma.zig`).
 - **3B — Core Game Data & Simulation (`map.zig`, `unit.zig`, `co.zig`, `battle.zig`):**
   - Typed tile/unit lookups, movement cost, BFS reachability, damage calculation, capture/supply/vision rules.

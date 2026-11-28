@@ -6,6 +6,51 @@ const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
 const dma = @import("dma.zig");
+const mem = @import("mem.zig");
+const types = @import("types.zig");
+
+/// Flush shadow palette buffer (`0x0300_1EF0`) into GBA Palette RAM (`0x0500_0000`) (`0x080112C0`).
+pub fn func_080112C0() callconv(.c) void {
+    if (!abi.enter(0x080112C0)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    abi.pushReg(4);
+
+    const dispcnt_lo = mem.readU8(types.addr.dispcnt_shadow);
+    const forced_blank: u32 = @as(u32, dispcnt_lo) & types.dispcnt_forced_blank;
+    rt.r[1] = dispcnt_lo;
+    rt.r[0] = forced_blank;
+    rt.cpuSub(null, forced_blank, 0, true);
+
+    if (forced_blank != 0) {
+        abi.fetches(9);
+        rt.r[0] = types.addr.palette_shadow_buf;
+        abi.setRegNz(&rt.r[1], types.addr.pal_ram);
+        abi.setRegNz(&rt.r[2], types.pal_ram_size);
+        if (!abi.call(decls.func_0800FDA4, 0x080112DD)) return;
+        abi.fetches(3);
+    } else {
+        abi.fetches(6);
+        rt.r[4] = types.addr.palette_synced_flag;
+        const synced = mem.readU8(types.addr.palette_synced_flag);
+        rt.r[0] = synced;
+        rt.cpuSub(null, synced, 0, true);
+        if (synced == 0) {
+            abi.fetches(9);
+            rt.r[0] = types.addr.palette_shadow_buf;
+            abi.setRegNz(&rt.r[1], types.addr.pal_ram);
+            abi.setRegNz(&rt.r[2], types.pal_ram_size);
+            if (!abi.call(decls.func_0800FFA8, 0x080112FF)) return;
+            abi.fetches(4);
+            abi.setRegNz(&rt.r[0], 1);
+            mem.writeU8(types.addr.palette_synced_flag, 1);
+        }
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
 
 const bg_scroll_ptr_addrs = [_]u32{
     0x0801047C, 0x08010480, 0x08010484, 0x08010488, 0x0801048C,
@@ -1693,6 +1738,7 @@ comptime {
         @export(&func_08079A5C, .{ .name = "func_08079A5C", .linkage = .strong });
         @export(&func_08079E78, .{ .name = "func_08079E78", .linkage = .strong });
         @export(&func_0807A3BC, .{ .name = "func_0807A3BC", .linkage = .strong });
+        @export(&func_080112C0, .{ .name = "func_080112C0", .linkage = .strong });
     }
 }
 

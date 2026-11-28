@@ -55,10 +55,15 @@ pub const addr = struct {
     pub const result_summary_buf: u32 = 0x0201_226C;
     pub const reg_keyinput: u32 = 0x0400_0130;
     pub const frame_tick_done: u32 = 0x0300_4434;
+    pub const palette_synced_flag: u32 = 0x0300_0048;
+    pub const palette_shadow_buf: u32 = 0x0300_1EF0;
+    pub const pal_ram: u32 = 0x0500_0000;
 };
 
 pub const key_mask_all: u32 = 0x0000_03FF;
 pub const key_mask_soft_reset: u32 = 0x0000_000F; // A | B | Select | Start
+pub const pal_ram_size: u32 = 0x0400;
+pub const dispcnt_forced_blank: u8 = 0x80;
 
 /// Map workspace header at `addr.map_workspace` (`0x0201_57F8`).
 pub const MapWorkspace = extern struct {

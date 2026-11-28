@@ -6,7 +6,58 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
 const types = @import("types.zig");
+
+/// Tick proc slot `u8(r0)` if its active bit (`flags & 1`) is set (`0x08013984`).
+pub fn func_08013984() callconv(.c) void {
+    if (!abi.enter(0x08013984)) return;
+    abi.fetches(16);
+    abi.pushLr();
+    abi.pushReg(6);
+    abi.pushReg(5);
+    abi.pushReg(4);
+
+    const slot_idx: u8 = @truncate(rt.r[0]);
+    const slot_addr = procSlotAddr(slot_idx);
+    const flags = mem.readU16(slot_addr +% 0x12);
+
+    rt.r[1] = slot_idx;
+    rt.r[6] = slot_idx;
+    rt.r[5] = types.addr.proc_table;
+    rt.r[4] = slot_addr -% types.addr.proc_table;
+    rt.r[2] = slot_addr;
+    rt.r[3] = flags;
+
+    const active: u32 = @as(u32, flags) & 1;
+    rt.r[0] = active;
+    rt.cpuSub(null, active, 0, true);
+
+    if (active != 0) {
+        abi.fetches(13);
+        mem.writeU16(types.addr.active_proc_idx, slot_idx);
+        mem.writeU16(slot_addr +% 0x12, flags & 0xFFFE);
+        const on_idle = mem.readU32(slot_addr +% 0x08);
+        rt.r[0] = slot_addr +% 0x08;
+        rt.r[1] = on_idle;
+        rt.cpuSub(null, on_idle, 0, true);
+
+        if (on_idle != 0) {
+            abi.fetches(5);
+            rt.r[0] = slot_addr;
+            if (!abi.call(decls.func_0807B450, 0x080139BD)) return;
+        }
+        abi.fetches(5);
+        rt.r[0] = slot_idx;
+        if (!abi.call(decls.func_080139D4, 0x080139C3)) return;
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    rt.r[6] = abi.popReg();
+    abi.popReturn();
+}
 
 /// Compute EWRAM/IWRAM address of proc slot `idx` (`u8`, stride `0x60`).
 pub inline fn procSlotAddr(slot_idx: u8) u32 {
@@ -1569,6 +1620,7 @@ comptime {
         @export(&func_0801381C, .{ .name = "func_0801381C", .linkage = .strong });
         @export(&func_08014850, .{ .name = "func_08014850", .linkage = .strong });
         @export(&func_080147B8, .{ .name = "func_080147B8", .linkage = .strong });
+        @export(&func_08013984, .{ .name = "func_08013984", .linkage = .strong });
     }
 }
 

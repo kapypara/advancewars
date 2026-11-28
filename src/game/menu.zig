@@ -5,6 +5,73 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
+const types = @import("types.zig");
+
+/// Look up `key` in an `0xFF`-terminated array of 8-byte menu guard entries.
+pub fn lookupGuardTable(entries: []const [8]u8, key: u8, fallback: u8) u8 {
+    for (entries) |entry| {
+        if (entry[0] == 0xFF) break;
+        if (entry[1] == key) return entry[0];
+    }
+    return fallback;
+}
+
+/// Look up guard byte for `u8(r0)` in `menu_guard` (`0x0300_4280`), defaulting to `[menu_selection]` (`0x08018B68`).
+pub fn func_08018B68() callconv(.c) void {
+    if (!abi.enter(0x08018B68)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    abi.pushReg(5);
+    abi.pushReg(4);
+
+    const key: u8 = @truncate(rt.r[0]);
+    rt.r[4] = key;
+    rt.r[2] = 0;
+    rt.r[3] = types.addr.menu_guard;
+    const first = mem.readU8(types.addr.menu_guard);
+    rt.r[1] = first;
+
+    var result_addr: u32 = types.addr.menu_selection;
+    if (first == 0xFF) {
+        rt.cpuSub(null, first, 0xFF, true);
+        abi.fetches(3);
+    } else {
+        abi.fetches(3);
+        rt.r[1] = types.addr.menu_guard;
+        var idx: u8 = 0;
+        while (true) {
+            abi.fetches(7);
+            const entry_addr = types.addr.menu_guard +% (@as(u32, idx) << 3);
+            const entry_key = mem.readU8(entry_addr +% 1);
+            rt.r[0] = entry_addr;
+            rt.r[5] = entry_key;
+            if (entry_key == key) {
+                rt.cpuSub(null, entry_key, key, true);
+                result_addr = entry_addr;
+                break;
+            }
+            abi.fetches(10);
+            idx +%= 1;
+            rt.r[2] = idx;
+            const next_addr = types.addr.menu_guard +% (@as(u32, idx) << 3);
+            const next_sentinel = mem.readU8(next_addr);
+            rt.r[0] = next_sentinel;
+            if (next_sentinel == 0xFF) {
+                rt.cpuSub(null, next_sentinel, 0xFF, true);
+                abi.fetches(3);
+                result_addr = types.addr.menu_selection;
+                break;
+            }
+        }
+    }
+
+    abi.fetches(6);
+    rt.r[0] = mem.readU8(result_addr);
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    popReturnValue();
+}
 
 fn popReturnValue() void {
     const lr_val = abi.read32(rt.r[13]);
@@ -2978,7 +3045,20 @@ comptime {
         @export(&func_08073364, .{ .name = "func_08073364", .linkage = .strong });
         @export(&func_080749A0, .{ .name = "func_080749A0", .linkage = .strong });
         @export(&func_08074CA8, .{ .name = "func_08074CA8", .linkage = .strong });
+        @export(&func_08018B68, .{ .name = "func_08018B68", .linkage = .strong });
     }
+}
+
+test "lookupGuardTable matches key or returns fallback at 0xFF sentinel" {
+    const entries = [_][8]u8{
+        .{ 0x0A, 0x01, 0, 0, 0, 0, 0, 0 },
+        .{ 0x0B, 0x04, 0, 0, 0, 0, 0, 0 },
+        .{ 0xFF, 0x09, 0, 0, 0, 0, 0, 0 },
+    };
+    try std.testing.expectEqual(@as(u8, 0x0A), lookupGuardTable(&entries, 0x01, 0x77));
+    try std.testing.expectEqual(@as(u8, 0x0B), lookupGuardTable(&entries, 0x04, 0x77));
+    try std.testing.expectEqual(@as(u8, 0x77), lookupGuardTable(&entries, 0x09, 0x77));
+    try std.testing.expectEqual(@as(u8, 0x77), lookupGuardTable(&entries, 0x02, 0x77));
 }
 
 test "calcPackedEntryAddr adds base, data offset, row offset, and column" {
