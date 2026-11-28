@@ -1630,12 +1630,12 @@ pub fn func_0802FD30() callconv(.c) void {
     abi.write8(disp +% 1, b1_init);
     rt.r[0] = abi.read32(0x0802FDB0);
     abi.setRegNz(&rt.r[1], @as(u32, 0xC0) << 19);
-    if (!abi.call(low_peel_3.func_0800FE24, 0x0802FD59)) return;
+    if (!dma.copyVramCheckedCall(0x0802FD59)) return;
 
     abi.fetches(6);
     rt.r[0] = abi.read32(0x0802FDB4);
     rt.r[1] = abi.read32(0x0802FDB8);
-    if (!abi.call(low_peel_3.func_0800FE24, 0x0802FD61)) return;
+    if (!dma.copyVramCheckedCall(0x0802FD61)) return;
 
     abi.fetches(7);
     rt.r[0] = abi.read32(0x0802FDBC);
@@ -3280,7 +3280,7 @@ pub fn func_08053420() callconv(.c) void {
     const pal_lut = abi.read8(aux_id +% abi.read32(0x080534DC));
     rt.r[0] = abi.read32(gfx_tbl +% (@as(u32, pal_lut) *% 12));
     rt.r[1] = abi.read32(abi.read32(0x080534E0) +% (a0 << 2));
-    if (!abi.call(low_peel_3.func_0800FE24, 0x08053477)) return;
+    if (!dma.copyVramCheckedCall(0x08053477)) return;
 
     abi.fetches(29);
     const idx2 = abi.read16(abi.read32(0x080534E4) +% (a0 *% 10) +% 8);
@@ -3528,7 +3528,7 @@ pub fn func_08054A5C() callconv(.c) void {
     const sub_tbl = abi.read32(0x08054B9C);
     rt.r[0] = abi.read32(sub_tbl +% sub_off0);
     rt.r[1] = abi.read32(abi.read32(0x08054BA0) +% (a0 << 2));
-    if (!abi.call(low_peel_3.func_0800FE24, 0x08054B29)) return;
+    if (!dma.copyVramCheckedCall(0x08054B29)) return;
 
     abi.fetches(26);
     const prio1 = (abi.read16(tbl9 +% 8 +% (a0 *% 10)) *% 7) & 0xFF;

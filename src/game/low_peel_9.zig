@@ -1013,7 +1013,7 @@ pub fn func_08060732() callconv(.c) void {
         0 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[3], 0x78);
-            if (!abi.call(tail_low.func_0807B45C, 0x08060739)) return;
+            if (!tail_low.callViaR4Call(0x08060739)) return;
             continue :blk 1;
         },
         1 => {
@@ -1147,7 +1147,7 @@ pub fn func_080607C4() callconv(.c) void {
             abi.write32(rt.r[13] +% 0x0, rt.r[3]);
             rt.r[4] = abi.read32(rt.r[4] +% 0x0);
             abi.setRegNz(&rt.r[3], 0x78);
-            if (!abi.call(tail_low.func_0807B45C, 0x080607F5)) return;
+            if (!tail_low.callViaR4Call(0x080607F5)) return;
             continue :blk 4;
         },
         4 => {
@@ -1236,7 +1236,7 @@ pub fn func_080607EA() callconv(.c) void {
             abi.write32(rt.r[13] +% 0x0, rt.r[3]);
             rt.r[4] = abi.read32(rt.r[4] +% 0x0);
             abi.setRegNz(&rt.r[3], 0x78);
-            if (!abi.call(tail_low.func_0807B45C, 0x080607F5)) return;
+            if (!tail_low.callViaR4Call(0x080607F5)) return;
             continue :blk 1;
         },
         1 => {
@@ -2128,7 +2128,7 @@ pub fn func_08062EF8() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[6], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[7], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x1);
-            if (!abi.call(tail_low.func_0807B45C, 0x08062F1B)) return;
+            if (!tail_low.callViaR4Call(0x08062F1B)) return;
             continue :blk 1;
         },
         1 => {
@@ -2188,7 +2188,7 @@ pub fn func_08062F3C() callconv(.c) void {
             rt.r[4] = abi.read32(rt.r[1] +% 0x0);
             rt.cpuAdd(&rt.r[0], rt.r[6], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[7], 0x0, true);
-            if (!abi.call(tail_low.func_0807B45C, 0x08062F61)) return;
+            if (!tail_low.callViaR4Call(0x08062F61)) return;
             continue :blk 1;
         },
         1 => {
@@ -2249,7 +2249,7 @@ pub fn func_08062FD8() callconv(.c) void {
             rt.r[4] = abi.read32(rt.r[1] +% 0x0);
             rt.cpuAdd(&rt.r[0], rt.r[6], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[7], 0x0, true);
-            if (!abi.call(tail_low.func_0807B45C, 0x08062FFD)) return;
+            if (!tail_low.callViaR4Call(0x08062FFD)) return;
             continue :blk 1;
         },
         1 => {
@@ -2642,7 +2642,7 @@ pub fn func_08065BFC() callconv(.c) void {
             abi.setRegNz(&rt.r[4], 0x0);
             abi.write32(rt.r[13] +% 0x0, rt.r[4]);
             rt.r[4] = abi.read32(rt.r[5] +% 0x0);
-            if (!abi.call(tail_low.func_0807B45C, 0x08065C25)) return;
+            if (!tail_low.callViaR4Call(0x08065C25)) return;
             continue :blk 2;
         },
         2 => {
@@ -5482,7 +5482,7 @@ pub fn func_0806CA64() callconv(.c) void {
             abi.fetches(6);
             rt.r[4] = abi.read32(0x0806CAE8);
             rt.cpuAdd(&rt.r[1], rt.r[4], 0x0, true);
-            if (!abi.call(low_peel_3.func_0800FE24, 0x0806CAA1)) return;
+            if (!dma.copyVramCheckedCall(0x0806CAA1)) return;
             continue :blk 4;
         },
         4 => {
@@ -10914,7 +10914,7 @@ pub fn func_08072F6C() callconv(.c) void {
         },
         12 => {
             abi.fetches(4);
-            if (!abi.call(low_peel_1.func_08011814, 0x08072FB7)) return;
+            if (!hw.markBgDirtyCall(0x08072FB7)) return;
             continue :blk 13;
         },
         13 => {
@@ -15308,7 +15308,7 @@ pub fn func_0807AD88() callconv(.c) void {
         },
         7 => {
             abi.fetches(4);
-            if (!abi.call(tail_low.func_0807B45C, 0x0807AD9D)) return;
+            if (!tail_low.callViaR4Call(0x0807AD9D)) return;
             continue :blk 9;
         },
         8 => {
@@ -15344,7 +15344,7 @@ pub fn func_0807AD88() callconv(.c) void {
         },
         12 => {
             abi.fetches(4);
-            if (!abi.call(tail_low.func_0807B45C, 0x0807ADD9)) return;
+            if (!tail_low.callViaR4Call(0x0807ADD9)) return;
             continue :blk 14;
         },
         13 => {

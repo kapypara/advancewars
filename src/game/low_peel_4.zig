@@ -5927,7 +5927,7 @@ pub fn func_0803D4FC() callconv(.c) void {
             rt.r[2] = abi.read32(0x0803D534);
             abi.setRegNz(&rt.r[0], 0x0);
             abi.setRegNz(&rt.r[1], 0x98);
-            if (!abi.call(low_peel_6.func_0800FADC, 0x0803D529)) return;
+            if (!dma.copyOamOrTilesCall(0x0803D529)) return;
             continue :blk 5;
         },
         4 => {
@@ -7793,7 +7793,7 @@ pub fn func_08040022() callconv(.c) void {
     blk: switch (@as(u32, 0)) {
         0 => {
             abi.fetches(4);
-            if (!abi.call(low_peel_8.func_0803FD1C, 0x08040027)) return;
+            if (!ui.drawUiPanelCall(0x08040027)) return;
             continue :blk 1;
         },
         1 => {
@@ -7847,7 +7847,7 @@ pub fn func_080400EC() callconv(.c) void {
     blk: switch (@as(u32, 0)) {
         0 => {
             abi.fetches(4);
-            if (!abi.call(low_peel_8.func_0803FD1C, 0x080400F1)) return;
+            if (!ui.drawUiPanelCall(0x080400F1)) return;
             continue :blk 1;
         },
         1 => {
@@ -8180,7 +8180,7 @@ pub fn func_08042284() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[4] << 5);
             rt.r[2] = abi.read32(0x080422C0);
             rt.cpuAdd(&rt.r[1], rt.r[1], rt.r[2], true);
-            if (!abi.call(low_peel_3.func_0800FE24, 0x080422B5)) return;
+            if (!dma.copyVramCheckedCall(0x080422B5)) return;
             continue :blk 4;
         },
         4 => {

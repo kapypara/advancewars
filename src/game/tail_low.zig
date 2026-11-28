@@ -27,6 +27,11 @@ const menu = @import("menu.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const ui = @import("ui.zig");
 
+/// Typed cross-module bridge calling indirect branch trampoline `__call_via_r4` (`func_0807B45C`).
+pub inline fn callViaR4Call(comptime ret_addr: u32) bool {
+    return abi.call(func_0807B45C, ret_addr);
+}
+
 fn bxReg(addr: u32, comptime reg: u5) void {
     if (!abi.enter(addr)) return;
     abi.fetches(3);

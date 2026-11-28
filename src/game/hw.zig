@@ -47,6 +47,16 @@ pub inline fn markDisplayDirtyCall(comptime ret_addr: u32) bool {
     return abi.call(low_peel_1.func_08011804, ret_addr);
 }
 
+/// Typed cross-module bridge copying/clearing a tilemap rectangle (`func_08010C18`).
+pub inline fn copyTileRectCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_6.func_08010C18, ret_addr);
+}
+
+/// Typed cross-module bridge marking the BG layer dirty (`func_08011814`).
+pub inline fn markBgDirtyCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_1.func_08011814, ret_addr);
+}
+
 /// Poll GBA `KEYINPUT` (or replay stream when `battle_ui_state+0x32 != 0`) and update `key_state` (`0x0801122C`).
 pub fn func_0801122C() callconv(.c) void {
     if (!abi.enter(0x0801122C)) return;
@@ -632,7 +642,7 @@ pub fn func_0801B888() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
     rt.r[1] = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
     rt.updateNz(rt.r[1]);
-    if (!abi.call(tail_low.func_0807B45C, 0x0801B89D)) return;
+    if (!tail_low.callViaR4Call(0x0801B89D)) return;
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -674,7 +684,7 @@ pub fn func_0801DAB8() callconv(.c) void {
     rt.r[1] = arg1;
     rt.r[0] = arg0;
     abi.setRegNz(&rt.r[3], 0x78);
-    if (!abi.call(tail_low.func_0807B45C, 0x0801DAD3)) return;
+    if (!tail_low.callViaR4Call(0x0801DAD3)) return;
     abi.fetches(6);
     rt.r[13] +%= 4;
     rt.r[4] = abi.read32(rt.r[13]);
@@ -689,7 +699,7 @@ pub fn func_0800FE18() callconv(.c) void {
     if (!abi.enter(0x0800FE18)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(low_peel_3.func_0800FE24, 0x0800FE1F)) return;
+    if (!dma.copyVramCheckedCall(0x0800FE1F)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1505,7 +1515,7 @@ pub fn func_0800FDDC() callconv(.c) void {
     rt.r[5] = tmp;
     rt.r[0] = dst;
     rt.r[1] = tmp;
-    if (!abi.call(low_peel_3.func_0800FE24, 0x0800FDF9)) return;
+    if (!dma.copyVramCheckedCall(0x0800FDF9)) return;
 
     abi.fetches(9);
     const len16 = len & 0xFFFF;
@@ -1887,7 +1897,7 @@ test "register literal pool tables are sorted and contiguous in ROM" {
 }
 
 test "hw typed call bridges have expected inline signatures" {
-    inline for (.{ drawDispatchCall, fillTileRectCall, syncDisplayRegCall, markDisplayDirtyCall }) |bridge| {
+    inline for (.{ drawDispatchCall, fillTileRectCall, syncDisplayRegCall, markDisplayDirtyCall, copyTileRectCall, markBgDirtyCall }) |bridge| {
         const info = @typeInfo(@TypeOf(bridge)).@"fn";
         try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
         try std.testing.expect(info.param_types[0].? == u32);

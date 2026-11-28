@@ -581,7 +581,7 @@ fn run0800FB9C(start_block: u32) void {
         abi.copyRegFlags(&rt.r[0], rt.r[4]);
         abi.copyRegFlags(&rt.r[1], rt.r[5]);
         abi.copyRegFlags(&rt.r[2], rt.r[6]);
-        if (!abi.call(low_peel_6.func_0800FADC, 0x0800FBBB)) return;
+        if (!dma.copyOamOrTilesCall(0x0800FBBB)) return;
         abi.fetches(3);
         if (!abi.call(low_peel_9.func_0807AD88, 0x0800FBBF)) return;
     }
@@ -1392,7 +1392,7 @@ pub fn func_08014BF8() callconv(.c) void {
     rt.r[1] = rt.r[8];
     abi.copyRegFlags(&rt.r[2], rt.r[6]);
     abi.copyRegFlags(&rt.r[3], rt.r[5]);
-    if (!abi.call(sprite_anim.func_08014B54, 0x08014C85)) return;
+    if (!sprite_anim.stepSpriteAnimCall(0x08014C85)) return;
     abi.fetches(9);
     rt.r[13] +%= 0x4;
     popRegsSeq(&.{ 3, 4 });
@@ -1931,7 +1931,7 @@ fn run0805EC80(start_block: u32) void {
     rt.r[2] = abi.read32(0x0805EE94);
     abi.setRegNz(&rt.r[0], 0x10);
     abi.setRegNz(&rt.r[1], 0x7C);
-    if (!abi.call(low_peel_6.func_0800FADC, 0x0805EE2F)) return;
+    if (!dma.copyOamOrTilesCall(0x0805EE2F)) return;
     abi.fetches(8);
     rt.r[0] = abi.read32(0x0805EE98);
     rt.r[2] = abi.read16(rt.r[0] +% 0x0);

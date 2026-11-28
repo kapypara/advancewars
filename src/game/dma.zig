@@ -6,6 +6,8 @@ const rt = @import("runtime");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hw = @import("hw.zig");
+const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_6 = @import("low_peel_6.zig");
 const types = @import("types.zig");
 
 /// Convert a byte count (`u16`) to halfword transfer count (`>> 1`) for `CpuSet`.
@@ -82,6 +84,16 @@ pub inline fn copyAutoAbiCall(comptime ret_addr: u32) bool {
 /// Typed cross-module bridge forwarding existing register state to `func_0800FFA8` (VBlank DMA queue/copy).
 pub inline fn enqueueOrCopyAbiCall(comptime ret_addr: u32) bool {
     return abi.call(func_0800FFA8, ret_addr);
+}
+
+/// Typed cross-module bridge copying checked VRAM/palette data (`func_0800FE24`).
+pub inline fn copyVramCheckedCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_3.func_0800FE24, ret_addr);
+}
+
+/// Typed cross-module bridge copying OAM or tile data (`func_0800FADC`).
+pub inline fn copyOamOrTilesCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_6.func_0800FADC, ret_addr);
 }
 
 /// Copy `u16(r2)` bytes from `r0` to `r1` using `CpuFastSet` if 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
@@ -368,4 +380,13 @@ test "CpuSet and CpuFastSet transfer size conversions truncate cleanly to u16 co
     try std.testing.expect(isFastCopyAligned(0x200));
     try std.testing.expect(!isFastCopyAligned(0x204));
     try std.testing.expectEqual(@as(usize, 12), @sizeOf(types.DmaQueueEntry));
+}
+
+test "dma typed call bridges have expected inline signatures" {
+    inline for (.{ copyPaletteCall, copyAutoAbiCall, enqueueOrCopyAbiCall, copyVramCheckedCall, copyOamOrTilesCall }) |bridge| {
+        const info = @typeInfo(@TypeOf(bridge)).@"fn";
+        try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
+        try std.testing.expect(info.param_types[0].? == u32);
+        try std.testing.expect(info.return_type.? == bool);
+    }
 }

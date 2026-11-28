@@ -48,6 +48,11 @@ pub inline fn modSigned32Call(comptime ret_addr: u32) bool {
     return abi.call(func_0807B564, ret_addr);
 }
 
+/// Typed cross-module bridge calling unsigned 32-bit division helper `func_0807B634` with exact ABI state.
+pub inline fn divUnsigned32Call(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_13.func_0807B634, ret_addr);
+}
+
 /// Advance global PRNG seed stored at `[0x08010A98]` and return new value (`0x08010A84`).
 pub fn advanceRng() u32 {
     const seed_ptr = abi.read32(0x08010A98);
@@ -1036,7 +1041,7 @@ test "modUnsigned32 and modSigned32 match libgcc modulo semantics" {
 }
 
 test "math typed call bridges preserve fn pointers" {
-    inline for (.{ nextRngCall, sinDegCall, cosDegCall, divSigned32Call, modUnsigned32Call, modSigned32Call }) |bridge| {
+    inline for (.{ nextRngCall, sinDegCall, cosDegCall, divSigned32Call, modUnsigned32Call, modSigned32Call, divUnsigned32Call }) |bridge| {
         const info = @typeInfo(@TypeOf(bridge)).@"fn";
         try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
         try std.testing.expect(info.param_types[0].? == u32);

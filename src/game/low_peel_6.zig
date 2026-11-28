@@ -1033,7 +1033,7 @@ pub fn func_08003332() callconv(.c) void {
             rt.r[1] = rt.r[9];
             rt.r[2] = rt.r[8];
             rt.cpuAdd(&rt.r[3], rt.r[5], 0x0, true);
-            if (!abi.call(sprite_anim.func_08014B54, 0x08003373)) return;
+            if (!sprite_anim.stepSpriteAnimCall(0x08003373)) return;
             continue :blk 4;
         },
         4 => {
@@ -2565,7 +2565,7 @@ pub fn func_080056A0() callconv(.c) void {
             abi.pushLr();
             rt.r[13] -%= 0x4;
             abi.setRegNz(&rt.r[0], 0x70);
-            if (!abi.call(unit.func_0801B8D4, 0x080056AB)) return;
+            if (!unit.lookupUnitRecordCall(0x080056AB)) return;
             continue :blk 1;
         },
         1 => {
@@ -5939,7 +5939,7 @@ pub fn func_0800F0CC() callconv(.c) void {
             rt.cpuSub(&rt.r[5], rt.r[5], 0x2, true);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[1], 0xA);
-            if (!abi.call(low_peel_13.func_0807B634, 0x0800F0F7)) return;
+            if (!math.divUnsigned32Call(0x0800F0F7)) return;
             continue :blk 3;
         },
         3 => {
@@ -6899,7 +6899,7 @@ pub fn func_0800FB58() callconv(.c) void {
             abi.setRegNz(&rt.r[5], rt.r[0] >> 16);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[1], 0xA);
-            if (!abi.call(low_peel_13.func_0807B634, 0x0800FB91)) return;
+            if (!math.divUnsigned32Call(0x0800FB91)) return;
             continue :blk 4;
         },
         4 => {
@@ -8475,7 +8475,7 @@ pub fn func_08012B04() callconv(.c) void {
             rt.cpuSub(&rt.r[5], rt.r[5], 0x2, true);
             rt.cpuAdd(&rt.r[0], rt.r[6], 0x0, true);
             abi.setRegNz(&rt.r[1], 0xA);
-            if (!abi.call(low_peel_13.func_0807B634, 0x08012B4D)) return;
+            if (!math.divUnsigned32Call(0x08012B4D)) return;
             continue :blk 3;
         },
         3 => {
@@ -11059,7 +11059,7 @@ pub fn func_08017560() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 14);
             rt.r[2] = abi.read32(0x080175C4);
             rt.cpuAdd(&rt.r[1], rt.r[1], rt.r[2], true);
-            if (!abi.call(low_peel_3.func_0800FE24, 0x080175A9)) return;
+            if (!dma.copyVramCheckedCall(0x080175A9)) return;
             continue :blk 5;
         },
         4 => {

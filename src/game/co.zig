@@ -321,7 +321,7 @@ pub fn func_0801B8BC() callconv(.c) void {
     if (!abi.enter(0x0801B8BC)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(unit.func_0801B8D4, 0x0801B8C3)) return;
+    if (!unit.lookupUnitRecordCall(0x0801B8C3)) return;
     abi.fetches(6);
     rt.r[0] = abi.read32(0x0801B8D0);
     abi.setRegNz(&rt.r[1], 0);
@@ -523,7 +523,7 @@ pub fn func_0806CA38() callconv(.c) void {
     const dst = (slot << 5) +% abi.read32(0x0806CA60);
     rt.r[4] = dst;
     rt.r[1] = dst;
-    if (!abi.call(low_peel_3.func_0800FE24, 0x0806CA57)) return;
+    if (!dma.copyVramCheckedCall(0x0806CA57)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -618,7 +618,7 @@ pub fn func_0801C55C() callconv(.c) void {
     rt.r[1] = abi.read32(0x0801C5B0);
     abi.setRegNz(&rt.r[2], 0);
     abi.setRegNz(&rt.r[3], 0);
-    if (!abi.call(low_peel_6.func_08010C18, 0x0801C589)) return;
+    if (!hw.copyTileRectCall(0x0801C589)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x0801C5B8);
@@ -657,7 +657,7 @@ pub fn func_0803BC48() callconv(.c) void {
     const vram_base = abi.read32(0x0803BCB4);
     rt.r[0] = abi.read32(abi.read32(0x0803BCB0) +% (co_idx << 2));
     rt.r[1] = (tile_idx << 5) +% vram_base;
-    if (!abi.call(low_peel_3.func_0800FE24, 0x0803BC7D)) return;
+    if (!dma.copyVramCheckedCall(0x0803BC7D)) return;
 
     abi.fetches(13);
     rt.r[0] = (pal_idx << 5) +% abi.read32(0x0803BCB8);
@@ -668,7 +668,7 @@ pub fn func_0803BC48() callconv(.c) void {
     abi.fetches(9);
     rt.r[0] = abi.read32(0x0803BCBC);
     rt.r[1] = ((tile_idx +% 0x80) << 5) +% vram_base;
-    if (!abi.call(low_peel_3.func_0800FE24, 0x0803BCA1)) return;
+    if (!dma.copyVramCheckedCall(0x0803BCA1)) return;
 
     abi.fetches(7);
     rt.r[3] = abi.read32(rt.r[13]);

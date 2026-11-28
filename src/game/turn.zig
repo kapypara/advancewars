@@ -7,6 +7,7 @@ const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
+const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
@@ -912,7 +913,7 @@ pub fn func_08034E58() callconv(.c) void {
     rt.r[1] = rt.r[4];
     rt.r[2] = a1;
     rt.updateNz(rt.r[4]);
-    if (!abi.call(low_peel_6.func_0800FADC, 0x08034E75)) return;
+    if (!dma.copyOamOrTilesCall(0x08034E75)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1293,7 +1294,7 @@ pub fn func_080340C8() callconv(.c) void {
     abi.fetches(4);
     if (!hw.markDisplayDirtyCall(0x080340DB)) return;
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011814, 0x080340DF)) return;
+    if (!hw.markBgDirtyCall(0x080340DF)) return;
     abi.fetches(4);
     if (!abi.call(low_peel_1.func_08011824, 0x080340E3)) return;
 

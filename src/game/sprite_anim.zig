@@ -25,6 +25,16 @@ pub inline fn updateSpriteAnimCall(comptime ret_addr: u32) bool {
     return abi.call(func_08013550, ret_addr);
 }
 
+/// Typed cross-module bridge spawning an extended sprite animator (`func_08012B04`).
+pub inline fn spawnSpriteAnimExCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_6.func_08012B04, ret_addr);
+}
+
+/// Typed cross-module bridge stepping an active sprite animator (`func_08014B54`).
+pub inline fn stepSpriteAnimCall(comptime ret_addr: u32) bool {
+    return abi.call(func_08014B54, ret_addr);
+}
+
 /// Compute address of animator struct owned by proc `proc_idx` (`(proc.anim_slot) * 0x4C`).
 pub inline fn resolveAnimAddr(proc_base: u32, anim_base: u32, proc_idx: i16) u32 {
     const proc_off: u32 = @bitCast(@as(i32, proc_idx) *% @as(i32, types.proc_slot_stride));
@@ -1443,7 +1453,7 @@ test "animator and OAM queue strides match GBA pool layout" {
 }
 
 test "sprite_anim typed call bridges have expected inline signatures" {
-    inline for (.{ spawnSpriteAnimCall, updateSpriteAnimCall }) |bridge| {
+    inline for (.{ spawnSpriteAnimCall, updateSpriteAnimCall, spawnSpriteAnimExCall, stepSpriteAnimCall }) |bridge| {
         const info = @typeInfo(@TypeOf(bridge)).@"fn";
         try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
         try std.testing.expect(info.param_types[0].? == u32);

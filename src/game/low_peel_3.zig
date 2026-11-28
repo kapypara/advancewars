@@ -7293,7 +7293,7 @@ pub fn func_08018D2C() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(tail_low.func_0807B45C, 0x08018D4D)) return;
+            if (!tail_low.callViaR4Call(0x08018D4D)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -7371,7 +7371,7 @@ pub fn func_08018F94() callconv(.c) void {
             rt.r[2] = abi.read8(rt.r[0] +% 0x0);
             rt.cpuAdd(&rt.r[0], rt.r[3], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[5], 0x0, true);
-            if (!abi.call(tail_low.func_0807B45C, 0x08018FBF)) return;
+            if (!tail_low.callViaR4Call(0x08018FBF)) return;
             continue :blk 1;
         },
         else => unreachable,

@@ -970,7 +970,7 @@ pub fn func_08038848() callconv(.c) void {
     if (!abi.call(low_peel_11.func_080385CC, 0x0803884F)) return;
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
-    if (!abi.call(unit.func_0801B8D4, 0x08038855)) return;
+    if (!unit.lookupUnitRecordCall(0x08038855)) return;
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08038860);
     abi.setRegNz(&rt.r[1], 0);
@@ -1086,7 +1086,7 @@ pub fn func_08038FB4() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(low_peel_3.func_0801193C, 0x08038FBB)) return;
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011814, 0x08038FBF)) return;
+    if (!hw.markBgDirtyCall(0x08038FBF)) return;
     abi.fetches(4);
     abi.popReturn();
 }

@@ -30,6 +30,11 @@ const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 const ui = @import("ui.zig");
 
+/// Typed cross-module bridge looking up a unit stats/data record (`func_0801B8D4`).
+pub inline fn lookupUnitRecordCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0801B8D4, ret_addr);
+}
+
 /// Entity slot byte stride at `*[0x0828_2CBC]`.
 pub const entity_stride: u32 = types.entity_stride;
 
@@ -771,7 +776,7 @@ pub fn func_0801D930() callconv(.c) void {
     rt.r[1] = rt.r[2];
     rt.r[2] = a2;
     rt.r[3] = a3;
-    if (!abi.call(tail_low.func_0807B45C, 0x0801D94F)) return;
+    if (!tail_low.callViaR4Call(0x0801D94F)) return;
 
     abi.fetches(9);
     abi.write16(rt.r[5], abi.read16(abi.read32(0x0801D964)));
@@ -1316,7 +1321,7 @@ pub fn func_08028D64() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08028E18);
     rt.r[1] = abi.read32(0x08028E1C);
-    if (!abi.call(low_peel_3.func_0800FE24, 0x08028DE1)) return;
+    if (!dma.copyVramCheckedCall(0x08028DE1)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x08028E20);

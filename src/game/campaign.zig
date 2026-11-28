@@ -1280,7 +1280,7 @@ pub fn func_0803D5B0() callconv(.c) void {
     const y_tbl = abi.read32(0x0803D5F0);
     rt.r[0] = abi.read32(abi.read32(0x0803D5F4));
     abi.setRegNz(&rt.r[1], 3);
-    if (!abi.call(low_peel_13.func_0807B634, 0x0803D5BF)) return;
+    if (!math.divUnsigned32Call(0x0803D5BF)) return;
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[1], 0xA);

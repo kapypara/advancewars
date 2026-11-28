@@ -20,6 +20,7 @@ const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_7 = @import("low_peel_7.zig");
 const low_peel_8 = @import("low_peel_8.zig");
 const low_peel_9 = @import("low_peel_9.zig");
+const math = @import("math.zig");
 const mem = @import("mem.zig");
 const proc = @import("proc.zig");
 const state = @import("state.zig");
@@ -495,7 +496,7 @@ pub fn func_08038C70() callconv(.c) void {
     const row_off = (rt.r[0] & 0xFFFF) << 5;
     rt.r[0] = abi.read32(0x08038C88);
     rt.r[1] = row_off +% abi.read32(0x08038C8C);
-    if (!abi.call(low_peel_3.func_0800FE24, 0x08038C83)) return;
+    if (!dma.copyVramCheckedCall(0x08038C83)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1081,7 +1082,7 @@ pub fn func_080204B4() callconv(.c) void {
     abi.pushLr();
     rt.r[0] = abi.read32(0x080204F0);
     rt.r[1] = abi.read32(0x080204F4);
-    if (!abi.call(low_peel_3.func_0800FE24, 0x080204BF)) return;
+    if (!dma.copyVramCheckedCall(0x080204BF)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x080204F8);
@@ -1092,7 +1093,7 @@ pub fn func_080204B4() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x080204FC);
     rt.r[1] = abi.read32(0x08020500);
-    if (!abi.call(low_peel_3.func_0800FE24, 0x080204D3)) return;
+    if (!dma.copyVramCheckedCall(0x080204D3)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x08020504);
@@ -1505,7 +1506,7 @@ pub fn func_08020414() callconv(.c) void {
     rt.r[8] = abi.read32(0x080204A8);
     rt.r[0] = abi.read32(abi.read32(0x080204AC));
     rt.r[1] = 7;
-    if (!abi.call(low_peel_13.func_0807B634, 0x08020447)) return;
+    if (!math.divUnsigned32Call(0x08020447)) return;
 
     abi.fetches(43);
     const scale: u32 = abi.read8((rt.r[0] & 3) +% rt.r[8]);
@@ -1578,12 +1579,12 @@ pub fn func_08020D6C() callconv(.c) void {
     const vram_base = abi.read32(0x08020F80);
     rt.r[0] = abi.read32(0x08020F7C);
     rt.r[1] = vram_base;
-    if (!abi.call(low_peel_3.func_0800FE24, 0x08020D95)) return;
+    if (!dma.copyVramCheckedCall(0x08020D95)) return;
 
     abi.fetches(9);
     rt.r[0] = abi.read32(0x08020F84);
     rt.r[1] = vram_base +% 0x8000;
-    if (!abi.call(low_peel_3.func_0800FE24, 0x08020DA3)) return;
+    if (!dma.copyVramCheckedCall(0x08020DA3)) return;
 
     abi.fetches(5);
     rt.r[0] = 0;
@@ -1611,7 +1612,7 @@ pub fn func_08020D6C() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08020FA0);
     rt.r[1] = abi.read32(0x08020FA4);
-    if (!abi.call(low_peel_3.func_0800FE24, 0x08020DD5)) return;
+    if (!dma.copyVramCheckedCall(0x08020DD5)) return;
 
     abi.fetches(9);
     rt.r[0] = abi.read32(0x08020FA8);
