@@ -74,6 +74,186 @@ pub fn func_08018B68() callconv(.c) void {
     popReturnValue();
 }
 
+/// Insert or update `(val=u8(r0), key=u8(r1), cb=r2)` in the `0xFF`-terminated `menu_guard` table (`0x08018AC0`).
+pub fn func_08018AC0() callconv(.c) void {
+    if (!abi.enter(0x08018AC0)) return;
+    abi.fetches(14);
+    abi.pushLr();
+    abi.pushReg(7);
+    abi.pushReg(6);
+    abi.pushReg(5);
+    abi.pushReg(4);
+
+    const val: u8 = @truncate(rt.r[0]);
+    const key: u8 = @truncate(rt.r[1]);
+    const cb: u32 = rt.r[2];
+    const base = types.addr.menu_guard;
+    rt.r[7] = cb;
+    rt.r[6] = val;
+    rt.r[4] = key;
+    rt.r[5] = base;
+
+    var idx: u32 = 0;
+    var entry_addr: u32 = base;
+    const first = mem.readU8(base);
+    rt.r[0] = base;
+    rt.r[1] = first;
+    rt.r[2] = 0;
+    rt.cpuSub(null, first, 0xFF, true);
+
+    var append_sentinel = (first == 0xFF);
+    if (!append_sentinel) {
+        abi.fetches(5);
+        const k0 = mem.readU8(base +% 1);
+        rt.r[0] = k0;
+        rt.cpuSub(null, k0, key, true);
+        if (k0 == key) {
+            abi.fetches(8);
+            rt.r[1] = first;
+        } else {
+            abi.fetches(3);
+            while (true) {
+                abi.fetches(7);
+                entry_addr +%= 8;
+                idx +%= 1;
+                const s = mem.readU8(entry_addr);
+                rt.r[1] = entry_addr;
+                rt.r[2] = idx;
+                rt.r[0] = s;
+                rt.cpuSub(null, s, 0xFF, true);
+                if (s == 0xFF) {
+                    append_sentinel = true;
+                    break;
+                }
+                abi.fetches(5);
+                const k = mem.readU8(entry_addr +% 1);
+                rt.r[0] = k;
+                rt.cpuSub(null, k, key, true);
+                if (k == key) {
+                    abi.fetches(8);
+                    rt.r[1] = s;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (append_sentinel) {
+        abi.fetches(8);
+        mem.writeU8(base +% ((idx +% 1) << 3), 0xFF);
+        rt.r[1] = 0xFF;
+    }
+
+    abi.fetches(10);
+    const slot_off = idx << 3;
+    const dst = base +% slot_off;
+    mem.writeU8(dst, val);
+    mem.writeU8(dst +% 1, key);
+    mem.writeU32(dst +% 4, cb);
+    rt.r[0] = dst +% 4;
+    rt.r[2] = idx;
+    rt.r[3] = slot_off;
+    rt.cpuSub(null, idx, 0xE, true);
+
+    if (idx > 0xE) {
+        while (true) {
+            abi.fetches(3);
+        }
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    rt.r[6] = abi.popReg();
+    rt.r[7] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Batch-register `0xFF`-terminated key list `[r1]` in `menu_guard` with guard value `u8(r0)` (`0x08018B28`).
+pub fn func_08018B28() callconv(.c) void {
+    if (!abi.enter(0x08018B28)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    abi.pushReg(5);
+    abi.pushReg(4);
+
+    rt.r[4] = rt.r[1];
+    rt.r[5] = @as(u8, @truncate(rt.r[0]));
+    rt.r[2] = types.addr.menu_guard;
+    var idx: u8 = 0;
+    const first = mem.readU8(types.addr.menu_guard);
+    rt.r[1] = 0;
+    rt.r[0] = first;
+    rt.cpuSub(null, first, 0xFF, true);
+    if (first != 0xFF) {
+        while (true) {
+            abi.fetches(10);
+            idx +%= 1;
+            rt.r[1] = idx;
+            const s = mem.readU8(types.addr.menu_guard +% (@as(u32, idx) << 3));
+            rt.r[0] = s;
+            rt.cpuSub(null, s, 0xFF, true);
+            if (s == 0xFF) break;
+        }
+        abi.fetches(3);
+    }
+
+    while (true) {
+        abi.fetches(5);
+        const k = mem.readU8(rt.r[4]);
+        rt.r[0] = k;
+        rt.cpuSub(null, k, 0xFF, true);
+        if (k == 0xFF) break;
+        abi.fetches(8);
+        rt.r[4] +%= 1;
+        rt.r[1] = k;
+        rt.r[0] = rt.r[5];
+        abi.setRegNz(&rt.r[2], 0);
+        if (!abi.call(func_08018AC0, 0x08018B5D)) return;
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Decrement menu countdown `[r0 + 0x44]`, end active proc on underflow, and refresh every 8 ticks (`0x08074B8C`).
+pub fn func_08074B8C() callconv(.c) void {
+    if (!abi.enter(0x08074B8C)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    abi.pushReg(4);
+
+    const timer_addr = rt.r[0] +% 0x44;
+    rt.r[4] = timer_addr;
+    const next: u16 = mem.readU16(timer_addr) -% 1;
+    mem.writeU16(timer_addr, next);
+    const shifted: u32 = @as(u32, next) << 16;
+    rt.r[0] = shifted;
+    rt.cpuSub(null, shifted, 0, true);
+    if (@as(i16, @bitCast(next)) < 0) {
+        abi.fetches(6);
+        rt.r[0] = mem.readU8(types.addr.active_proc_idx);
+        if (!abi.call(decls.func_08013BD0, 0x08074BA7)) return;
+    }
+
+    abi.fetches(7);
+    const cur_timer = mem.readU16(rt.r[4]);
+    rt.r[4] = cur_timer;
+    const masked: u32 = cur_timer & 7;
+    abi.setRegNz(&rt.r[0], masked);
+    rt.cpuSub(null, masked, 0, true);
+    if (masked == 0) {
+        abi.fetches(4);
+        if (!abi.call(decls.func_080116F4, 0x08074BB5)) return;
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
+
 fn popReturnValue() void {
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -3045,7 +3225,10 @@ comptime {
         @export(&func_0807217C, .{ .name = "func_0807217C", .linkage = .strong });
         @export(&func_08073364, .{ .name = "func_08073364", .linkage = .strong });
         @export(&func_080749A0, .{ .name = "func_080749A0", .linkage = .strong });
+        @export(&func_08074B8C, .{ .name = "func_08074B8C", .linkage = .strong });
         @export(&func_08074CA8, .{ .name = "func_08074CA8", .linkage = .strong });
+        @export(&func_08018AC0, .{ .name = "func_08018AC0", .linkage = .strong });
+        @export(&func_08018B28, .{ .name = "func_08018B28", .linkage = .strong });
         @export(&func_08018B68, .{ .name = "func_08018B68", .linkage = .strong });
     }
 }

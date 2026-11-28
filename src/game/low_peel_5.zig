@@ -6973,57 +6973,6 @@ fn func_08074980() callconv(.c) void {
     }
 }
 
-fn func_08074B8C() callconv(.c) void {
-    if (!abi.enter(0x08074B8C)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(11);
-            pushRegs(&.{ 4, 14 });
-            rt.cpuAdd(&rt.r[4], rt.r[0], 0x0, true);
-            rt.cpuAdd(&rt.r[4], rt.r[4], 0x44, true);
-            rt.r[0] = abi.read16(rt.r[4] +% 0x0);
-            rt.cpuSub(&rt.r[0], rt.r[0], 0x1, true);
-            abi.write16(rt.r[4] +% 0x0, @truncate(rt.r[0]));
-            abi.setRegNz(&rt.r[0], rt.r[0] << 16);
-            rt.cpuSub(null, rt.r[0], 0x0, true);
-            if ((rt.CPU_N == rt.CPU_V)) {
-                continue :blk 1;
-            }
-            continue :blk 2;
-        },
-        1 => {
-            abi.fetches(7);
-            abi.setRegNz(&rt.r[0], 0x7);
-            rt.r[4] = abi.read16(rt.r[4] +% 0x0);
-            abi.setRegNz(&rt.r[0], rt.r[0] & rt.r[4]);
-            rt.cpuSub(null, rt.r[0], 0x0, true);
-            if (!rt.CPU_Z) {
-                continue :blk 4;
-            }
-            continue :blk 3;
-        },
-        2 => {
-            abi.fetches(6);
-            rt.r[0] = abi.read32(0x08074BBC);
-            rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(decls.func_08013BD0, 0x08074BA7)) return;
-            continue :blk 1;
-        },
-        3 => {
-            abi.fetches(4);
-            if (!abi.call(decls.func_080116F4, 0x08074BB5)) return;
-            continue :blk 4;
-        },
-        4 => {
-            abi.fetches(5);
-            popRegsSeq(&.{ 4 });
-            popRegsSeq(&.{ 0 });
-            rt.r[15] = rt.r[0]; rt.recompReturn(rt.r[0]); return;
-        },
-        else => unreachable,
-    }
-}
-
 fn func_08074C4C() callconv(.c) void {
     if (!abi.enter(0x08074C4C)) return;
     blk: switch (@as(u32, 0)) {
@@ -8996,7 +8945,6 @@ comptime {
         @export(&func_08073E84, .{ .name = "func_08073E84", .linkage = .strong });
         @export(&func_080745C0, .{ .name = "func_080745C0", .linkage = .strong });
         @export(&func_08074980, .{ .name = "func_08074980", .linkage = .strong });
-        @export(&func_08074B8C, .{ .name = "func_08074B8C", .linkage = .strong });
         @export(&func_08074C4C, .{ .name = "func_08074C4C", .linkage = .strong });
         @export(&func_08074D40, .{ .name = "func_08074D40", .linkage = .strong });
         @export(&func_08076898, .{ .name = "func_08076898", .linkage = .strong });
