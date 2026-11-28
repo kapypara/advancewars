@@ -9,6 +9,7 @@ const campaign = @import("campaign.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const co = @import("co.zig");
 const dma = @import("dma.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
@@ -586,10 +587,7 @@ pub fn func_0805EC0C() callconv(.c) void {
     abi.write32(rt.r[13], rt.r[4]);
 
     const addr = abi.read32(0x0805EC34);
-    const v0: u32 = abi.read8(addr) | 0x34;
-    abi.write8(addr, @truncate(v0));
-    const v1: u32 = abi.read8(addr +% 1) | 0x38;
-    abi.write8(addr +% 1, @truncate(v1));
+    const v1 = hal.video.enableBlendShadowBits(addr, 0x34, 0x38);
 
     rt.r[1] = addr;
     rt.r[2] = 0x20;

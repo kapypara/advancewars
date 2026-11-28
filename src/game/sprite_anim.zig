@@ -5,6 +5,7 @@ const rt = @import("runtime");
 const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
+const hal = @import("hal.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_3 = @import("low_peel_3.zig");
@@ -224,10 +225,12 @@ pub fn func_080138CC() callconv(.c) void {
 pub fn func_08014CE8() callconv(.c) void {
     if (!abi.enter(0x08014CE8)) return;
     abi.fetches(12);
-    const entry = mem.oamQueueAddr(@as(usize, @as(u16, @truncate(rt.r[0]))));
-    abi.write16(entry +% 0x6, @truncate(rt.r[1]));
-    abi.write16(entry +% 0x8, @truncate(rt.r[2]));
-    abi.write16(entry +% 0xA, @truncate(rt.r[3]));
+    hal.video.setOamQueueCoords(
+        @as(usize, @as(u16, @truncate(rt.r[0]))),
+        @truncate(rt.r[1]),
+        @truncate(rt.r[2]),
+        @truncate(rt.r[3]),
+    );
     rt.r[0] = rt.r[14];
     rt.recompReturn(rt.r[14]);
 }
@@ -237,12 +240,10 @@ pub fn func_08014D00() callconv(.c) void {
     if (!abi.enter(0x08014D00)) return;
     abi.fetches(8);
     const idx: usize = @as(u16, @truncate(rt.r[0]));
-    const entry = mem.oamQueueAddr(idx);
     rt.r[3] = types.addr.oam_queue;
     abi.setRegNz(&rt.r[0], rt.r[0] << 4);
     rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[3], true);
-    abi.write16(entry +% 0xC, @truncate(rt.r[1]));
-    abi.write16(entry +% 0xE, @truncate(rt.r[2]));
+    hal.video.setOamQueueTail(idx, @truncate(rt.r[1]), @truncate(rt.r[2]));
     abi.retLr();
 }
 
@@ -259,17 +260,15 @@ pub fn func_08014BA8() callconv(.c) void {
     if (!abi.enter(0x08014BA8)) return;
     abi.fetches(8);
     var idx: u32 = 0;
-    while (idx < types.oam_queue_count) : (idx += 1) {
+    while (idx < hal.video.oam_queue_count) : (idx += 1) {
         abi.fetches(7);
-        const flag_addr = types.addr.oam_queue_used +% idx;
-        const used = abi.read8(flag_addr);
+        const flag_addr = hal.video.oamQueueUsedAddr(@intCast(idx));
+        const used = hal.video.readOamQueueUsed(@intCast(idx));
         rt.cpuSub(null, used, 0, true);
         if (used == 0) {
             abi.fetches(13);
-            abi.write8(flag_addr, 1);
-            const entry = mem.oamQueueAddr(@intCast(idx));
-            abi.write16(entry +% 0x6, 0);
-            abi.write16(entry +% 0xC, 0);
+            hal.video.writeOamQueueUsed(@intCast(idx), 1);
+            const entry = hal.video.resetOamQueueSlot(@intCast(idx));
             rt.r[1] = rt.r[14];
             rt.r[2] = flag_addr;
             rt.r[3] = entry +% 0x6;
@@ -281,8 +280,8 @@ pub fn func_08014BA8() callconv(.c) void {
     }
     abi.fetches(9);
     rt.r[1] = rt.r[14];
-    rt.r[2] = types.addr.oam_queue_used +% (types.oam_queue_count - 1);
-    rt.r[3] = mem.oamQueueAddr(types.oam_queue_count) +% 0x6;
+    rt.r[2] = hal.video.oamQueueUsedAddr(hal.video.oam_queue_count - 1);
+    rt.r[3] = hal.video.oamQueueAddr(hal.video.oam_queue_count) +% 0x6;
     abi.setRegNz(&rt.r[0], 1);
     rt.cpuSub(&rt.r[0], 0, rt.r[0], true);
     abi.retLr();

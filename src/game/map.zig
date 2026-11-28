@@ -6,6 +6,7 @@ const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
@@ -58,17 +59,12 @@ pub inline fn tileToPx(tile: u16) u16 {
 
 /// Compute byte offset inside a 32x32 halfword tilemap (`0x40` bytes/row) relative to `(cam_x, cam_y)`.
 pub inline fn wrappedTilemapByteOffset(tile_x: u16, tile_y: u16, cam_x: u16, cam_y: u16) u32 {
-    const local_x: u32 = (tile_x -% cam_x) & 0xF;
-    const local_y: u32 = (tile_y -% cam_y) & 0xF;
-    return (local_x << 2) +% (local_y << 7);
+    return hal.video.wrappedTilemapByteOffset(tile_x, tile_y, cam_x, cam_y);
 }
 
 /// Write a 2x2 tile block into a 32x32 halfword tilemap (`0x40` bytes per row).
 pub inline fn writeMetaTile2x2(base: u32, tl: u16, tr: u16, bl: u16, br: u16) void {
-    mem.writeU16(base, tl);
-    mem.writeU16(base +% 2, tr);
-    mem.writeU16(base +% 0x40, bl);
-    mem.writeU16(base +% 0x42, br);
+    hal.video.writeMetaTile2x2(base, tl, tr, bl, br);
 }
 
 /// Clear a 2x2 meta-tile at `(r0, r1)` in BG tilemap buffer `0x0201_3340` relative to active camera (`0x0801FD98`).

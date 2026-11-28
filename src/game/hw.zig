@@ -117,13 +117,13 @@ pub fn func_0801129C() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
 
-    const synced = mem.readU8(types.addr.palette_synced_flag);
+    const synced = hal.video.readPaletteSyncedFlag();
     rt.r[0] = synced;
     rt.cpuSub(null, synced, 1, true);
 
     if (synced == 1) {
         abi.fetches(9);
-        if (!dma.copyAutoCall(types.addr.palette_shadow_buf, types.addr.pal_ram, types.pal_ram_size, 0x080112B5)) return;
+        if (!dma.copyAutoCall(hal.video.pal_shadow_addr, hal.video.pal_ram_addr, hal.video.pal_ram_size, 0x080112B5)) return;
     }
 
     abi.fetches(4);
@@ -134,10 +134,10 @@ pub fn func_0801129C() callconv(.c) void {
 pub fn func_080113D0() callconv(.c) void {
     if (!abi.enter(0x080113D0)) return;
     abi.fetches(5);
-    var i: i32 = @intCast(types.palette_dirty_count - 1);
+    var i: i32 = @intCast(hal.video.pal_dirty_count - 1);
     while (i >= 0) : (i -= 1) {
         abi.fetches(7);
-        mem.writeU8(types.addr.palette_dirty_flags +% @as(u32, @intCast(i)), 0);
+        hal.video.writePaletteDirtyFlag(@intCast(i), 0);
     }
     abi.fetches(3);
     rt.r[0] = types.addr.palette_dirty_flags;
@@ -155,28 +155,28 @@ pub fn func_080112C0() callconv(.c) void {
     abi.pushLr();
     abi.pushReg(4);
 
-    const dispcnt_lo = mem.readU8(types.addr.dispcnt_shadow);
-    const forced_blank: u32 = @as(u32, dispcnt_lo) & types.dispcnt_forced_blank;
+    const dispcnt_lo = hal.video.readDispcntLow();
+    const forced_blank: u32 = @as(u32, dispcnt_lo) & hal.video.dispcnt_forced_blank;
     rt.r[1] = dispcnt_lo;
     rt.r[0] = forced_blank;
     rt.cpuSub(null, forced_blank, 0, true);
 
     if (forced_blank != 0) {
         abi.fetches(9);
-        if (!dma.copyAutoCall(types.addr.palette_shadow_buf, types.addr.pal_ram, types.pal_ram_size, 0x080112DD)) return;
+        if (!dma.copyAutoCall(hal.video.pal_shadow_addr, hal.video.pal_ram_addr, hal.video.pal_ram_size, 0x080112DD)) return;
         abi.fetches(3);
     } else {
         abi.fetches(6);
         rt.r[4] = types.addr.palette_synced_flag;
-        const synced = mem.readU8(types.addr.palette_synced_flag);
+        const synced = hal.video.readPaletteSyncedFlag();
         rt.r[0] = synced;
         rt.cpuSub(null, synced, 0, true);
         if (synced == 0) {
             abi.fetches(9);
-            if (!dma.enqueueOrCopyCall(types.addr.palette_shadow_buf, types.addr.pal_ram, types.pal_ram_size, 0x080112FF)) return;
+            if (!dma.enqueueOrCopyCall(hal.video.pal_shadow_addr, hal.video.pal_ram_addr, hal.video.pal_ram_size, 0x080112FF)) return;
             abi.fetches(4);
             abi.setRegNz(&rt.r[0], 1);
-            mem.writeU8(types.addr.palette_synced_flag, 1);
+            hal.video.writePaletteSyncedFlag(1);
         }
     }
 
