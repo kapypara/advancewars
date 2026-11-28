@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const dma = @import("dma.zig");
 const mem = @import("mem.zig");
 const types = @import("types.zig");
 
@@ -708,7 +709,7 @@ pub fn func_08015A20() callconv(.c) void {
     rt.r[0] = abi.read32(0x08015A34);
     abi.setRegNz(&rt.r[1], 0x0700_0000);
     abi.setRegNz(&rt.r[2], 0x400);
-    if (!abi.call(decls.func_0800FDCC, 0x08015A31)) return;
+    if (!abi.call(dma.func_0800FDCC, 0x08015A31)) return;
     abi.fetches(4);
     abi.popReturn();
 }
