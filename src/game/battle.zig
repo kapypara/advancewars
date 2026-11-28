@@ -8,6 +8,7 @@ const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
+const types = @import("types.zig");
 const unit = @import("unit.zig");
 
 /// Compute raw scaled battle HP damage: `((100 - defense_pct) * base_damage) / 100`.
@@ -138,11 +139,10 @@ pub fn func_08023D2C() callconv(.c) void {
     abi.fetches(15);
     abi.pushLr();
     const idx: u16 = @truncate(rt.r[0]);
-    const list_base = abi.read32(abi.read32(0x08023D50));
-    const entry = list_base +% (@as(u32, idx) *% 12);
+    const entry = mem.unitRecordAddr(mem.unitListBase(), idx);
     rt.r[0] = entry;
-    rt.r[1] = abi.read8(entry +% 2);
-    rt.r[2] = abi.read8(entry +% 3);
+    rt.r[1] = mem.readU8(entry +% @offsetOf(types.UnitRecord, "tile_x"));
+    rt.r[2] = mem.readU8(entry +% @offsetOf(types.UnitRecord, "tile_y"));
     if (!abi.call(decls.func_08023BFC, 0x08023D47)) return;
 
     abi.fetches(6);

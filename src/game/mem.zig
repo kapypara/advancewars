@@ -77,6 +77,14 @@ pub inline fn entityTableBase() u32 {
     return readU32(types.addr.entity_table_ptr);
 }
 
+pub inline fn unitListBase() u32 {
+    return readU32(types.addr.unit_list_ptr);
+}
+
+pub inline fn unitRecordAddr(list_base: u32, idx: usize) u32 {
+    return list_base +% @as(u32, @intCast(idx * types.unit_record_stride));
+}
+
 pub inline fn cameraStateAddr() u32 {
     return readU32(types.addr.camera_state_ptr);
 }
@@ -146,6 +154,15 @@ test "typed pool slot address calculations match GBA memory strides" {
     try std.testing.expectEqual(@as(u32, 0x0201_1D24), oamQueueAddr(0));
     try std.testing.expectEqual(@as(u32, 0x0201_1D34), oamQueueAddr(1));
     try std.testing.expectEqual(@as(u32, 0x0200_0068), entitySlotAddr(0x0200_0000, 1));
-    const rec = types.UnitRecord{ ._pad00 = .{ 0, 0, 0, 0 }, .hp_flags = 0x8A };
+    try std.testing.expectEqual(@as(u32, 0x0200_000C), unitRecordAddr(0x0200_0000, 1));
+    const rec = types.UnitRecord{
+        .unit_type = 0,
+        ._pad01 = 0,
+        .tile_x = 0,
+        .tile_y = 0,
+        .hp_flags = 0x8A,
+        .state_flags = 0,
+        ._pad06 = .{ 0, 0, 0, 0, 0, 0 },
+    };
     try std.testing.expectEqual(@as(u8, 10), rec.hp());
 }

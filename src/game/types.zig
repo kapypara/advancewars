@@ -17,6 +17,9 @@ pub const addr = struct {
     pub const ui_cursor_src_byte: u32 = 0x0201_FD1D;
     pub const camera_state_ptr: u32 = 0x0828_2CB4;
     pub const entity_table_ptr: u32 = 0x0828_2CBC;
+    pub const unit_list_ptr: u32 = 0x0828_2CB8;
+    pub const unit_data_table_9e88: u32 = 0x0828_9E88;
+    pub const unit_cap_table_2ee5: u32 = 0x0828_2EE5;
     pub const map_overlay_ptr: u32 = 0x0828_C05C;
 
     pub const main_callback_slot: u32 = 0x0300_0D8C;
@@ -63,6 +66,9 @@ pub const addr = struct {
     pub const frame_gate_mask: u32 = 0x0300_4358;
     pub const frame_gate_flags: u32 = 0x0300_47E4;
     pub const frame_submode: u32 = 0x0300_41FC;
+    pub const unit_move_origin: u32 = 0x0300_41DC;
+    pub const unit_move_target: u32 = 0x0300_33AC;
+    pub const active_unit_ptr: u32 = 0x0300_4464;
     pub const task_queue_anchor: u32 = 0x0300_1ED8;
     pub const frame_input_state: u32 = 0x0300_1E70;
     pub const frame_input_shadow_a: u32 = 0x0300_4BF0;
@@ -82,6 +88,8 @@ pub const reach_tile_tl: u16 = 0x8170;
 pub const reach_tile_tr: u16 = 0x8171;
 pub const reach_tile_bl: u16 = 0x8172;
 pub const reach_tile_br: u16 = 0x8173;
+pub const max_army_funds: u32 = 999_999;
+pub const unit_record_stride: usize = 12;
 
 /// Deferred VBlank DMA queue entry at `addr.dma_queue_buf` (`0x0201_0274`, stride 12 bytes).
 pub const DmaQueueEntry = extern struct {
@@ -186,7 +194,8 @@ pub const CameraState = extern struct {
 pub const entity_stride: usize = 0x68;
 
 pub const UnitEntity = extern struct {
-    _pad00: [0x1A]u8,
+    gold: u32,
+    _pad04: [0x16]u8,
     army_id: u8,
     _pad1b: [2]u8,
     co_id: u8,
@@ -198,10 +207,15 @@ pub const UnitEntity = extern struct {
     _pad26: [0x42]u8,
 };
 
-/// Compact unit status header addressed by `BattleSideCtx.unit_ptr`.
+/// Map unit entry addressed by `addr.unit_list_ptr` (`0x0828_2CB8`, stride 12 bytes) and `BattleSideCtx.unit_ptr`.
 pub const UnitRecord = extern struct {
-    _pad00: [4]u8,
+    unit_type: u8,
+    _pad01: u8,
+    tile_x: u8,
+    tile_y: u8,
     hp_flags: u8,
+    state_flags: u8,
+    _pad06: [6]u8,
 
     pub inline fn hp(self: UnitRecord) u8 {
         return self.hp_flags & 0x7F;
@@ -244,12 +258,18 @@ test "Advance Wars core extern struct sizes match GBA memory layout" {
     try std.testing.expectEqual(@as(usize, 0x10), @sizeOf(CameraState));
     try std.testing.expectEqual(@as(usize, 0x0C), @offsetOf(CameraState, "cam_x"));
     try std.testing.expectEqual(@as(usize, entity_stride), @sizeOf(UnitEntity));
+    try std.testing.expectEqual(@as(usize, 0x00), @offsetOf(UnitEntity, "gold"));
     try std.testing.expectEqual(@as(usize, 0x1A), @offsetOf(UnitEntity, "army_id"));
     try std.testing.expectEqual(@as(usize, 0x1D), @offsetOf(UnitEntity, "co_id"));
     try std.testing.expectEqual(@as(usize, 0x1E), @offsetOf(UnitEntity, "active_flag"));
     try std.testing.expectEqual(@as(usize, 0x20), @offsetOf(UnitEntity, "funds"));
     try std.testing.expectEqual(@as(usize, 0x25), @offsetOf(UnitEntity, "counter25"));
-    try std.testing.expectEqual(@as(usize, 5), @sizeOf(UnitRecord));
+    try std.testing.expectEqual(@as(usize, unit_record_stride), @sizeOf(UnitRecord));
+    try std.testing.expectEqual(@as(usize, 0), @offsetOf(UnitRecord, "unit_type"));
+    try std.testing.expectEqual(@as(usize, 2), @offsetOf(UnitRecord, "tile_x"));
+    try std.testing.expectEqual(@as(usize, 3), @offsetOf(UnitRecord, "tile_y"));
+    try std.testing.expectEqual(@as(usize, 4), @offsetOf(UnitRecord, "hp_flags"));
+    try std.testing.expectEqual(@as(usize, 5), @offsetOf(UnitRecord, "state_flags"));
     try std.testing.expectEqual(@as(usize, 0x14), @sizeOf(BattleSideCtx));
     try std.testing.expectEqual(@as(usize, 0x0E), @offsetOf(BattleSideCtx, "defense_pct"));
     try std.testing.expectEqual(@as(usize, 0x12), @offsetOf(BattleSideCtx, "dealt_damage"));

@@ -11,6 +11,103 @@ const types = @import("types.zig");
 /// Entity slot byte stride at `*[0x0828_2CBC]`.
 pub const entity_stride: u32 = types.entity_stride;
 
+/// Add `delta` to `cur` army gold and clamp to `types.max_army_funds` (`999,999`).
+pub inline fn clampArmyFunds(cur: u32, delta: u32) u32 {
+    const sum = cur +% delta;
+    return if (sum > types.max_army_funds) types.max_army_funds else sum;
+}
+
+/// Add `r1` gold to army entity `u16(r0)` clamped to `types.max_army_funds` (`0x08024154`).
+pub fn func_08024154() callconv(.c) void {
+    if (!abi.enter(0x08024154)) return;
+    abi.fetches(15);
+    const slot_idx: u16 = @truncate(rt.r[0]);
+    const entity_base = mem.entityTableBase();
+    const stride: u32 = @intCast(types.entity_stride);
+    rt.r[3] = entity_base;
+    abi.setRegNz(&rt.r[0], @as(u32, slot_idx) *% stride);
+    rt.cpuAdd(&rt.r[2], rt.r[0], entity_base, true);
+    const prev = mem.readU32(rt.r[2] +% @offsetOf(types.UnitEntity, "gold"));
+    rt.cpuAdd(&rt.r[0], prev, rt.r[1], true);
+    mem.writeU32(rt.r[2] +% @offsetOf(types.UnitEntity, "gold"), rt.r[0]);
+    rt.r[1] = types.max_army_funds;
+    rt.cpuSub(null, rt.r[0], rt.r[1], true);
+    if (rt.CPU_C and !rt.CPU_Z) {
+        abi.fetches(3);
+        mem.writeU32(rt.r[2] +% @offsetOf(types.UnitEntity, "gold"), rt.r[1]);
+    }
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Read `u32` entry from unit descriptor table `addr.unit_data_table_9e88` indexed by `i16(r0)` (`0x08024CC0`).
+pub fn func_08024CC0() callconv(.c) void {
+    if (!abi.enter(0x08024CC0)) return;
+    abi.fetches(8);
+    rt.r[1] = types.addr.unit_data_table_9e88;
+    abi.setRegNz(&rt.r[0], rt.r[0] << 16);
+    abi.setRegNz(&rt.r[0], rt.asrConst(rt.r[0], 14));
+    rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
+    rt.r[0] = mem.readU32(rt.r[0]);
+    abi.retLr();
+}
+
+/// Return `1` in `r0` if unit `r0` has non-zero capability byte in `addr.unit_cap_table_2ee5`, else `0` (`0x08025874`).
+pub fn func_08025874() callconv(.c) void {
+    if (!abi.enter(0x08025874)) return;
+    abi.fetches(8);
+    const unit_type = mem.readU8(rt.r[0] +% @offsetOf(types.UnitRecord, "unit_type"));
+    rt.r[1] = types.addr.unit_cap_table_2ee5;
+    rt.cpuAdd(&rt.r[1], unit_type, rt.r[1], true);
+    const flag = mem.readU8(rt.r[1]);
+    rt.cpuSub(null, flag, 0, true);
+    if (!rt.CPU_Z) {
+        abi.fetches(3);
+        abi.setRegNz(&rt.r[0], 1);
+    } else {
+        abi.fetches(4);
+        abi.setRegNz(&rt.r[0], 0);
+    }
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Clear active unit state flags above bit `0..2` when move target differs from origin (`0x08026020`).
+pub fn func_08026020() callconv(.c) void {
+    if (!abi.enter(0x08026020)) return;
+    abi.fetches(8);
+    const orig = mem.readU32(types.addr.unit_move_origin);
+    const tgt = mem.readU32(types.addr.unit_move_target);
+    rt.r[1] = orig;
+    rt.r[0] = tgt;
+    rt.cpuSub(null, orig, tgt, true);
+    if (!rt.CPU_Z) {
+        abi.fetches(8);
+        const unit_ptr = mem.readU32(types.addr.active_unit_ptr);
+        rt.r[1] = unit_ptr;
+        const prev = mem.readU8(unit_ptr +% @offsetOf(types.UnitRecord, "state_flags"));
+        rt.r[2] = prev;
+        abi.setRegNz(&rt.r[0], 0x7 & prev);
+        mem.writeU8(unit_ptr +% @offsetOf(types.UnitRecord, "state_flags"), @truncate(rt.r[0]));
+    }
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Copy `(x, y)` halfword pair from `addr.unit_move_target` into `addr.unit_move_origin` (`0x08026048`).
+pub fn func_08026048() callconv(.c) void {
+    if (!abi.enter(0x08026048)) return;
+    abi.fetches(9);
+    rt.r[2] = types.addr.unit_move_origin;
+    rt.r[1] = types.addr.unit_move_target;
+    const x = mem.readU16(rt.r[1]);
+    mem.writeU16(rt.r[2], x);
+    const y = mem.readU16(rt.r[1] +% 2);
+    mem.writeU16(rt.r[2] +% 2, y);
+    rt.r[0] = y;
+    abi.retLr();
+}
+
 /// Load unit/army palette into palette RAM slot `0x160` size `0x20` for entity `u16(r0)` (`0x08019970`).
 pub fn func_08019970() callconv(.c) void {
     if (!abi.enter(0x08019970)) return;
@@ -1762,6 +1859,11 @@ comptime {
         @export(&func_0801CCB8, .{ .name = "func_0801CCB8", .linkage = .strong });
         @export(&func_0801CCD4, .{ .name = "func_0801CCD4", .linkage = .strong });
         @export(&func_08021DF8, .{ .name = "func_08021DF8", .linkage = .strong });
+        @export(&func_08024154, .{ .name = "func_08024154", .linkage = .strong });
+        @export(&func_08024CC0, .{ .name = "func_08024CC0", .linkage = .strong });
+        @export(&func_08025874, .{ .name = "func_08025874", .linkage = .strong });
+        @export(&func_08026020, .{ .name = "func_08026020", .linkage = .strong });
+        @export(&func_08026048, .{ .name = "func_08026048", .linkage = .strong });
         @export(&func_08026724, .{ .name = "func_08026724", .linkage = .strong });
         @export(&func_08026738, .{ .name = "func_08026738", .linkage = .strong });
         @export(&func_08026814, .{ .name = "func_08026814", .linkage = .strong });
@@ -1818,4 +1920,7 @@ comptime {
 
 test "entity table stride matches unit palette offset math" {
     try std.testing.expectEqual(@as(u32, 0x68), entity_stride);
+    try std.testing.expectEqual(@as(u32, 5000), clampArmyFunds(2000, 3000));
+    try std.testing.expectEqual(types.max_army_funds, clampArmyFunds(999_000, 999));
+    try std.testing.expectEqual(types.max_army_funds, clampArmyFunds(999_500, 1000));
 }
