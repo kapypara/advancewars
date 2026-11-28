@@ -5,8 +5,16 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const battle = @import("battle.zig");
+const hw = @import("hw.zig");
+const map = @import("map.zig");
+const math = @import("math.zig");
 const mem = @import("mem.zig");
+const sound = @import("sound.zig");
+const sprite_anim = @import("sprite_anim.zig");
+const state = @import("state.zig");
 const types = @import("types.zig");
+const unit = @import("unit.zig");
 
 fn popReturnValue() void {
     const lr_val = abi.read32(rt.r[13]);
@@ -58,7 +66,7 @@ pub fn func_08032200() callconv(.c) void {
     if (!abi.enter(0x08032200)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_080104B0, 0x08032207)) return;
+    if (!abi.call(hw.func_080104B0, 0x08032207)) return;
     abi.fetches(25);
     const reg_addr = abi.read32(0x08032234);
     abi.write8(reg_addr, @truncate((abi.read8(reg_addr) & 0x3F) | 0x44));
@@ -125,7 +133,7 @@ pub fn func_08033464() callconv(.c) void {
     abi.pushLr();
     abi.pushReg(4);
     abi.setRegNz(&rt.r[0], 0x6C);
-    if (!abi.call(decls.func_0803D880, 0x0803346D)) return;
+    if (!abi.call(sound.func_0803D880, 0x0803346D)) return;
     abi.fetches(7);
     if (!advanceTurnPhaseIfMode3(0xC, 2, 0x08033485)) return;
     abi.fetches(5);
@@ -237,7 +245,7 @@ pub fn func_08035004() callconv(.c) void {
     if (!abi.enter(0x08035004)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0802ACF8, 0x0803500B)) return;
+    if (!abi.call(unit.func_0802ACF8, 0x0803500B)) return;
     abi.fetches(7);
     abi.write16(abi.read32(0x08035014), 8);
     abi.popReturn();
@@ -248,7 +256,7 @@ pub fn func_08035018() callconv(.c) void {
     if (!abi.enter(0x08035018)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0802A9D8, 0x0803501F)) return;
+    if (!abi.call(unit.func_0802A9D8, 0x0803501F)) return;
     abi.fetches(7);
     abi.write16(abi.read32(0x08035028), 0xA);
     abi.popReturn();
@@ -291,7 +299,7 @@ pub fn func_080352D0() callconv(.c) void {
     const idx: u32 = @bitCast(abi.signExtend16(abi.read16(rt.r[0] +% 0x20)));
     const se_id: u32 = @bitCast(abi.signExtend16(abi.read16(tbl +% (idx << 3) +% 4)));
     rt.r[0] = se_id;
-    if (!abi.call(decls.func_0803D880, 0x080352E5)) return;
+    if (!abi.call(sound.func_0803D880, 0x080352E5)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -357,7 +365,7 @@ pub fn func_08035D34() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     abi.setRegNz(&rt.r[1], 1);
-    if (!abi.call(decls.func_08078488, 0x08035D3D)) return;
+    if (!abi.call(sound.func_08078488, 0x08035D3D)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -489,7 +497,7 @@ fn enterTurnDayPhase(
     rt.r[2] = 0;
     rt.r[1] = 1;
     abi.setRegNz(&rt.r[0], if (arg0_val_ref) |r| abi.read32(r) else 0);
-    if (!abi.call(decls.func_08012A30, ret2)) return;
+    if (!abi.call(sprite_anim.func_08012A30, ret2)) return;
 
     abi.fetches(4);
     if (!abi.call(decls.func_080322EC, ret3)) return;
@@ -533,7 +541,7 @@ fn updateTurnHudValue(
     abi.fetches(7);
     abi.write16(abi.read32(dst_ptr_slot), @truncate(rt.r[0]));
     abi.setRegNz(&rt.r[0], 0x6B);
-    if (!abi.call(decls.func_0803D880, r2)) return;
+    if (!abi.call(sound.func_0803D880, r2)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -548,7 +556,7 @@ fn setTurnDelayAndClearOverlay(comptime neg_one: bool, comptime target_fn: fn ()
     abi.setRegNz(&rt.r[0], if (neg_one) @as(u32, @bitCast(@as(i32, -1))) else 1);
     if (!abi.call(target_fn, r0)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080112C0, r1)) return;
+    if (!abi.call(hw.func_080112C0, r1)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -711,7 +719,7 @@ pub fn func_08033574() callconv(.c) void {
     rt.r[4] = info_ptr;
     rt.r[0] = abi.read8(info_ptr +% 2) -% 0xA4;
     abi.setRegNz(&rt.r[1], 3);
-    if (!abi.call(decls.func_0807B564, 0x08033597)) return;
+    if (!abi.call(math.func_0807B564, 0x08033597)) return;
 
     abi.fetches(9);
     abi.write8(mgr0 +% 8, @truncate(rt.r[0]));
@@ -719,7 +727,7 @@ pub fn func_08033574() callconv(.c) void {
     rt.r[5] = mgr1;
     rt.r[0] = abi.read8(info_ptr +% 2) -% 0xA4;
     abi.setRegNz(&rt.r[1], 3);
-    if (!abi.call(decls.func_0807B488, 0x080335A5)) return;
+    if (!abi.call(math.func_0807B488, 0x080335A5)) return;
 
     abi.fetches(6);
     abi.write8(mgr1 +% 9, @truncate(rt.r[0]));
@@ -791,7 +799,7 @@ pub fn func_0803411C() callconv(.c) void {
     abi.write32(work +% 0x28, init_val);
     abi.write8(work +% 0x4B, 0);
     rt.r[5] = 0;
-    if (!abi.call(decls.func_08069B1C, 0x0803413F)) return;
+    if (!abi.call(hw.func_08069B1C, 0x0803413F)) return;
 
     abi.fetches(17);
     const s2 = abi.read32(abi.read32(0x0803417C));
@@ -837,7 +845,7 @@ pub fn func_08034C74() callconv(.c) void {
     if (!abi.call(decls.func_08034BA8, 0x08034C87)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_08034C64, 0x08034C8B)) return;
+    if (!abi.call(state.func_08034C64, 0x08034C8B)) return;
 
     abi.fetches(6);
     abi.write8(p +% 9, 1);
@@ -857,7 +865,7 @@ pub fn func_08034C98() callconv(.c) void {
     abi.write32(abi.read32(0x08034CB4), v);
     abi.write32(abi.read32(0x08034CBC), v);
     abi.setRegNz(&rt.r[0], 0);
-    if (!abi.call(decls.func_08018AAC, 0x08034CAD)) return;
+    if (!abi.call(state.func_08018AAC, 0x08034CAD)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_0801F114, 0x08034CB1)) return;
     abi.fetches(4);
@@ -974,7 +982,7 @@ pub fn func_08035AD4() callconv(.c) void {
     rt.r[4] = sx;
     rt.r[5] = cx;
     rt.updateNz(dy);
-    if (!abi.call(decls.func_08013550, 0x08035B05)) return;
+    if (!abi.call(sprite_anim.func_08013550, 0x08035B05)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1043,12 +1051,12 @@ pub fn func_080320E4() callconv(.c) void {
     abi.write16(base -% 0xC, 0);
     abi.setRegNz(&rt.r[0], 7);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_0807AE50, 0x080320FD)) return;
+    if (!abi.call(hw.func_0807AE50, 0x080320FD)) return;
 
     abi.fetches(6);
     abi.setRegNz(&rt.r[0], 6);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_0807AE50, 0x08032105)) return;
+    if (!abi.call(hw.func_0807AE50, 0x08032105)) return;
 
     abi.fetches(7);
     abi.setRegNz(&rt.r[0], 1);
@@ -1136,7 +1144,7 @@ pub fn func_0803323C() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0xC);
     abi.setRegNz(&rt.r[2], 8);
     abi.setRegNz(&rt.r[3], 2);
-    if (!abi.call(decls.func_08010C70, 0x08033259)) return;
+    if (!abi.call(hw.func_08010C70, 0x08033259)) return;
 
     abi.fetches(4);
     if (!abi.call(decls.func_08011804, 0x0803325D)) return;
@@ -1147,7 +1155,7 @@ pub fn func_0803323C() callconv(.c) void {
     const icon_tbl = abi.read32(0x08033290);
     abi.setRegNz(&rt.r[0], abi.read32(abi.read32(0x08033294)) >> 3);
     abi.setRegNz(&rt.r[1], 3);
-    if (!abi.call(decls.func_0807B6AC, 0x08033273)) return;
+    if (!abi.call(math.func_0807B6AC, 0x08033273)) return;
 
     abi.fetches(10);
     const idx = (rt.r[0] << 2);
@@ -1155,7 +1163,7 @@ pub fn func_0803323C() callconv(.c) void {
     rt.r[1] = sy;
     rt.r[2] = abi.read32(icon_tbl +% idx);
     rt.r[3] = abi.read32(0x08033298);
-    if (!abi.call(decls.func_0801B888, 0x08033283)) return;
+    if (!abi.call(hw.func_0801B888, 0x08033283)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;
@@ -1196,7 +1204,7 @@ pub fn func_08033300() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0xC);
     abi.setRegNz(&rt.r[2], 8);
     abi.setRegNz(&rt.r[3], 2);
-    if (!abi.call(decls.func_08010C70, 0x08033333)) return;
+    if (!abi.call(hw.func_08010C70, 0x08033333)) return;
 
     abi.fetches(26);
     abi.write8(work +% 0x18, 1);
@@ -1238,7 +1246,7 @@ pub fn func_080333B0() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     abi.write16(rt.r[0] +% 0x1C, 0x20);
-    if (!abi.call(decls.func_080113D0, 0x080333BB)) return;
+    if (!abi.call(hw.func_080113D0, 0x080333BB)) return;
 
     abi.fetches(7);
     abi.setRegNz(&rt.r[0], 0x11);
@@ -1249,7 +1257,7 @@ pub fn func_080333B0() callconv(.c) void {
     if (!abi.call(decls.func_080796A4, 0x080333C9)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080112C0, 0x080333CD)) return;
+    if (!abi.call(hw.func_080112C0, 0x080333CD)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -1368,14 +1376,14 @@ pub fn func_08034CC0() callconv(.c) void {
     if (!abi.enter(0x08034CC0)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0801F058, 0x08034CC7)) return;
+    if (!abi.call(map.func_0801F058, 0x08034CC7)) return;
     abi.fetches(6);
     rt.r[0] = abi.read8(abi.read32(0x08034CE0) +% 2);
     if (!abi.call(decls.func_0801F17C, 0x08034CCF)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_0801F0E4, 0x08034CD3)) return;
+    if (!abi.call(map.func_0801F0E4, 0x08034CD3)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_0801F0FC, 0x08034CD7)) return;
+    if (!abi.call(map.func_0801F0FC, 0x08034CD7)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08024D9C, 0x08034CDB)) return;
     abi.fetches(4);
@@ -1420,7 +1428,7 @@ pub fn func_08034E7C() callconv(.c) void {
     rt.r[1] = draw_y;
     rt.r[2] = gfx;
     rt.r[3] = attr;
-    if (!abi.call(decls.func_0801B888, 0x08034EB9)) return;
+    if (!abi.call(hw.func_0801B888, 0x08034EB9)) return;
 
     abi.fetches(5);
     rt.r[0] = y;
@@ -1432,7 +1440,7 @@ pub fn func_08034E7C() callconv(.c) void {
     rt.r[1] = draw_y;
     rt.r[2] = gfx;
     rt.r[3] = attr;
-    if (!abi.call(decls.func_0801B888, 0x08034ED3)) return;
+    if (!abi.call(hw.func_0801B888, 0x08034ED3)) return;
 
     abi.fetches(8);
     rt.r[3] = abi.read32(rt.r[13]);
@@ -1486,9 +1494,9 @@ pub fn func_0802FCBC() callconv(.c) void {
         .{ decls.func_08018290, @as(u32, 0x0802FCDF) },
         .{ decls.func_08036464, @as(u32, 0x0802FCE3) },
         .{ decls.func_0800F164, @as(u32, 0x0802FCE7) },
-        .{ decls.func_0801CCF0, @as(u32, 0x0802FCEB) },
+        .{ state.func_0801CCF0, @as(u32, 0x0802FCEB) },
         .{ decls.func_08010A00, @as(u32, 0x0802FCEF) },
-        .{ decls.func_08010AD8, @as(u32, 0x0802FCF3) },
+        .{ hw.func_08010AD8, @as(u32, 0x0802FCF3) },
     };
     inline for (pre_calls) |c| {
         if (!abi.call(c[0], c[1])) return;
@@ -1497,7 +1505,7 @@ pub fn func_0802FCBC() callconv(.c) void {
     abi.fetches(2); // blk 13 had 3 fetches, blk 14 had 3 fetches -> net +2 over fetches(4)
     if (!abi.call(decls.func_080104D4, 0x0802FCF7)) return;
     abi.fetches(6);
-    if (!abi.call(decls.func_080104B0, 0x0802FCFB)) return;
+    if (!abi.call(hw.func_080104B0, 0x0802FCFB)) return;
     abi.fetches(7);
     if (!abi.call(decls.func_08010974, 0x0802FCFF)) return;
     abi.fetches(4);
@@ -1553,7 +1561,7 @@ pub fn func_08030708() callconv(.c) void {
     rt.r[6] = 0;
     rt.r[0] = 0xFF;
     rt.updateNz(0xFF);
-    if (!abi.call(decls.func_080305E4, 0x0803075D)) return;
+    if (!abi.call(battle.func_080305E4, 0x0803075D)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_080303E0, 0x08030761)) return;
     abi.fetches(4);
