@@ -38,6 +38,124 @@ pub fn cpuFastCopy32(src: u32, dst: u32, size_bytes: u32) void {
     bios.cpuFastSet(src, dst, byteCountToWords(size_bytes));
 }
 
+/// Return true when `size_bytes` (`u16`) is a multiple of 32 bytes for `CpuFastSet`.
+pub inline fn isFastCopyAligned(size_bytes: u32) bool {
+    return (size_bytes & 0x1F) == 0;
+}
+
+/// Copy `size_bytes` from `src` to `dst` via `CpuFastSet` when 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
+pub fn cpuCopyAuto(src: u32, dst: u32, size_bytes: u32) void {
+    if (isFastCopyAligned(size_bytes)) {
+        cpuFastCopy32(src, dst, size_bytes);
+    } else {
+        cpuCopy16(src, dst, size_bytes);
+    }
+}
+
+/// Copy `u16(r2)` bytes from `r0` to `r1` using `CpuFastSet` if 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
+pub fn func_0800FDA4() callconv(.c) void {
+    if (!abi.enter(0x0800FDA4)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.cpuAdd(&rt.r[3], rt.r[0], 0, true);
+    abi.setRegNz(&rt.r[2], rt.r[2] << 16);
+    abi.setRegNz(&rt.r[0], 0xF8);
+    abi.setRegNz(&rt.r[0], rt.r[0] << 13);
+    abi.setRegNz(&rt.r[0], rt.r[0] & rt.r[2]);
+    rt.cpuSub(null, rt.r[0], 0, true);
+    if (rt.CPU_Z) {
+        abi.fetches(6);
+        abi.setRegNz(&rt.r[2], rt.r[2] >> 18);
+        rt.cpuAdd(&rt.r[0], rt.r[3], 0, true);
+        if (!abi.call(bios.func_080796C0, 0x0800FDC7)) return;
+    } else {
+        abi.fetches(6);
+        abi.setRegNz(&rt.r[2], rt.r[2] >> 17);
+        rt.cpuAdd(&rt.r[0], rt.r[3], 0, true);
+        if (!abi.call(bios.func_080796C4, 0x0800FDBD)) return;
+        abi.fetches(3);
+    }
+    abi.fetches(4);
+    rt.r[0] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[15] = rt.r[0];
+    rt.recompReturn(rt.r[0]);
+}
+
+/// Enqueue a `size_bytes` (`r2`) copy from `r0` (`src`) to `r1` (`dst`) in the VBlank DMA queue,
+/// or execute immediately via `func_0800FDA4` when `[addr.dma_immediate_flag]` is non-zero (`0x0800FFA8`).
+pub fn func_0800FFA8() callconv(.c) void {
+    if (!abi.enter(0x0800FFA8)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.cpuAdd(&rt.r[3], rt.r[0], 0, true);
+    rt.cpuAdd(&rt.r[5], rt.r[1], 0, true);
+    abi.setRegNz(&rt.r[2], rt.r[2] << 16);
+    abi.setRegNz(&rt.r[2], rt.r[2] >> 16);
+    rt.cpuAdd(&rt.r[6], rt.r[2], 0, true);
+
+    const imm = abi.read16(types.addr.dma_immediate_flag);
+    rt.r[0] = imm;
+    rt.cpuSub(null, rt.r[0], 0, true);
+    if (!rt.CPU_Z) {
+        abi.fetches(5);
+        rt.cpuAdd(&rt.r[0], rt.r[3], 0, true);
+        if (!abi.call(func_0800FDA4, 0x0800FFC3)) return;
+        abi.fetches(4);
+        abi.setRegNz(&rt.r[0], 0);
+    } else {
+        abi.fetches(6);
+        const count_addr = types.addr.dma_queue_count;
+        rt.r[4] = count_addr;
+        const prev_count = abi.read16(count_addr);
+        rt.r[0] = prev_count;
+        rt.cpuSub(null, rt.r[0], types.dma_queue_cap, true);
+        if (rt.CPU_Z) {
+            abi.fetches(4);
+            abi.setRegNz(&rt.r[0], 1);
+            rt.cpuSub(&rt.r[0], 0, rt.r[0], true);
+        } else {
+            abi.fetches(59);
+            const buf_base = types.addr.dma_queue_buf;
+            const entry_off = @as(u32, @bitCast(@as(i32, @as(i16, @bitCast(prev_count))) * @as(i32, @sizeOf(types.DmaQueueEntry))));
+            const entry_addr = buf_base +% entry_off;
+            abi.write32(entry_addr +% @offsetOf(types.DmaQueueEntry, "src"), rt.r[3]);
+            abi.write32(entry_addr +% @offsetOf(types.DmaQueueEntry, "dst"), rt.r[5]);
+            abi.write16(entry_addr +% @offsetOf(types.DmaQueueEntry, "size"), @truncate(rt.r[6]));
+            const old_mode = abi.read8(entry_addr +% @offsetOf(types.DmaQueueEntry, "mode"));
+            abi.write8(entry_addr +% @offsetOf(types.DmaQueueEntry, "mode"), 0);
+
+            const next_count: u16 = prev_count +% 1;
+            abi.write16(count_addr, next_count);
+            rt.r[2] = buf_base;
+            rt.r[1] = old_mode;
+            rt.r[3] = 0;
+            rt.cpuSub(&rt.r[0], next_count, 1, true);
+            abi.setRegNz(&rt.r[0], rt.r[0] << 16);
+            abi.setRegNz(&rt.r[0], rt.asrConst(rt.r[0], 16));
+        }
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[15] = rt.r[1];
+    rt.recompReturn(rt.r[1]);
+}
+
 pub fn func_0800FDCC() callconv(.c) void {
     if (!abi.enter(0x0800FDCC)) return;
     abi.fetches(7);
@@ -83,7 +201,7 @@ pub fn func_0800F894() callconv(.c) void {
     rt.r[0] = abi.read32(0x0800F8A8);
     rt.r[1] = abi.read32(0x0800F8AC);
     abi.setRegNz(&rt.r[2], 0x800);
-    if (!abi.call(decls.func_0800FDA4, 0x0800F8A3)) return;
+    if (!abi.call(func_0800FDA4, 0x0800F8A3)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -108,7 +226,7 @@ pub fn func_080178F4() callconv(.c) void {
     rt.r[0] = abi.read32(0x08017908);
     rt.r[1] = abi.read32(0x0801790C);
     abi.setRegNz(&rt.r[2], 0x200);
-    if (!abi.call(decls.func_0800FFA8, 0x08017903)) return;
+    if (!abi.call(func_0800FFA8, 0x08017903)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -121,7 +239,7 @@ pub fn func_0803C32C() callconv(.c) void {
     rt.r[0] = abi.read32(0x0803C340);
     rt.r[1] = abi.read32(0x0803C344);
     abi.setRegNz(&rt.r[2], 0x800);
-    if (!abi.call(decls.func_0800FDA4, 0x0803C33B)) return;
+    if (!abi.call(func_0800FDA4, 0x0803C33B)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -196,6 +314,8 @@ pub fn func_08011398() callconv(.c) void {
 comptime {
     if (!builtin.is_test) {
         @export(&func_0800F894, .{ .name = "func_0800F894", .linkage = .strong });
+        @export(&func_0800FDA4, .{ .name = "func_0800FDA4", .linkage = .strong });
+        @export(&func_0800FFA8, .{ .name = "func_0800FFA8", .linkage = .strong });
         @export(&func_08011330, .{ .name = "func_08011330", .linkage = .strong });
         @export(&func_08011374, .{ .name = "func_08011374", .linkage = .strong });
         @export(&func_08011398, .{ .name = "func_08011398", .linkage = .strong });
@@ -213,4 +333,7 @@ test "CpuSet and CpuFastSet transfer size conversions truncate cleanly to u16 co
     try std.testing.expectEqual(@as(u32, 0x1C0), byteCountToWords(0x700));
     try std.testing.expectEqual(@as(u32, 0x20), byteCountToHalfwords(0x40));
     try std.testing.expectEqual(@as(u32, 0), byteCountToWords(0x1_0000));
+    try std.testing.expect(isFastCopyAligned(0x200));
+    try std.testing.expect(!isFastCopyAligned(0x204));
+    try std.testing.expectEqual(@as(usize, 12), @sizeOf(types.DmaQueueEntry));
 }

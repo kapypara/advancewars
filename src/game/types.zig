@@ -66,12 +66,25 @@ pub const addr = struct {
     pub const frame_input_shadow_a: u32 = 0x0300_4BF0;
     pub const frame_input_shadow_b: u32 = 0x0300_4B54;
     pub const sin_table_q12: u32 = 0x0827_D3A8;
+    pub const dma_immediate_flag: u32 = 0x0300_48C0;
+    pub const dma_queue_count: u32 = 0x0300_322C;
+    pub const dma_queue_buf: u32 = 0x0201_0274;
 };
 
 pub const key_mask_all: u32 = 0x0000_03FF;
 pub const key_mask_soft_reset: u32 = 0x0000_000F; // A | B | Select | Start
 pub const pal_ram_size: u32 = 0x0400;
 pub const dispcnt_forced_blank: u8 = 0x80;
+pub const dma_queue_cap: usize = 0x30;
+
+/// Deferred VBlank DMA queue entry at `addr.dma_queue_buf` (`0x0201_0274`, stride 12 bytes).
+pub const DmaQueueEntry = extern struct {
+    src: u32,
+    dst: u32,
+    size: u16,
+    mode: u8,
+    _pad: u8,
+};
 
 /// Map workspace header at `addr.map_workspace` (`0x0201_57F8`).
 pub const MapWorkspace = extern struct {
@@ -224,6 +237,11 @@ test "Advance Wars core extern struct sizes match GBA memory layout" {
     try std.testing.expectEqual(@as(usize, 0x0E), @offsetOf(BattleSideCtx, "defense_pct"));
     try std.testing.expectEqual(@as(usize, 0x12), @offsetOf(BattleSideCtx, "dealt_damage"));
     try std.testing.expectEqual(@as(usize, 8), @sizeOf(MenuGuardEntry));
+    try std.testing.expectEqual(@as(usize, 12), @sizeOf(DmaQueueEntry));
+    try std.testing.expectEqual(@as(usize, 0), @offsetOf(DmaQueueEntry, "src"));
+    try std.testing.expectEqual(@as(usize, 4), @offsetOf(DmaQueueEntry, "dst"));
+    try std.testing.expectEqual(@as(usize, 8), @offsetOf(DmaQueueEntry, "size"));
+    try std.testing.expectEqual(@as(usize, 10), @offsetOf(DmaQueueEntry, "mode"));
     try std.testing.expectEqual(@as(usize, 0x0201_57F8), addr.map_workspace);
     try std.testing.expectEqual(@as(usize, 0x0300_0E10), addr.proc_table);
 }

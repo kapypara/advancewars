@@ -584,43 +584,44 @@ fn configMapWindowBlendRegs(
     comptime reg_b: u32,
     comptime reg_c: u32,
     comptime reg_d: u32,
-    comptime bld_ctrl: u32,
-    comptime win_masks: u32,
     comptime bg_a: u32,
     comptime bg_b: u32,
-    b0_bit: u8,
-    b1_extra_mask: u8,
+    bg0_prio: u8,
+    bg1_prio: u8,
+    bg2_prio: u8,
+    t1_mask: u8,
+    t2_mask: u8,
     val_a: u16,
     val_b: u16,
+    save_r5: bool,
+    mid_fetches: u32,
     comptime ret1: u32,
     comptime ret2: u32,
 ) void {
     abi.fetches(30);
     abi.pushLr();
     rt.r[13] -%= 4;
-    if (b1_extra_mask == 0x0C) {
+    if (save_r5) {
         abi.write32(rt.r[13], rt.r[5]);
         rt.r[13] -%= 4;
     }
     abi.write32(rt.r[13], rt.r[4]);
 
-    const mask_fb: u8 = @truncate(0 -% @as(u32, 4));
+    const mask_fc: u8 = 0xFC;
     const p0 = abi.read32(disp_ref);
-    abi.write8(p0, abi.read8(p0) & mask_fb);
+    abi.write8(p0, (abi.read8(p0) & mask_fc) | bg0_prio);
     const p1 = abi.read32(reg_a);
-    abi.write8(p1, (abi.read8(p1) & mask_fb) | 2);
+    abi.write8(p1, (abi.read8(p1) & mask_fc) | bg1_prio);
     const p2 = abi.read32(reg_b);
-    abi.write8(p2, (abi.read8(p2) & mask_fb) | b0_bit);
+    abi.write8(p2, (abi.read8(p2) & mask_fc) | bg2_prio);
     const p3 = abi.read32(reg_c);
     abi.write8(p3, abi.read8(p3) | 3);
     if (!abi.call(decls.func_080104B0, ret1)) return;
 
-    abi.fetches(if (b1_extra_mask == 0x0C) 27 else if (val_a == 6) 24 else 23);
+    abi.fetches(mid_fetches);
     const ctrl = abi.read32(reg_d);
-    _ = bld_ctrl;
-    abi.write8(ctrl, (abi.read8(ctrl) & 0x3F) | 0x40 | b0_bit);
-    abi.write8(ctrl +% 1, abi.read8(ctrl +% 1) | 2 | b1_extra_mask);
-    _ = win_masks;
+    abi.write8(ctrl, (abi.read8(ctrl) & 0x3F) | 0x40 | t1_mask);
+    abi.write8(ctrl +% 1, abi.read8(ctrl +% 1) | t2_mask);
     abi.write16(abi.read32(bg_a), val_a);
     abi.write16(abi.read32(bg_b), val_b);
     if (!abi.call(decls.func_080104D4, ret2)) return;
@@ -628,7 +629,7 @@ fn configMapWindowBlendRegs(
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
-    if (b1_extra_mask == 0x0C) {
+    if (save_r5) {
         rt.r[5] = abi.read32(rt.r[13]);
         rt.r[13] +%= 4;
     }
@@ -955,19 +956,19 @@ pub fn func_08021ADC() callconv(.c) void {
 /// Configure map PPU BG/blend registers for tactical mode 1 (`0x08021EEC`).
 pub fn func_08021EEC() callconv(.c) void {
     if (!abi.enter(0x08021EEC)) return;
-    configMapWindowBlendRegs(0x08021F5C, 0x08021F60, 0x08021F64, 0x08021F68, 0x08021F6C, 0, 0, 0x08021F70, 0x08021F74, 1, 0x0C, 0, 0x10, 0x08021F25, 0x08021F57);
+    configMapWindowBlendRegs(0x08021F5C, 0x08021F60, 0x08021F64, 0x08021F68, 0x08021F6C, 0x08021F70, 0x08021F74, 0, 2, 1, 0x01, 0x1E, 0, 0x10, true, 27, 0x08021F25, 0x08021F57);
 }
 
 /// Configure map PPU BG/blend registers for tactical mode 2 (`0x08022074`).
 pub fn func_08022074() callconv(.c) void {
     if (!abi.enter(0x08022074)) return;
-    configMapWindowBlendRegs(0x080220DC, 0x080220E0, 0x080220E4, 0x080220E8, 0x080220EC, 0, 0, 0x080220F0, 0x080220F4, 1, 0x00, 0x10, 0x10, 0x080220AD, 0x080220D7);
+    configMapWindowBlendRegs(0x080220DC, 0x080220E0, 0x080220E4, 0x080220E8, 0x080220EC, 0x080220F0, 0x080220F4, 2, 1, 0, 0x01, 0x0C, 0x10, 0x10, false, 23, 0x080220AD, 0x080220D7);
 }
 
 /// Configure map PPU BG/blend registers for tactical mode 3 (`0x08022148`).
 pub fn func_08022148() callconv(.c) void {
     if (!abi.enter(0x08022148)) return;
-    configMapWindowBlendRegs(0x080221B4, 0x080221B8, 0x080221BC, 0x080221C0, 0x080221C4, 0, 0, 0x080221C8, 0x080221CC, 2, 0x10, 6, 0x10, 0x08022181, 0x080221AD);
+    configMapWindowBlendRegs(0x080221B4, 0x080221B8, 0x080221BC, 0x080221C0, 0x080221C4, 0x080221C8, 0x080221CC, 0, 2, 1, 0x02, 0x18, 6, 0x10, false, 24, 0x08022181, 0x080221AD);
 }
 
 fn drawMapLayerEntry(
