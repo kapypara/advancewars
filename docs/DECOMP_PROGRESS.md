@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 33 — Final Straight-Line Mid-ROM Wave (`23.81%`)
+- **Stage:** Stage 34 — Low-ROM Branching & Tail-Call Dispatch (`24.68%`)
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 1,804 / 7,577 (23.81%)
+- **Lifted to Clean Zig (`src/game/`):** 1,870 / 7,577 (24.68%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
@@ -28,6 +28,7 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/overlay.zig` (180): `0x083BD7BC..0x083D91E8` (secondary ROM segment thunks, BIOS/SWI leaves, RNG, DMA/LZ wrappers, slot record accessors & multi-step sub-handlers)
 - `src/game/overlay_ext.zig` (120): `0x083BD31C..0x083D8A38` (bitset writers, `0x60`/`0x18`-stride slot dispatchers, tilemap clearers, softfp arithmetic & palette/DMA helpers)
 - `src/game/overlay_mid.zig` (110): `0x080D51E2..0x083D7838` (remaining `0x083B..0x083D` overlay init/slot/cursor/softfp routines & all `0x0808..0x083A` straight-line functions)
+- `src/game/tail_low.zig` (66): `0x0800020C..0x0807C49E` (low-ROM indirect branch trampolines, BIOS soft-reset/math, main loop `08059DD4`, mode jump table `0800020C`, script step `080642C8`)
 
 ## Subsystem Roadmap
 - [x] **Stage 0:** Weak-linkage generator, `src/game/` scaffold, native + WASM + test wiring, baseline verified (`bd32afd`).
@@ -63,7 +64,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 30:** Overlay Extended Bitsets & Slot Handlers (`51e3c27`, `1,634 total`).
 - [x] **Stage 31:** Overlay Slot Cursors, Tilemaps & Softfp Math (`c8444e6`, `1,694 total`).
 - [x] **Stage 32:** Remaining Overlay & Mid-ROM Straight-Line Wave (`1a224c6`, `1,754 total`).
-- [x] **Stage 33:** Final `0x0808..0x083A` straight-line functions (`1,804 total`).
+- [x] **Stage 33:** Final `0x0808..0x083A` straight-line functions (`ee45538`, `1,804 total`).
+- [x] **Stage 34:** Low-ROM branching & tail-call dispatch (`1,870 total`).
+- [ ] **Stage 35:** Hi-ROM tail-call wave 1 (`1,950 total`).
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`
