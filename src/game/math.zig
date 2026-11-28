@@ -203,6 +203,190 @@ pub fn func_0807B488() callconv(.c) void {
     abi.retLr();
 }
 
+const Radix16ModResult = struct {
+    rem: u32,
+    den: u32,
+    r2: u32,
+    r3: u32,
+    r12: u32,
+};
+
+/// Unsigned 32-bit modulo (`returns 0` on divide-by-zero).
+pub fn modUnsigned32(num: u32, den: u32) u32 {
+    if (den == 0) return 0;
+    return num % den;
+}
+
+/// Signed 32-bit truncating modulo matching libgcc `__modsi3` (`returns 0` on divide-by-zero).
+pub fn modSigned32(num: i32, den: i32) i32 {
+    if (den == 0) return 0;
+    const num_u: u32 = @bitCast(num);
+    const den_u: u32 = @bitCast(den);
+    const abs_num: u32 = if (num < 0) 0 -% num_u else num_u;
+    const abs_den: u32 = if (den < 0) 0 -% den_u else den_u;
+    const rem: u32 = abs_num % abs_den;
+    return @bitCast(if (num < 0) 0 -% rem else rem);
+}
+
+fn modU32Radix16(num_in: u32, den_in: u32) Radix16ModResult {
+    var rem = num_in;
+    var den = den_in;
+    var bit: u32 = 1;
+    while (true) {
+        abi.fetches(4);
+        if (den >= 0x1000_0000) break;
+        abi.fetches(4);
+        if (den >= rem) break;
+        abi.fetches(5);
+        den <<= 4;
+        bit <<= 4;
+    }
+    abi.fetches(3);
+    while (true) {
+        abi.fetches(4);
+        if (den >= 0x8000_0000) break;
+        abi.fetches(4);
+        if (den >= rem) break;
+        abi.fetches(5);
+        den <<= 1;
+        bit <<= 1;
+    }
+
+    var r2: u32 = 0;
+    var r12: u32 = bit;
+    while (true) {
+        abi.fetches(5);
+        r2 = 0;
+        if (rem >= den) {
+            abi.fetches(3);
+            rem -%= den;
+        }
+        abi.fetches(5);
+        if (rem >= (den >> 1)) {
+            abi.fetches(8);
+            rem -%= (den >> 1);
+            r2 |= std.math.rotr(u32, bit, 1);
+        }
+        abi.fetches(5);
+        if (rem >= (den >> 2)) {
+            abi.fetches(8);
+            rem -%= (den >> 2);
+            r2 |= std.math.rotr(u32, bit, 2);
+        }
+        abi.fetches(5);
+        if (rem >= (den >> 3)) {
+            abi.fetches(8);
+            rem -%= (den >> 3);
+            r2 |= std.math.rotr(u32, bit, 3);
+        }
+        r12 = bit;
+        abi.fetches(5);
+        if (rem == 0) break;
+        abi.fetches(4);
+        bit >>= 4;
+        if (bit == 0) break;
+        abi.fetches(4);
+        den >>= 4;
+    }
+
+    abi.fetches(6);
+    r2 &= 0xE000_0000;
+    var out_r3 = bit;
+    if (r2 != 0) {
+        abi.fetches(7);
+        if ((r2 & std.math.rotr(u32, r12, 3)) != 0) {
+            abi.fetches(4);
+            rem +%= den >> 3;
+        }
+        abi.fetches(7);
+        if ((r2 & std.math.rotr(u32, r12, 2)) != 0) {
+            abi.fetches(4);
+            rem +%= den >> 2;
+        }
+        abi.fetches(7);
+        out_r3 = std.math.rotr(u32, r12, 1);
+        if ((r2 & out_r3) != 0) {
+            abi.fetches(4);
+            rem +%= den >> 1;
+        }
+    }
+    return .{ .rem = rem, .den = den, .r2 = r2, .r3 = out_r3, .r12 = r12 };
+}
+
+/// Unsigned 32-bit modulo runtime helper (`__umodsi3`, `0x0807B6AC`).
+pub fn func_0807B6AC() callconv(.c) void {
+    if (!abi.enter(0x0807B6AC)) return;
+    abi.fetches(4);
+    if (rt.r[1] == 0) {
+        decls.func_0807B762();
+        return;
+    }
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[3], 1);
+    if (rt.r[0] < rt.r[1]) {
+        abi.fetches(3);
+        abi.retLr();
+        return;
+    }
+    abi.fetches(5);
+    abi.pushReg(4);
+    const res = modU32Radix16(rt.r[0], rt.r[1]);
+    rt.r[0] = res.rem;
+    rt.r[1] = res.den;
+    rt.r[2] = res.r2;
+    rt.r[3] = res.r3;
+    rt.r[12] = res.r12;
+    abi.fetches(4);
+    rt.r[4] = abi.popReg();
+    abi.retLr();
+}
+
+/// Signed 32-bit modulo runtime helper (`__modsi3`, `0x0807B564`).
+pub fn func_0807B564() callconv(.c) void {
+    if (!abi.enter(0x0807B564)) return;
+    abi.fetches(5);
+    abi.setRegNz(&rt.r[3], 1);
+    if (rt.r[1] == 0) {
+        decls.func_0807B628();
+        return;
+    }
+    abi.fetches(3);
+    const orig_den: i32 = @bitCast(rt.r[1]);
+    if (orig_den < 0) abi.fetches(3);
+    const abs_den: u32 = if (orig_den < 0) 0 -% rt.r[1] else rt.r[1];
+
+    abi.fetches(6);
+    abi.pushReg(4);
+    abi.pushReg(0);
+    const orig_num: i32 = @bitCast(rt.r[0]);
+    if (orig_num < 0) abi.fetches(3);
+    const abs_num: u32 = if (orig_num < 0) 0 -% rt.r[0] else rt.r[0];
+
+    abi.fetches(4);
+    if (abs_num >= abs_den) {
+        abi.fetches(4);
+        const res = modU32Radix16(abs_num, abs_den);
+        rt.r[0] = res.rem;
+        rt.r[1] = res.den;
+        rt.r[2] = res.r2;
+        rt.r[3] = res.r3;
+        rt.r[12] = res.r12;
+    } else {
+        rt.r[0] = abs_num;
+        rt.r[1] = abs_den;
+    }
+
+    abi.fetches(5);
+    const saved_num: i32 = @bitCast(abi.popReg());
+    if (saved_num < 0) {
+        abi.fetches(3);
+        rt.r[0] = 0 -% rt.r[0];
+    }
+    abi.fetches(4);
+    rt.r[4] = abi.popReg();
+    abi.retLr();
+}
+
 /// Read signed 16-bit halfword from the global pointer at `0x0800FD0C` (`0x0800FCFA`).
 pub fn readSignedGlobal16() i32 {
     const ptr = abi.read32(0x0800FD0C);
@@ -718,6 +902,8 @@ comptime {
         @export(&func_0806D260, .{ .name = "func_0806D260", .linkage = .strong });
         @export(&func_0807AED4, .{ .name = "func_0807AED4", .linkage = .strong });
         @export(&func_0807B488, .{ .name = "func_0807B488", .linkage = .strong });
+        @export(&func_0807B564, .{ .name = "func_0807B564", .linkage = .strong });
+        @export(&func_0807B6AC, .{ .name = "func_0807B6AC", .linkage = .strong });
         @export(&func_0807AF30, .{ .name = "func_0807AF30", .linkage = .strong });
         @export(&func_0800FCFA, .{ .name = "func_0800FCFA", .linkage = .strong });
         @export(&func_0803D4F0, .{ .name = "func_0803D4F0", .linkage = .strong });
@@ -797,4 +983,16 @@ test "divSigned32 matches truncating signed division and edge cases" {
     try std.testing.expectEqual(std.math.minInt(i32), divSigned32(std.math.minInt(i32), -1));
     try std.testing.expectEqual(@as(i32, -1073741824), divSigned32(std.math.minInt(i32), 2));
     try std.testing.expectEqual(@as(i32, 715827882), divSigned32(std.math.maxInt(i32), 3));
+}
+
+test "modUnsigned32 and modSigned32 match libgcc modulo semantics" {
+    try std.testing.expectEqual(@as(u32, 4), modUnsigned32(25, 7));
+    try std.testing.expectEqual(@as(u32, 5), modUnsigned32(5, 9));
+    try std.testing.expectEqual(@as(u32, 0), modUnsigned32(123, 0));
+    try std.testing.expectEqual(@as(i32, 1), modSigned32(22, 3));
+    try std.testing.expectEqual(@as(i32, -1), modSigned32(-22, 3));
+    try std.testing.expectEqual(@as(i32, 1), modSigned32(22, -3));
+    try std.testing.expectEqual(@as(i32, -1), modSigned32(-22, -3));
+    try std.testing.expectEqual(@as(i32, 0), modSigned32(123, 0));
+    try std.testing.expectEqual(@as(i32, 0), modSigned32(std.math.minInt(i32), -1));
 }
