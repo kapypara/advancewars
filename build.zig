@@ -71,6 +71,10 @@ fn isStandaloneGameFile(name: []const u8) bool {
         "tail_low.zig",
         "clusters_low.zig",
         "clusters_low_2.zig",
+        "low_peel_1.zig",
+        "low_peel_2.zig",
+        "low_peel_3.zig",
+        "low_peel_4.zig",
     };
     for (skip) |s| {
         if (std.mem.eql(u8, name, s)) return false;

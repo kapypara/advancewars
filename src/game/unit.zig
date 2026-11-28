@@ -9,6 +9,9 @@ const bios = @import("bios.zig");
 const co = @import("co.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
+const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_4 = @import("low_peel_4.zig");
 const map = @import("map.zig");
 const mem = @import("mem.zig");
 const proc = @import("proc.zig");
@@ -409,7 +412,7 @@ fn spawnProc131E0Zero(comptime def_pool_ref: u32, comptime ret_addr: u32) void {
     abi.pushLr();
     rt.r[0] = abi.read32(def_pool_ref);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_080131E0, ret_addr)) return;
+    if (!abi.call(low_peel_3.func_080131E0, ret_addr)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -536,7 +539,7 @@ pub fn func_08028F80() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     rt.r[0] = abi.read32(abi.read32(0x08028F90));
-    if (!abi.call(decls.func_08012E14, 0x08028F8B)) return;
+    if (!abi.call(low_peel_3.func_08012E14, 0x08028F8B)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -568,7 +571,7 @@ pub fn func_08029BEC() callconv(.c) void {
     rt.r[4] = val;
     rt.r[0] = abi.read32(0x08029C14);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_080131E0, 0x08029BFD)) return;
+    if (!abi.call(low_peel_3.func_080131E0, 0x08029BFD)) return;
     abi.fetches(13);
     const slot_idx = abi.signExtend8(@truncate(rt.r[0]));
     const proc_base = abi.read32(0x08029C18);
@@ -590,7 +593,7 @@ pub fn func_0802A9B4() callconv(.c) void {
     abi.pushLr();
     rt.r[0] = abi.read32(0x0802A9C4);
     abi.setRegNz(&rt.r[1], 1);
-    if (!abi.call(decls.func_080131E0, 0x0802A9BF)) return;
+    if (!abi.call(low_peel_3.func_080131E0, 0x0802A9BF)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1042,7 +1045,7 @@ pub fn func_0802AAF8() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x0802AB24);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_080131E0, 0x0802AB0D)) return;
+    if (!abi.call(low_peel_3.func_080131E0, 0x0802AB0D)) return;
 
     abi.fetches(14);
     const slot_idx: i32 = abi.signExtend8(@truncate(rt.r[0]));
@@ -1079,7 +1082,7 @@ pub fn func_0802C55C() callconv(.c) void {
     rt.r[0] = abi.read8(abi.read32(0x0802C570));
     if (!abi.call(state_mod.func_0802C540, 0x0802C567)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08028B80, 0x0802C56B)) return;
+    if (!abi.call(low_peel_1.func_08028B80, 0x0802C56B)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1305,7 +1308,7 @@ pub fn func_08028D64() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08028E18);
     rt.r[1] = abi.read32(0x08028E1C);
-    if (!abi.call(decls.func_0800FE24, 0x08028DE1)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, 0x08028DE1)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x08028E20);
@@ -1345,7 +1348,7 @@ pub fn func_0802C6B8() callconv(.c) void {
     rt.r[5] = 0;
     abi.write16(rt.r[4] +% 0x20, abi.read16(cam +% 4));
     abi.write16(rt.r[4] +% 0x22, abi.read16(cam +% 6));
-    if (!abi.call(decls.func_0803FB18, 0x0802C6D5)) return;
+    if (!abi.call(low_peel_4.func_0803FB18, 0x0802C6D5)) return;
 
     abi.fetches(17);
     rt.r[4] = abi.read32(0x0802C754);
@@ -1358,7 +1361,7 @@ pub fn func_0802C6B8() callconv(.c) void {
     if (!abi.call(state_mod.func_0803902C, 0x0802C6F3)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080104D4, 0x0802C6F7)) return;
+    if (!abi.call(low_peel_3.func_080104D4, 0x0802C6F7)) return;
     abi.fetches(4);
     if (!abi.call(hw.func_080104B0, 0x0802C6FB)) return;
 
@@ -1403,7 +1406,7 @@ fn drawEntityPairMarker(unit_ptr: u32, hdr_base: u32, tile_off: u32, ret_addr: u
     rt.r[1] = sy;
     rt.r[2] = abi.read32(0x0802CD34);
     rt.r[3] = abi.read32(rt.r[13] +% 8);
-    return abi.call(decls.func_080157E4, ret_addr);
+    return abi.call(low_peel_1.func_080157E4, ret_addr);
 }
 
 /// Queue overlay markers for both active battle-pair entities (`0x0802CBDC`).

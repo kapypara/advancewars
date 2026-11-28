@@ -9,6 +9,9 @@ const battle = @import("battle.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
+const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_4 = @import("low_peel_4.zig");
 const mem = @import("mem.zig");
 const state = @import("state.zig");
 const turn = @import("turn.zig");
@@ -426,7 +429,7 @@ fn clearMapRegion0FBEC(comptime pool_ref: u32, comptime ret_addr: u32) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(pool_ref);
-    if (!abi.call(decls.func_0800FBEC, ret_addr)) return;
+    if (!abi.call(low_peel_3.func_0800FBEC, ret_addr)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -450,7 +453,7 @@ pub fn func_0803809C() callconv(.c) void {
     abi.pushLr();
     rt.r[0] = abi.read32(0x080380AC);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_080131E0, 0x080380A7)) return;
+    if (!abi.call(low_peel_3.func_080131E0, 0x080380A7)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -463,7 +466,7 @@ pub fn func_08038C70() callconv(.c) void {
     const row_off = (rt.r[0] & 0xFFFF) << 5;
     rt.r[0] = abi.read32(0x08038C88);
     rt.r[1] = row_off +% abi.read32(0x08038C8C);
-    if (!abi.call(decls.func_0800FE24, 0x08038C83)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, 0x08038C83)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -517,7 +520,7 @@ pub fn func_08039184() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08039190);
-    if (!abi.call(decls.func_0800FC9C, 0x0803918D)) return;
+    if (!abi.call(low_peel_3.func_0800FC9C, 0x0803918D)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -674,7 +677,7 @@ fn uploadBgCharSlotFromDispcnt(comptime src_ref: u32, comptime ctrl_ref: u32, co
     rt.r[0] = abi.read32(src_ref);
     rt.r[1] = dst;
     rt.r[2] = abi.read32(base_ref);
-    return abi.call(decls.func_0800FE24, ret_addr);
+    return abi.call(low_peel_3.func_0800FE24, ret_addr);
 }
 
 /// Decompress map tileset `[0x080199C8]` into active BG char bank and apply `0x0801990C(u16(r0))` (`0x080199A0`).
@@ -835,7 +838,7 @@ fn configMapWindowBlendRegs(
     abi.write8(ctrl +% 1, abi.read8(ctrl +% 1) | t2_mask);
     abi.write16(abi.read32(bg_a), val_a);
     abi.write16(abi.read32(bg_b), val_b);
-    if (!abi.call(decls.func_080104D4, ret2)) return;
+    if (!abi.call(low_peel_3.func_080104D4, ret2)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -893,7 +896,7 @@ pub fn func_08019168() callconv(.c) void {
     rt.r[4] = st;
     if (!abi.call(func_08020568, 0x08019171)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08019058, 0x08019175)) return;
+    if (!abi.call(low_peel_1.func_08019058, 0x08019175)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x0801918C);
@@ -955,7 +958,7 @@ pub fn func_0801F058() callconv(.c) void {
     const p1 = abi.read32(0x0801F0B4);
     abi.write16(p1, 0);
     abi.write16(p1 +% 2, 0);
-    if (!abi.call(decls.func_0802BF70, 0x0801F06F)) return;
+    if (!abi.call(low_peel_4.func_0802BF70, 0x0801F06F)) return;
 
     abi.fetches(8);
     abi.write32(abi.read32(0x0801F0B8), 0);
@@ -970,7 +973,7 @@ pub fn func_0801F058() callconv(.c) void {
     abi.write16(abi.read32(0x0801F0D0), 0xB);
     abi.write16(abi.read32(0x0801F0D4), 0);
     rt.r[5] = 1;
-    if (!abi.call(decls.func_08016F0C, 0x0801F09B)) return;
+    if (!abi.call(low_peel_1.func_08016F0C, 0x0801F09B)) return;
 
     abi.fetches(10);
     abi.write16(abi.read32(0x0801F0D8), 0);
@@ -997,7 +1000,7 @@ pub fn func_0801F0E4() callconv(.c) void {
     abi.fetches(4);
     if (!abi.call(decls.func_08024EE8, 0x0801F0EF)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08024D58, 0x0801F0F3)) return;
+    if (!abi.call(low_peel_4.func_08024D58, 0x0801F0F3)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_080356EC, 0x0801F0F7)) return;
     abi.fetches(4);
@@ -1025,9 +1028,9 @@ pub fn func_080203E8() callconv(.c) void {
     if (!abi.enter(0x080203E8)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08011910, 0x080203EF)) return;
+    if (!abi.call(low_peel_3.func_08011910, 0x080203EF)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08011804, 0x080203F3)) return;
+    if (!abi.call(low_peel_1.func_08011804, 0x080203F3)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08020190, 0x080203F7)) return;
     abi.fetches(4);
@@ -1049,7 +1052,7 @@ pub fn func_080204B4() callconv(.c) void {
     abi.pushLr();
     rt.r[0] = abi.read32(0x080204F0);
     rt.r[1] = abi.read32(0x080204F4);
-    if (!abi.call(decls.func_0800FE24, 0x080204BF)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, 0x080204BF)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x080204F8);
@@ -1060,7 +1063,7 @@ pub fn func_080204B4() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x080204FC);
     rt.r[1] = abi.read32(0x08020500);
-    if (!abi.call(decls.func_0800FE24, 0x080204D3)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, 0x080204D3)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x08020504);
@@ -1239,7 +1242,7 @@ fn drawMapLayerEntry(
 
     abi.fetches(7);
     abi.setRegNz(&rt.r[0], bg_id & 0xFF);
-    if (!abi.call(decls.func_080117EC, ret4)) return;
+    if (!abi.call(low_peel_1.func_080117EC, ret4)) return;
 
     abi.fetches(8);
     rt.r[3] = abi.read32(rt.r[13]);
@@ -1327,7 +1330,7 @@ pub fn func_0803C91C() callconv(.c) void {
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 2);
-    if (!abi.call(decls.func_080117EC, 0x0803C94F)) return;
+    if (!abi.call(low_peel_1.func_080117EC, 0x0803C94F)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1413,10 +1416,10 @@ pub fn func_0801CA34() callconv(.c) void {
     abi.write32(rt.r[13], rt.r[8]);
 
     rt.r[0] = abi.read32(0x0801CB58);
-    if (!abi.call(decls.func_0800FC74, 0x0801CA41)) return;
+    if (!abi.call(low_peel_3.func_0800FC74, 0x0801CA41)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0801CB5C);
-    if (!abi.call(decls.func_0800FC74, 0x0801CA47)) return;
+    if (!abi.call(low_peel_3.func_0800FC74, 0x0801CA47)) return;
     abi.fetches(15);
 
     if (!uploadFactionPalettes(0x0801CB60, 0x0801CB64, 0x0801CB68, 0x0801CB6C, .{
@@ -1496,7 +1499,7 @@ pub fn func_08020414() callconv(.c) void {
     rt.r[1] = out_y;
     rt.r[2] = sprite_desc;
     rt.r[3] = attr0;
-    if (!abi.call(decls.func_080157E4, 0x08020499)) return;
+    if (!abi.call(low_peel_1.func_080157E4, 0x08020499)) return;
 
     abi.fetches(9);
     rt.r[13] +%= 0x10;
@@ -1533,7 +1536,7 @@ pub fn func_08020D6C() callconv(.c) void {
 
     if (!abi.call(clusters_low_2.func_0800FC58, 0x08020D79)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_0800F1B0, 0x08020D7D)) return;
+    if (!abi.call(low_peel_1.func_0800F1B0, 0x08020D7D)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08020F78);
     if (!abi.call(decls.func_08010D00, 0x08020D83)) return;
@@ -1546,16 +1549,16 @@ pub fn func_08020D6C() callconv(.c) void {
     const vram_base = abi.read32(0x08020F80);
     rt.r[0] = abi.read32(0x08020F7C);
     rt.r[1] = vram_base;
-    if (!abi.call(decls.func_0800FE24, 0x08020D95)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, 0x08020D95)) return;
 
     abi.fetches(9);
     rt.r[0] = abi.read32(0x08020F84);
     rt.r[1] = vram_base +% 0x8000;
-    if (!abi.call(decls.func_0800FE24, 0x08020DA3)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, 0x08020DA3)) return;
 
     abi.fetches(5);
     rt.r[0] = 0;
-    if (!abi.call(decls.func_08012830, 0x08020DA9)) return;
+    if (!abi.call(low_peel_1.func_08012830, 0x08020DA9)) return;
 
     abi.fetches(8);
     rt.r[4] = abi.read32(0x08020F88);
@@ -1579,7 +1582,7 @@ pub fn func_08020D6C() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08020FA0);
     rt.r[1] = abi.read32(0x08020FA4);
-    if (!abi.call(decls.func_0800FE24, 0x08020DD5)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, 0x08020DD5)) return;
 
     abi.fetches(9);
     rt.r[0] = abi.read32(0x08020FA8);

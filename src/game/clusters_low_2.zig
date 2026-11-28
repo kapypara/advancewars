@@ -9,6 +9,7 @@ const bios = @import("bios.zig");
 const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
+const low_peel_1 = @import("low_peel_1.zig");
 const proc = @import("proc.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
@@ -485,7 +486,7 @@ fn enter_0800FBC4(start_block: u32) void {
             abi.setRegNz(&rt.r[2], 0x80);
             abi.setRegNz(&rt.r[2], rt.r[2] << 5);
             rt.cpuAdd(&rt.r[0], rt.r[5], 0x0, true);
-            if (!abi.call(decls.func_0801B7F4, 0x0801B74B)) return;
+            if (!abi.call(low_peel_1.func_0801B7F4, 0x0801B74B)) return;
             continue :blk 9;
         },
         9 => {

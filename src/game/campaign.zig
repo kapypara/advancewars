@@ -9,6 +9,10 @@ const clusters_low_2 = @import("clusters_low_2.zig");
 const co = @import("co.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
+const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_2 = @import("low_peel_2.zig");
+const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_4 = @import("low_peel_4.zig");
 const map = @import("map.zig");
 const math = @import("math.zig");
 const mem = @import("mem.zig");
@@ -312,7 +316,7 @@ fn querySaveFlagBit(comptime flag_id: u32, comptime returns_val: bool, comptime 
     abi.pushLr();
     abi.setRegNz(&rt.r[0], flag_id);
     abi.setRegNz(&rt.r[1], 1);
-    if (!abi.call(decls.func_0803EF74, ret_addr)) return;
+    if (!abi.call(low_peel_4.func_0803EF74, ret_addr)) return;
     abi.fetches(4);
     if (returns_val) popReturnValue() else abi.popReturn();
 }
@@ -446,7 +450,7 @@ pub fn func_0803EEE8() callconv(.c) void {
     abi.write32(rt.r[13], rt.r[4]);
 
     rt.r[4] = rt.r[1] & 0xFF;
-    if (!abi.call(decls.func_0801DE88, 0x0803EEF3)) return;
+    if (!abi.call(low_peel_3.func_0801DE88, 0x0803EEF3)) return;
 
     abi.fetches(21);
     const bit_num = rt.r[0] & 0xFFFF;
@@ -734,7 +738,7 @@ pub fn func_0803D2E4() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(decls.func_0801B57C, 0x0803D2EB)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08015FB4, 0x0803D2EF)) return;
+    if (!abi.call(low_peel_3.func_08015FB4, 0x0803D2EF)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -806,7 +810,7 @@ pub fn func_0803EFE8() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[3] = rt.r[0];
-    if (!abi.call(decls.func_0801DE88, 0x0803EFF1)) return;
+    if (!abi.call(low_peel_3.func_0801DE88, 0x0803EFF1)) return;
 
     abi.fetches(19);
     const idx = rt.r[0] & 0xFFFF;
@@ -832,7 +836,7 @@ pub fn func_0803F348() callconv(.c) void {
     abi.pushLr();
     rt.r[0] &= 0xFF;
     rt.updateNz(rt.r[0]);
-    if (!abi.call(decls.func_0803F314, 0x0803F353)) return;
+    if (!abi.call(low_peel_4.func_0803F314, 0x0803F353)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0803F35C);
     if (!abi.call(decls.func_0803F628, 0x0803F359)) return;
@@ -878,7 +882,7 @@ pub fn func_0803FCF8() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read8(rt.r[0] +% 0x10);
-    if (!abi.call(decls.func_08015DA8, 0x0803FD01)) return;
+    if (!abi.call(low_peel_3.func_08015DA8, 0x0803FD01)) return;
     abi.fetches(6);
     abi.popReturn();
 }
@@ -916,7 +920,7 @@ pub fn func_08038694() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x080386B0);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_080131E0, 0x080386A7)) return;
+    if (!abi.call(low_peel_3.func_080131E0, 0x080386A7)) return;
     abi.fetches(4);
     if (!abi.call(state.func_080385BC, 0x080386AB)) return;
     abi.fetches(4);
@@ -928,7 +932,7 @@ pub fn func_08038C44() callconv(.c) void {
     if (!abi.enter(0x08038C44)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08014980, 0x08038C4B)) return;
+    if (!abi.call(low_peel_3.func_08014980, 0x08038C4B)) return;
     inline for ([_]u32{ 0x08038C64, 0x08038C68, 0x08038C6C }, [_]u32{ 0x08038C51, 0x08038C57, 0x08038C5D }) |ref, ret_addr| {
         abi.fetches(5);
         rt.r[0] = abi.read32(ref);
@@ -1050,7 +1054,7 @@ fn syncCampaignPanelScreen(
     if (!abi.call(state.func_08038260, ret3)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(arg2_ref);
-    if (!abi.call(decls.func_0803826C, ret4)) return;
+    if (!abi.call(low_peel_2.func_0803826C, ret4)) return;
     abi.fetches(4);
     if (ret_r1) {
         popReturnValue();
@@ -1138,7 +1142,7 @@ pub fn func_0803C6CC() callconv(.c) void {
     if (!abi.enter(0x0803C6CC)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08011824, 0x0803C6D3)) return;
+    if (!abi.call(low_peel_1.func_08011824, 0x0803C6D3)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x0803C6EC);
@@ -1148,7 +1152,7 @@ pub fn func_0803C6CC() callconv(.c) void {
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
-    if (!abi.call(decls.func_080117EC, 0x0803C6E5)) return;
+    if (!abi.call(low_peel_1.func_080117EC, 0x0803C6E5)) return;
 
     abi.fetches(4);
     if (!abi.call(ui.func_080221D0, 0x0803C6E9)) return;
@@ -1199,7 +1203,7 @@ pub fn func_0803CCD0() callconv(.c) void {
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
-    if (!abi.call(decls.func_080117EC, 0x0803CD27)) return;
+    if (!abi.call(low_peel_1.func_080117EC, 0x0803CD27)) return;
 
     abi.fetches(7);
     rt.r[3] = abi.read32(rt.r[13]);
@@ -1250,7 +1254,7 @@ pub fn func_0803CD40() callconv(.c) void {
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
-    if (!abi.call(decls.func_080117EC, 0x0803CD77)) return;
+    if (!abi.call(low_peel_1.func_080117EC, 0x0803CD77)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1305,7 +1309,7 @@ pub fn func_0803DB9C() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(func_0803E37C, 0x0803DBA3)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_0803E3BC, 0x0803DBA7)) return;
+    if (!abi.call(low_peel_4.func_0803E3BC, 0x0803DBA7)) return;
     abi.fetches(4);
     if (!abi.call(clusters_low_2.func_08042E24, 0x0803DBAB)) return;
     abi.fetches(7);
@@ -1361,10 +1365,10 @@ pub fn func_0803F244() callconv(.c) void {
 
     abi.fetches(5);
     rt.r[0] = buf;
-    if (!abi.call(decls.func_080395A8, 0x0803F25F)) return;
+    if (!abi.call(low_peel_2.func_080395A8, 0x0803F25F)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_0803FB18, 0x0803F263)) return;
+    if (!abi.call(low_peel_4.func_0803FB18, 0x0803F263)) return;
 
     abi.fetches(17);
     const char_bank = ((abi.read32(abi.read32(0x0803F290)) << 28) >> 30) << 14;
@@ -1467,12 +1471,12 @@ pub fn func_080381C4() callconv(.c) void {
     inline for (cfg_pools) |p| {
         abi.fetches(5);
         rt.r[0] = abi.read32(p[0]);
-        if (!abi.call(decls.func_0800FC74, p[1])) return;
+        if (!abi.call(low_peel_3.func_0800FC74, p[1])) return;
     }
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08038238);
-    if (!abi.call(decls.func_0803826C, 0x0803820B)) return;
+    if (!abi.call(low_peel_2.func_0803826C, 0x0803820B)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0803823C);
     if (!abi.call(state.func_08038260, 0x08038211)) return;
@@ -1525,13 +1529,13 @@ pub fn func_08038864() callconv(.c) void {
     if (!abi.call(clusters_low_2.func_0800FC58, 0x080388CB)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08038910);
-    if (!abi.call(decls.func_0800FC74, 0x080388D1)) return;
+    if (!abi.call(low_peel_3.func_0800FC74, 0x080388D1)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08038914);
     if (!abi.call(state.func_08038260, 0x080388D7)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08038918);
-    if (!abi.call(decls.func_0803826C, 0x080388DD)) return;
+    if (!abi.call(low_peel_2.func_0803826C, 0x080388DD)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1680,7 +1684,7 @@ pub fn func_08039948() callconv(.c) void {
     if (!abi.call(state.func_08038260, 0x08039995)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x080399C8);
-    if (!abi.call(decls.func_0803826C, 0x0803999B)) return;
+    if (!abi.call(low_peel_2.func_0803826C, 0x0803999B)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1739,13 +1743,13 @@ fn initCampaignCardDisplay(comptime cfg: CampaignCardCfg) void {
     if (cfg.fade_before) {
         abi.fetches(5);
         abi.setRegNz(&rt.r[0], 2);
-        if (!abi.call(decls.func_080117EC, cfg.ret_fade0)) return;
+        if (!abi.call(low_peel_1.func_080117EC, cfg.ret_fade0)) return;
     }
 
     abi.fetches(6);
     rt.r[0] = abi.read32(cfg.gfx0_src_pool);
     rt.r[1] = abi.read32(cfg.gfx0_dst_pool);
-    if (!abi.call(decls.func_0800FE24, cfg.ret_gfx0)) return;
+    if (!abi.call(low_peel_3.func_0800FE24, cfg.ret_gfx0)) return;
 
     abi.fetches(9);
     const pal_base = abi.read32(cfg.pal_base_pool);
@@ -1766,7 +1770,7 @@ fn initCampaignCardDisplay(comptime cfg: CampaignCardCfg) void {
         abi.fetches(6);
         rt.r[0] = abi.read32(src_pool);
         rt.r[1] = abi.read32(cfg.gfx1_dst_pool.?);
-        if (!abi.call(decls.func_0800FE24, cfg.ret_gfx1)) return;
+        if (!abi.call(low_peel_3.func_0800FE24, cfg.ret_gfx1)) return;
     }
 
     abi.fetches(7);
@@ -1778,7 +1782,7 @@ fn initCampaignCardDisplay(comptime cfg: CampaignCardCfg) void {
     if (cfg.portrait_args) |pa| {
         abi.fetches(5);
         abi.setRegNz(&rt.r[0], 0);
-        if (!abi.call(decls.func_080117EC, cfg.ret_tail0)) return;
+        if (!abi.call(low_peel_1.func_080117EC, cfg.ret_tail0)) return;
 
         abi.fetches(4);
         if (!abi.call(ui.func_080221D0, cfg.ret_tail1)) return;
@@ -1840,7 +1844,7 @@ pub fn func_0803A480() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x0803A4D8);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_080131E0, 0x0803A49F)) return;
+    if (!abi.call(low_peel_3.func_080131E0, 0x0803A49F)) return;
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
@@ -1862,7 +1866,7 @@ pub fn func_0803A480() callconv(.c) void {
     if (!abi.call(decls.func_0803A38C, 0x0803A4BD)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_0803A2E8, 0x0803A4C1)) return;
+    if (!abi.call(low_peel_4.func_0803A2E8, 0x0803A4C1)) return;
 
     abi.fetches(9);
     const res = (rt.r[0] & 0xFF) -% 1;
@@ -2047,7 +2051,7 @@ pub fn func_0803DA20() callconv(.c) void {
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0803DA9C);
-    if (!abi.call(decls.func_0803826C, 0x0803DA6F)) return;
+    if (!abi.call(low_peel_2.func_0803826C, 0x0803DA6F)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);

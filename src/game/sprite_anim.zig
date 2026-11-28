@@ -7,6 +7,8 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
+const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_3 = @import("low_peel_3.zig");
 const mem = @import("mem.zig");
 const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
@@ -401,7 +403,7 @@ pub fn func_0801253C() callconv(.c) void {
     abi.write32(rt.r[13], 0);
     abi.setRegNz(&rt.r[2], 0);
     abi.setRegNz(&rt.r[3], 0);
-    if (!abi.call(decls.func_080124F8, 0x0801255F)) return;
+    if (!abi.call(low_peel_1.func_080124F8, 0x0801255F)) return;
 
     abi.fetches(7);
     abi.setRegNz(&rt.r[0], rt.r[0] & 0xFFFF);
@@ -460,7 +462,7 @@ pub fn func_08013530() callconv(.c) void {
     abi.setRegNz(&rt.r[0], 0xFF);
     rt.r[1] = rt.r[4];
     rt.r[2] = rt.r[5];
-    if (!abi.call(decls.func_08013508, 0x08013545)) return;
+    if (!abi.call(low_peel_3.func_08013508, 0x08013545)) return;
 
     abi.fetches(7);
     abi.setRegNz(&rt.r[0], @bitCast(abi.signExtend8(@truncate(rt.r[0]))));
@@ -499,7 +501,7 @@ pub fn func_08013578() callconv(.c) void {
     abi.write32(rt.r[13], rt.r[4]);
 
     rt.r[0] = procSlotAnimHandle(0x08013594, rt.r[0]);
-    if (!abi.call(decls.func_0801A15C, 0x0801358F)) return;
+    if (!abi.call(low_peel_3.func_0801A15C, 0x0801358F)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -666,7 +668,7 @@ pub fn func_0801585C() callconv(.c) void {
     rt.r[13] -%= 8;
     abi.write32(rt.r[13] +% 4, @bitCast(abi.signExtend16(@truncate(rt.r[3]))));
     abi.write32(rt.r[13], 0);
-    if (!abi.call(decls.func_080157E4, 0x0801586F)) return;
+    if (!abi.call(low_peel_1.func_080157E4, 0x0801586F)) return;
     abi.fetches(5);
     rt.r[13] +%= 8;
     finishPoppedLr(1);
@@ -968,7 +970,7 @@ pub fn func_080124FC() callconv(.c) void {
     rt.r[3] = key;
     abi.setRegNz(&rt.r[4], 0);
     abi.write32(rt.r[13], 0);
-    if (!abi.call(decls.func_080124F8, 0x0801252D)) return;
+    if (!abi.call(low_peel_1.func_080124F8, 0x0801252D)) return;
 
     abi.fetches(8);
     rt.r[0] &= 0xFFFF;
@@ -1227,7 +1229,7 @@ fn commitAnimSlotTileWindow(comptime base_ref: u32, stack_mode: u32, comptime re
     rt.r[1] = a1;
     rt.r[2] = a2;
     rt.r[3] = a3;
-    if (!abi.call(decls.func_080124F8, ret_addr)) return;
+    if (!abi.call(low_peel_1.func_080124F8, ret_addr)) return;
 
     abi.fetches(if (stack_mode == 0) 11 else 10);
     rt.r[0] &= 0xFFFF;

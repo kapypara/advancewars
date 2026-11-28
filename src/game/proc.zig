@@ -9,6 +9,8 @@ const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
+const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_3 = @import("low_peel_3.zig");
 const mem = @import("mem.zig");
 const menu = @import("menu.zig");
 const sound = @import("sound.zig");
@@ -536,7 +538,7 @@ pub fn func_08018C40() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08018C5C);
-    if (!abi.call(decls.func_0801836C, 0x08018C49)) return;
+    if (!abi.call(low_peel_3.func_0801836C, 0x08018C49)) return;
     abi.fetches(11);
     const val_i16 = abi.signExtend16(@truncate(rt.r[0]));
     const active: u32 = if (val_i16 != -1) 1 else 0;
@@ -552,7 +554,7 @@ pub fn func_08019120() callconv(.c) void {
     if (!abi.enter(0x08019120)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08018F94, 0x08019127)) return;
+    if (!abi.call(low_peel_3.func_08018F94, 0x08019127)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -838,7 +840,7 @@ pub fn func_08013C84() callconv(.c) void {
 /// Proc script opcode: spawn child proc `(word0, byte4)` via `0x080131E0` (`0x08013C94`).
 pub fn func_08013C94() callconv(.c) void {
     if (!abi.enter(0x08013C94)) return;
-    runProcScriptStep(0x08013CC0, .proc_31E0, decls.func_080131E0, 1, 0x08013CB1);
+    runProcScriptStep(0x08013CC0, .proc_31E0, low_peel_3.func_080131E0, 1, 0x08013CB1);
 }
 
 /// Proc script opcode: load resource string/ID `word0` via `0x08018400` (`0x08013E1C`).
@@ -922,7 +924,7 @@ pub fn func_08014760() callconv(.c) void {
 /// Proc script opcode: set animator frame `half4` via `0x080136A4` (`0x0801478C`).
 pub fn func_0801478C() callconv(.c) void {
     if (!abi.enter(0x0801478C)) return;
-    runProcScriptStep(0x080147B4, .u16_4_r1, decls.func_080136A4, 1, 0x080147A7);
+    runProcScriptStep(0x080147B4, .u16_4_r1, low_peel_3.func_080136A4, 1, 0x080147A7);
 }
 
 /// Cutscene script opcode: query flag via `0x0801DE88(word4)` and write `state+2` (`0x08017070`).
@@ -938,7 +940,7 @@ pub fn func_08017070() callconv(.c) void {
     rt.r[4] = entry_ptr;
     const script = abi.read32(entry_ptr);
     rt.r[0] = abi.read32(script +% 4);
-    if (!abi.call(decls.func_0801DE88, 0x0801708B)) return;
+    if (!abi.call(low_peel_3.func_0801DE88, 0x0801708B)) return;
 
     abi.fetches(11);
     abi.write8(abi.read32(0x080170A0) +% 2, @truncate(rt.r[0]));
@@ -964,7 +966,7 @@ pub fn func_08017254() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(script +% 8)));
     rt.r[1] = @bitCast(abi.signExtend16(abi.read16(script +% 0xA)));
     rt.r[2] = @bitCast(abi.signExtend16(abi.read16(script +% 0xC)));
-    if (!abi.call(decls.func_080242B8, 0x08017279)) return;
+    if (!abi.call(low_peel_3.func_080242B8, 0x08017279)) return;
 
     abi.fetches(9);
     abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
@@ -983,7 +985,7 @@ pub fn func_080172FC() callconv(.c) void {
 /// Cutscene script opcode: dispatch `0x080172E4(slot)` and advance cursor `+0x10` (`0x0801732C`).
 pub fn func_0801732C() callconv(.c) void {
     if (!abi.enter(0x0801732C)) return;
-    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172E4, 0x08017358, 1, 0x08017339);
+    runCutsceneStep10(.pass_slot_u16, 0, 0, low_peel_1.func_080172E4, 0x08017358, 1, 0x08017339);
 }
 
 /// Cutscene script opcode: set flag `[state+5] = 1`, call `0x0802EFD8`, advance `+0x10` (`0x08017AB0`).
@@ -1474,7 +1476,7 @@ pub fn func_08014850() callconv(.c) void {
     rt.r[6] = 0x4C;
     const anim_idx = abi.read16(slot_ent +% 0x26);
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(anim_base +% (anim_idx *% 0x4C) +% 0x3A)));
-    if (!abi.call(decls.func_0801A250, 0x0801487F)) return;
+    if (!abi.call(low_peel_1.func_0801A250, 0x0801487F)) return;
 
     abi.fetches(13);
     const anim_idx2 = abi.read16(slot_ent +% 0x26);

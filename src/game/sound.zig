@@ -9,6 +9,8 @@ const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
+const low_peel_2 = @import("low_peel_2.zig");
+const low_peel_4 = @import("low_peel_4.zig");
 const mem = @import("mem.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
@@ -445,7 +447,7 @@ pub fn func_080782E4() callconv(.c) void {
     if (!abi.enter(0x080782E4)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_080775B0, 0x080782EB)) return;
+    if (!abi.call(low_peel_2.func_080775B0, 0x080782EB)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -474,7 +476,7 @@ pub fn func_08078450() callconv(.c) void {
     if (!abi.enter(0x08078450)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0807821C, 0x08078457)) return;
+    if (!abi.call(low_peel_2.func_0807821C, 0x08078457)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -485,7 +487,7 @@ pub fn func_08078488() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     rt.r[1] &= 0xFFFF;
-    if (!abi.call(decls.func_08078238, 0x08078493)) return;
+    if (!abi.call(low_peel_2.func_08078238, 0x08078493)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -628,7 +630,7 @@ pub fn func_0803DAE0() callconv(.c) void {
     const val: u32 = @bitCast(abi.signExtend8(@truncate(rt.r[0])));
     abi.setRegNz(&rt.r[0], val);
     rt.r[1] = abi.read32(0x0803DAFC);
-    if (!abi.call(decls.func_0803FB84, 0x0803DAF5)) return;
+    if (!abi.call(low_peel_4.func_0803FB84, 0x0803DAF5)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -764,7 +766,7 @@ pub fn func_08077A80() callconv(.c) void {
     rt.r[3] = b1;
     rt.r[0] = val;
     rt.updateNz(rt.r[0]);
-    if (!abi.call(decls.func_08077A58, 0x08077A99)) return;
+    if (!abi.call(low_peel_2.func_08077A58, 0x08077A99)) return;
     abi.fetches(6);
     rt.r[0] |= rt.r[3];
     rt.updateNz(rt.r[0]);

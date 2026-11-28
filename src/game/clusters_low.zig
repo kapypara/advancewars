@@ -10,6 +10,10 @@ const bios = @import("bios.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
+const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_2 = @import("low_peel_2.zig");
+const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_4 = @import("low_peel_4.zig");
 const math = @import("math.zig");
 const proc = @import("proc.zig");
 const sound = @import("sound.zig");
@@ -177,7 +181,7 @@ pub fn func_08037950() callconv(.c) void {
         abi.write32(rt.r[0] +% 0x0, rt.r[2]);
         abi.setRegNz(&rt.r[0], 0x1);
         abi.setRegNz(&rt.r[1], 0x1);
-        if (!abi.call(decls.func_0803EF74, 0x08037971)) return;
+        if (!abi.call(low_peel_4.func_0803EF74, 0x08037971)) return;
     }
     abi.fetches(4);
     popReturnTo(0);
@@ -212,7 +216,7 @@ pub fn func_0801A768() callconv(.c) void {
     abi.write8(rt.r[0] +% 0x0, @truncate(rt.r[3]));
     rt.r[0] = abi.read32(0x0801A7A0);
     abi.write32(rt.r[0] +% 0x0, rt.r[5]);
-    if (!abi.call(decls.func_0801AFC8, 0x0801A785)) return;
+    if (!abi.call(low_peel_3.func_0801AFC8, 0x0801A785)) return;
     run0801A784();
 }
 
@@ -576,7 +580,7 @@ fn run0800FB9C(start_block: u32) void {
     }
     abi.fetches(3);
     abi.fetches(4);
-    if (!abi.call(decls.func_0807ADF0, 0x0800FBC3)) return;
+    if (!abi.call(low_peel_2.func_0807ADF0, 0x0800FBC3)) return;
     while (true) {
         abi.fetches(3);
     }
@@ -866,7 +870,7 @@ pub fn func_0800FDF8() callconv(.c) void {
     if (!abi.call(dma.func_0800FDA4, 0x0800FE07)) return;
     abi.fetches(5);
     abi.copyRegFlags(&rt.r[0], rt.r[5]);
-    if (!abi.call(decls.func_08012E14, 0x0800FE0D)) return;
+    if (!abi.call(low_peel_3.func_08012E14, 0x0800FE0D)) return;
     abi.fetches(7);
     rt.r[3] = abi.popReg();
     rt.r[8] = rt.r[3];
@@ -1443,7 +1447,7 @@ fn run0802FCBC(start_block: u32) void {
     abi.fetches(4);
     if (!abi.call(clusters_low_2.func_0800FBC4, 0x0802FD17)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080117E0, 0x0802FD1B)) return;
+    if (!abi.call(low_peel_1.func_080117E0, 0x0802FD1B)) return;
     abi.fetches(7);
     rt.r[1] = abi.read32(0x0802FD2C);
     abi.setRegNz(&rt.r[0], 0x0);

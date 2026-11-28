@@ -21,6 +21,10 @@ pub const ui = @import("ui.zig");
 pub const tail_low = @import("tail_low.zig");
 pub const clusters_low = @import("clusters_low.zig");
 pub const clusters_low_2 = @import("clusters_low_2.zig");
+pub const low_peel_1 = @import("low_peel_1.zig");
+pub const low_peel_2 = @import("low_peel_2.zig");
+pub const low_peel_3 = @import("low_peel_3.zig");
+pub const low_peel_4 = @import("low_peel_4.zig");
 
 comptime {
     _ = bios;
@@ -43,4 +47,8 @@ comptime {
     _ = tail_low;
     _ = clusters_low;
     _ = clusters_low_2;
+    _ = low_peel_1;
+    _ = low_peel_2;
+    _ = low_peel_3;
+    _ = low_peel_4;
 }

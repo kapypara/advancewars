@@ -7,6 +7,7 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hw = @import("hw.zig");
+const low_peel_2 = @import("low_peel_2.zig");
 const types = @import("types.zig");
 
 /// Advance the Advance Wars 32-bit PRNG state: `((4*s + 2) * (4*s + 3)) >> 2`.
@@ -874,7 +875,7 @@ pub fn func_0807CE28() callconv(.c) void {
     const shifted = rt.r[3] >> 2;
     abi.write32(rt.r[13] +% 0x0, shifted);
     rt.r[3] = rt.r[3] << 30;
-    if (!abi.call(decls.func_0807C49C, 0x0807CE51)) return;
+    if (!abi.call(low_peel_2.func_0807C49C, 0x0807CE51)) return;
 
     abi.fetches(4);
     rt.r[13] +%= 0x18;
