@@ -9396,91 +9396,6 @@ pub fn func_080764E8() callconv(.c) void {
     abi.popReturn();
 }
 
-fn callTailThunk(comptime target: fn () callconv(.c) void, ret_lr: u32) void {
-    abi.fetches(5);
-    abi.pushLr();
-    if (!abi.call(target, ret_lr)) return;
-    abi.fetches(4);
-    abi.popReturn();
-}
-
-/// Tail wrapper invoking `0x083BE3CC` (`0x083BE6B4`).
-pub fn func_083BE6B4() callconv(.c) void {
-    if (!abi.enter(0x083BE6B4)) return;
-    callTailThunk(decls.func_083BE3CC, 0x083BE6BB);
-}
-
-/// Tail wrapper invoking `0x083BE81C` (`0x083BE88C`).
-pub fn func_083BE88C() callconv(.c) void {
-    if (!abi.enter(0x083BE88C)) return;
-    callTailThunk(decls.func_083BE81C, 0x083BE893);
-}
-
-/// Tail wrapper invoking `0x083C3EB0` (`0x083C0118`).
-pub fn func_083C0118() callconv(.c) void {
-    if (!abi.enter(0x083C0118)) return;
-    callTailThunk(decls.func_083C3EB0, 0x083C011F);
-}
-
-/// Tail wrapper invoking `0x083C4370` (`0x083C0124`).
-pub fn func_083C0124() callconv(.c) void {
-    if (!abi.enter(0x083C0124)) return;
-    callTailThunk(decls.func_083C4370, 0x083C012B);
-}
-
-/// Tail wrapper invoking `0x083C43B8` (`0x083C0130`).
-pub fn func_083C0130() callconv(.c) void {
-    if (!abi.enter(0x083C0130)) return;
-    callTailThunk(decls.func_083C43B8, 0x083C0137);
-}
-
-/// Tail wrapper invoking `0x083C3304` (`0x083C34A0`).
-pub fn func_083C34A0() callconv(.c) void {
-    if (!abi.enter(0x083C34A0)) return;
-    callTailThunk(decls.func_083C3304, 0x083C34A7);
-}
-
-/// Tail wrapper invoking `0x083C3958` (`0x083C35D4`).
-pub fn func_083C35D4() callconv(.c) void {
-    if (!abi.enter(0x083C35D4)) return;
-    callTailThunk(decls.func_083C3958, 0x083C35DB);
-}
-
-/// Tail wrapper invoking `0x083C3958` (`0x083C35E0`).
-pub fn func_083C35E0() callconv(.c) void {
-    if (!abi.enter(0x083C35E0)) return;
-    callTailThunk(decls.func_083C3958, 0x083C35E7);
-}
-
-/// Tail wrapper invoking `0x083C4A3C` (`0x083C4A6C`).
-pub fn func_083C4A6C() callconv(.c) void {
-    if (!abi.enter(0x083C4A6C)) return;
-    callTailThunk(decls.func_083C4A3C, 0x083C4A73);
-}
-
-/// Tail wrapper invoking `0x083C9964` (`0x083C88D4`).
-pub fn func_083C88D4() callconv(.c) void {
-    if (!abi.enter(0x083C88D4)) return;
-    callTailThunk(decls.func_083C9964, 0x083C88DB);
-}
-
-/// Tail wrapper invoking `0x083C8AE8` (`0x083C8C04`).
-pub fn func_083C8C04() callconv(.c) void {
-    if (!abi.enter(0x083C8C04)) return;
-    callTailThunk(decls.func_083C8AE8, 0x083C8C0B);
-}
-
-/// Tail wrapper invoking `0x083CA744` (`0x083CA840`).
-pub fn func_083CA840() callconv(.c) void {
-    if (!abi.enter(0x083CA840)) return;
-    callTailThunk(decls.func_083CA744, 0x083CA847);
-}
-
-/// Tail wrapper invoking `0x083C7748` (`0x083CC848`).
-pub fn func_083CC848() callconv(.c) void {
-    if (!abi.enter(0x083CC848)) return;
-    callTailThunk(decls.func_083C7748, 0x083CC84F);
-}
 
 comptime {
 
@@ -9920,19 +9835,6 @@ comptime {
         @export(&func_08075968, .{ .name = "func_08075968", .linkage = .strong });
         @export(&func_08076074, .{ .name = "func_08076074", .linkage = .strong });
         @export(&func_080764E8, .{ .name = "func_080764E8", .linkage = .strong });
-        @export(&func_083BE6B4, .{ .name = "func_083BE6B4", .linkage = .strong });
-        @export(&func_083BE88C, .{ .name = "func_083BE88C", .linkage = .strong });
-        @export(&func_083C0118, .{ .name = "func_083C0118", .linkage = .strong });
-        @export(&func_083C0124, .{ .name = "func_083C0124", .linkage = .strong });
-        @export(&func_083C0130, .{ .name = "func_083C0130", .linkage = .strong });
-        @export(&func_083C34A0, .{ .name = "func_083C34A0", .linkage = .strong });
-        @export(&func_083C35D4, .{ .name = "func_083C35D4", .linkage = .strong });
-        @export(&func_083C35E0, .{ .name = "func_083C35E0", .linkage = .strong });
-        @export(&func_083C4A6C, .{ .name = "func_083C4A6C", .linkage = .strong });
-        @export(&func_083C88D4, .{ .name = "func_083C88D4", .linkage = .strong });
-        @export(&func_083C8C04, .{ .name = "func_083C8C04", .linkage = .strong });
-        @export(&func_083CA840, .{ .name = "func_083CA840", .linkage = .strong });
-        @export(&func_083CC848, .{ .name = "func_083CC848", .linkage = .strong });
     }
 }
 
