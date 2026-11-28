@@ -42,6 +42,7 @@ pub const clusters_hi = @import("clusters_hi.zig");
 pub const hi_peel_1 = @import("hi_peel_1.zig");
 pub const hi_peel_2 = @import("hi_peel_2.zig");
 pub const hi_peel_3 = @import("hi_peel_3.zig");
+pub const hi_peel_4 = @import("hi_peel_4.zig");
 
 comptime {
     _ = abi;
@@ -84,6 +85,7 @@ comptime {
     _ = hi_peel_1;
     _ = hi_peel_2;
     _ = hi_peel_3;
+    _ = hi_peel_4;
 }
 
 test {
@@ -127,4 +129,5 @@ test {
     _ = hi_peel_1;
     _ = hi_peel_2;
     _ = hi_peel_3;
+    _ = hi_peel_4;
 }
