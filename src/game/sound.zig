@@ -355,6 +355,12 @@ pub fn func_0803D93C() callconv(.c) void {
     abi.retLr();
 }
 
+/// Typed cross-module bridge calling `func_0803D880(sfx_id)` with exact ABI registers.
+pub inline fn playSfxCall(sfx_id: u32, comptime ret_addr: u32) bool {
+    abi.setRegNz(&rt.r[0], sfx_id);
+    return abi.call(func_0803D880, ret_addr);
+}
+
 /// Play signed sound effect `i16(r0)` via `0x0803D830` (`0x0803D880`).
 pub fn func_0803D880() callconv(.c) void {
     if (!abi.enter(0x0803D880)) return;

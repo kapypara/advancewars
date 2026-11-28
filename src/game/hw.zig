@@ -81,10 +81,7 @@ pub fn func_0801129C() callconv(.c) void {
 
     if (synced == 1) {
         abi.fetches(9);
-        rt.r[0] = types.addr.palette_shadow_buf;
-        abi.setRegNz(&rt.r[1], types.addr.pal_ram);
-        abi.setRegNz(&rt.r[2], types.pal_ram_size);
-        if (!abi.call(dma.func_0800FDA4, 0x080112B5)) return;
+        if (!dma.copyAutoCall(types.addr.palette_shadow_buf, types.addr.pal_ram, types.pal_ram_size, 0x080112B5)) return;
     }
 
     abi.fetches(4);
@@ -124,10 +121,7 @@ pub fn func_080112C0() callconv(.c) void {
 
     if (forced_blank != 0) {
         abi.fetches(9);
-        rt.r[0] = types.addr.palette_shadow_buf;
-        abi.setRegNz(&rt.r[1], types.addr.pal_ram);
-        abi.setRegNz(&rt.r[2], types.pal_ram_size);
-        if (!abi.call(dma.func_0800FDA4, 0x080112DD)) return;
+        if (!dma.copyAutoCall(types.addr.palette_shadow_buf, types.addr.pal_ram, types.pal_ram_size, 0x080112DD)) return;
         abi.fetches(3);
     } else {
         abi.fetches(6);
@@ -137,10 +131,7 @@ pub fn func_080112C0() callconv(.c) void {
         rt.cpuSub(null, synced, 0, true);
         if (synced == 0) {
             abi.fetches(9);
-            rt.r[0] = types.addr.palette_shadow_buf;
-            abi.setRegNz(&rt.r[1], types.addr.pal_ram);
-            abi.setRegNz(&rt.r[2], types.pal_ram_size);
-            if (!abi.call(dma.func_0800FFA8, 0x080112FF)) return;
+            if (!dma.enqueueOrCopyCall(types.addr.palette_shadow_buf, types.addr.pal_ram, types.pal_ram_size, 0x080112FF)) return;
             abi.fetches(4);
             abi.setRegNz(&rt.r[0], 1);
             mem.writeU8(types.addr.palette_synced_flag, 1);

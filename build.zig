@@ -65,6 +65,7 @@ fn isStandaloneGameFile(name: []const u8) bool {
         "turn.zig",
         "menu.zig",
         "campaign.zig",
+        "ui.zig",
         "unit.zig",
         "battle.zig",
     };

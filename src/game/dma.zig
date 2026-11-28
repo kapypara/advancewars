@@ -53,6 +53,22 @@ pub fn cpuCopyAuto(src: u32, dst: u32, size_bytes: u32) void {
     }
 }
 
+/// Typed cross-module bridge calling `func_0800FDA4(src, dst, size_bytes)` with exact ABI registers.
+pub inline fn copyAutoCall(src: u32, dst: u32, size_bytes: u32, comptime ret_addr: u32) bool {
+    rt.r[0] = src;
+    abi.setRegNz(&rt.r[1], dst);
+    abi.setRegNz(&rt.r[2], size_bytes);
+    return abi.call(func_0800FDA4, ret_addr);
+}
+
+/// Typed cross-module bridge calling `func_0800FFA8(src, dst, size_bytes)` with exact ABI registers.
+pub inline fn enqueueOrCopyCall(src: u32, dst: u32, size_bytes: u32, comptime ret_addr: u32) bool {
+    rt.r[0] = src;
+    abi.setRegNz(&rt.r[1], dst);
+    abi.setRegNz(&rt.r[2], size_bytes);
+    return abi.call(func_0800FFA8, ret_addr);
+}
+
 /// Copy `u16(r2)` bytes from `r0` to `r1` using `CpuFastSet` if 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
 pub fn func_0800FDA4() callconv(.c) void {
     if (!abi.enter(0x0800FDA4)) return;

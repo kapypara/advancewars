@@ -132,8 +132,7 @@ pub fn func_08033464() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     abi.pushReg(4);
-    abi.setRegNz(&rt.r[0], 0x6C);
-    if (!abi.call(sound.func_0803D880, 0x0803346D)) return;
+    if (!sound.playSfxCall(0x6C, 0x0803346D)) return;
     abi.fetches(7);
     if (!advanceTurnPhaseIfMode3(0xC, 2, 0x08033485)) return;
     abi.fetches(5);
