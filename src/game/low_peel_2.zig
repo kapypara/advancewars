@@ -4,6 +4,7 @@ const std = @import("std");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const dispatch = @import("dispatch.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_18 = @import("low_peel_18.zig");
@@ -4714,7 +4715,7 @@ pub fn func_080796E0() callconv(.c) void {
         0 => {
             abi.fetches(4);
             abi.setRegNz(&rt.r[1], 0x1);
-            abi.swi(0x25);
+            hal.bios.invoke(.multiboot);
             continue :blk 1;
         },
         1 => {

@@ -6,6 +6,7 @@ const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const dispatch = @import("dispatch.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
@@ -274,9 +275,9 @@ pub fn func_080796F0() callconv(.c) void {
     abi.write8(rt.r[3], 0);
     rt.r[1] = abi.read32(0x08079704);
     rt.r[13] = rt.r[1];
-    abi.swi(0x01);
+    hal.bios.invoke(.register_ram_reset);
     abi.fetches(3);
-    abi.swi(0x00);
+    hal.bios.invoke(.soft_reset);
 }
 
 pub fn func_0800F710() callconv(.c) void {

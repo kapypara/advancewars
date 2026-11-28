@@ -3,6 +3,7 @@
 //! corresponding weak fallback emitted by `gen/`.
 
 pub const abi = @import("abi.zig");
+pub const hal = @import("hal.zig");
 pub const types = @import("types.zig");
 pub const mem = @import("mem.zig");
 pub const main_loop = @import("main_loop.zig");
@@ -47,6 +48,7 @@ pub const low_peel_19 = @import("low_peel_19.zig");
 
 comptime {
     _ = abi;
+    _ = hal;
     _ = types;
     _ = mem;
     _ = main_loop;
@@ -92,6 +94,7 @@ comptime {
 
 test {
     _ = abi;
+    _ = hal;
     _ = types;
     _ = mem;
     _ = main_loop;

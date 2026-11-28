@@ -47,11 +47,6 @@ pub inline fn retLr() void {
     rt.recompReturn(rt.r[14]);
 }
 
-/// Invoke GBA BIOS software interrupt `#num`.
-pub inline fn swi(num: u32) void {
-    rt.gba_swi(num);
-}
-
 /// Call a function pointer using GBA `bl` conventions (`lr = ret_addr`, `g_ret = 0`).
 pub inline fn call(func: *const fn () callconv(.c) void, ret_addr: u32) bool {
     rt.r[14] = ret_addr;
