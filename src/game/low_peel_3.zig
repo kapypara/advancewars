@@ -2805,7 +2805,7 @@ pub fn func_0800E8EC() callconv(.c) void {
         1 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], 0x87);
-            if (!abi.call(menu.func_0800E738, 0x0800ED7D)) return;
+            if (!menu.refreshTileCellCall(0x0800ED7D)) return;
             continue :blk 2;
         },
         2 => {
@@ -2840,7 +2840,7 @@ pub fn func_0800EB10() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[7], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[5], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x87);
-            if (!abi.call(menu.func_0800E738, 0x0800EB1B)) return;
+            if (!menu.refreshTileCellCall(0x0800EB1B)) return;
             continue :blk 1;
         },
         1 => {
@@ -2852,7 +2852,7 @@ pub fn func_0800EB10() callconv(.c) void {
         2 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], 0x87);
-            if (!abi.call(menu.func_0800E738, 0x0800ED73)) return;
+            if (!menu.refreshTileCellCall(0x0800ED73)) return;
             continue :blk 3;
         },
         3 => {
@@ -2868,7 +2868,7 @@ pub fn func_0800EB10() callconv(.c) void {
         5 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], 0x87);
-            if (!abi.call(menu.func_0800E738, 0x0800ED7D)) return;
+            if (!menu.refreshTileCellCall(0x0800ED7D)) return;
             continue :blk 6;
         },
         6 => {
@@ -2901,7 +2901,7 @@ pub fn func_0800EBFA() callconv(.c) void {
         0 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], 0x87);
-            if (!abi.call(menu.func_0800E738, 0x0800EC01)) return;
+            if (!menu.refreshTileCellCall(0x0800EC01)) return;
             continue :blk 1;
         },
         1 => {
@@ -2922,7 +2922,7 @@ pub fn func_0800EBFA() callconv(.c) void {
         3 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], 0x87);
-            if (!abi.call(menu.func_0800E738, 0x0800ED7D)) return;
+            if (!menu.refreshTileCellCall(0x0800ED7D)) return;
             continue :blk 4;
         },
         4 => {
@@ -2956,7 +2956,7 @@ pub fn func_0800EDF4() callconv(.c) void {
             abi.fetches(6);
             rt.cpuAdd(&rt.r[1], rt.r[5], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x87);
-            if (!abi.call(menu.func_0800E738, 0x0800EDFD)) return;
+            if (!menu.refreshTileCellCall(0x0800EDFD)) return;
             continue :blk 1;
         },
         1 => {
@@ -5751,7 +5751,7 @@ pub fn func_080131E0() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 24);
             abi.setRegNz(&rt.r[5], rt.r[1] >> 24);
             abi.setRegNz(&rt.r[0], 0x0);
-            if (!abi.call(proc.func_08013B70, 0x080131EF)) return;
+            if (!proc.allocProcSlotCall(0x080131EF)) return;
             continue :blk 1;
         },
         1 => {
@@ -6577,7 +6577,7 @@ pub fn func_080171F0() callconv(.c) void {
             pushRegs(&.{ 4, 14 });
             rt.cpuAdd(&rt.r[4], rt.r[0], 0x0, true);
             rt.r[0] = abi.read32(0x08017210);
-            if (!abi.call(proc.func_08013B70, 0x080171FB)) return;
+            if (!proc.allocProcSlotCall(0x080171FB)) return;
             continue :blk 1;
         },
         1 => {

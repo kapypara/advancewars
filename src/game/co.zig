@@ -420,7 +420,7 @@ pub fn func_0801C910() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(low_peel_3.func_08011910, 0x0801C917)) return;
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x0801C91B)) return;
+    if (!hw.markDisplayDirtyCall(0x0801C91B)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0801C924);
     if (!proc.killProcByCallbackCall(0x0801C921)) return;
@@ -549,7 +549,7 @@ pub fn func_0806CD10() callconv(.c) void {
     rt.r[0] = abi.read32((co_id *% 36) +% tbl);
     rt.r[1] = (rt.r[1] << 5) +% (@as(u32, 0xC0) << 19);
     abi.setRegNz(&rt.r[2], @as(u32, 0xC0) << 19);
-    if (!abi.call(hw.func_0800FE18, 0x0806CD2F)) return;
+    if (!hw.syncDisplayRegCall(0x0806CD2F)) return;
 
     abi.fetches(7);
     const co_u16 = co_id & 0xFFFF;
@@ -591,7 +591,7 @@ pub fn func_0806CE84() callconv(.c) void {
     const dst = (tile_idx << 5) +% (@as(u32, 0xC0) << 19);
     rt.r[4] = dst;
     rt.r[1] = dst;
-    if (!abi.call(hw.func_0800FE18, 0x0806CE9F)) return;
+    if (!hw.syncDisplayRegCall(0x0806CE9F)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -627,7 +627,7 @@ pub fn func_0801C55C() callconv(.c) void {
     if (!dma.copyPaletteCall(0x0801C595)) return;
 
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x0801C599)) return;
+    if (!hw.markDisplayDirtyCall(0x0801C599)) return;
 
     abi.fetches(5);
     rt.r[13] +%= 4;

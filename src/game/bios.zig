@@ -8,6 +8,11 @@ const abi = @import("abi.zig");
 /// No-op callback stub (`0x080796A0`).
 pub fn noop() void {}
 
+/// Typed cross-module bridge calling GBA BIOS `Div` (`SWI 0x06`, `func_080796C8`) with exact ABI state.
+pub inline fn divSwiCall(comptime ret_addr: u32) bool {
+    return abi.call(func_080796C8, ret_addr);
+}
+
 pub fn func_080796A0() callconv(.c) void {
     if (!abi.enter(0x080796A0)) return;
     abi.fetches(3);

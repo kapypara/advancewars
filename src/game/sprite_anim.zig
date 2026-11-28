@@ -7,12 +7,23 @@ const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const mem = @import("mem.zig");
 const proc = @import("proc.zig");
 const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
+
+/// Typed cross-module bridge spawning a sprite animator (`func_08012A68`).
+pub inline fn spawnSpriteAnimCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_10.func_08012A68, ret_addr);
+}
+
+/// Typed cross-module bridge updating sprite animator state (`func_08013550`).
+pub inline fn updateSpriteAnimCall(comptime ret_addr: u32) bool {
+    return abi.call(func_08013550, ret_addr);
+}
 
 /// Compute address of animator struct owned by proc `proc_idx` (`(proc.anim_slot) * 0x4C`).
 pub inline fn resolveAnimAddr(proc_base: u32, anim_base: u32, proc_idx: i16) u32 {
@@ -1429,4 +1440,13 @@ test "animator and OAM queue strides match GBA pool layout" {
     try std.testing.expectEqual(@as(u32, 0x0201_192C), mem.oamAttrAddr(1));
     try std.testing.expectEqual(@as(u32, 0x0201_1D24), mem.oamQueueAddr(0));
     try std.testing.expectEqual(@as(u32, 0x0201_1D34), mem.oamQueueAddr(1));
+}
+
+test "sprite_anim typed call bridges have expected inline signatures" {
+    inline for (.{ spawnSpriteAnimCall, updateSpriteAnimCall }) |bridge| {
+        const info = @typeInfo(@TypeOf(bridge)).@"fn";
+        try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
+        try std.testing.expect(info.param_types[0].? == u32);
+        try std.testing.expect(info.return_type.? == bool);
+    }
 }

@@ -32,6 +32,11 @@ const types = @import("types.zig");
 const ui = @import("ui.zig");
 const unit = @import("unit.zig");
 
+/// Typed cross-module bridge refreshing a BG tile cell (`func_0800E738`).
+pub inline fn refreshTileCellCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0800E738, ret_addr);
+}
+
 /// [Phase 4 API — uncalled while func_08018B68 preserves exact loop fetches/flags]
 /// Look up `key` in an `0xFF`-terminated array of 8-byte menu guard entries.
 pub fn lookupGuardTable(entries: []const [8]u8, key: u8, fallback: u8) u8 {
@@ -1027,7 +1032,7 @@ pub fn func_0800E738() callconv(.c) void {
     abi.write32(rt.r[13] +% 4, rt.r[5]);
     rt.r[4] = rt.r[0];
     rt.r[5] = rt.r[1];
-    if (!abi.call(low_peel_3.func_08000D68, 0x0800E743)) return;
+    if (!map.writeTileGridCall(0x0800E743)) return;
     abi.fetches(6);
     rt.r[0] = rt.r[4];
     rt.r[1] = rt.r[5];
@@ -1036,7 +1041,7 @@ pub fn func_0800E738() callconv(.c) void {
     rt.r[2] = rt.r[0];
     rt.r[0] = rt.r[4];
     rt.r[1] = rt.r[5];
-    if (!abi.call(low_peel_3.func_08000D68, 0x0800E755)) return;
+    if (!map.writeTileGridCall(0x0800E755)) return;
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[5] = abi.read32(rt.r[13] +% 4);
@@ -1366,7 +1371,7 @@ pub fn func_08004F44() callconv(.c) void {
     if (!hw.fillTileRectCall(0x08004F71)) return;
 
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x08004F75)) return;
+    if (!hw.markDisplayDirtyCall(0x08004F75)) return;
     abi.fetches(4);
     if (!abi.call(low_peel_1.func_08011824, 0x08004F79)) return;
 
@@ -1713,7 +1718,7 @@ pub fn func_08005794() callconv(.c) void {
     })) return;
 
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x0800581B)) return;
+    if (!hw.markDisplayDirtyCall(0x0800581B)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;
@@ -1749,7 +1754,7 @@ pub fn func_08005840() callconv(.c) void {
     })) return;
 
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x080058A1)) return;
+    if (!hw.markDisplayDirtyCall(0x080058A1)) return;
     abi.fetches(4);
     if (!abi.call(func_08005720, 0x080058A5)) return;
 

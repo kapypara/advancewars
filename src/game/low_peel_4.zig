@@ -945,7 +945,7 @@ pub fn func_08027F7C() callconv(.c) void {
             abi.fetches(6);
             abi.pushLr();
             rt.r[0] = abi.read32(0x08027F94);
-            if (!abi.call(proc.func_08013B70, 0x08027F85)) return;
+            if (!proc.allocProcSlotCall(0x08027F85)) return;
             continue :blk 1;
         },
         1 => {
@@ -4569,7 +4569,7 @@ pub fn func_08036208() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[2], true);
             rt.r[4] = abi.read32(rt.r[0] +% 0x0);
             rt.r[0] = abi.read32(0x08036244);
-            if (!abi.call(proc.func_08013B70, 0x08036225)) return;
+            if (!proc.allocProcSlotCall(0x08036225)) return;
             continue :blk 1;
         },
         1 => {
@@ -4608,7 +4608,7 @@ pub fn func_08036720() callconv(.c) void {
             pushRegs(&.{ 4, 14 });
             rt.cpuAdd(&rt.r[4], rt.r[0], 0x0, true);
             rt.r[0] = abi.read32(0x0803674C);
-            if (!abi.call(proc.func_08013B70, 0x0803672B)) return;
+            if (!proc.allocProcSlotCall(0x0803672B)) return;
             continue :blk 1;
         },
         1 => {
@@ -5279,7 +5279,7 @@ pub fn func_08038BF4() callconv(.c) void {
             abi.fetches(6);
             abi.pushLr();
             rt.r[0] = abi.read32(0x08038C18);
-            if (!abi.call(proc.func_08013B70, 0x08038BFD)) return;
+            if (!proc.allocProcSlotCall(0x08038BFD)) return;
             continue :blk 1;
         },
         1 => {
@@ -5990,7 +5990,7 @@ pub fn func_0803D9B4() callconv(.c) void {
             abi.fetches(6);
             abi.pushLr();
             rt.r[0] = abi.read32(0x0803D9CC);
-            if (!abi.call(proc.func_08013B70, 0x0803D9BD)) return;
+            if (!proc.allocProcSlotCall(0x0803D9BD)) return;
             continue :blk 1;
         },
         1 => {
@@ -7223,7 +7223,7 @@ pub fn func_0803F080() callconv(.c) void {
             abi.fetches(6);
             rt.cpuAdd(&rt.r[0], rt.r[1], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x3);
-            if (!abi.call(bios.func_080796C8, 0x0803F09B)) return;
+            if (!bios.divSwiCall(0x0803F09B)) return;
             continue :blk 4;
         },
         3 => {

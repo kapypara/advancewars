@@ -2115,7 +2115,7 @@ pub fn func_08048B40() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08048B5C);
-    if (!abi.call(proc_mod.func_08013B70, 0x08048B49)) return;
+    if (!proc_mod.allocProcSlotCall(0x08048B49)) return;
 
     abi.fetches(11);
     const inverted: u32 = @bitCast(~abi.signExtend8(@truncate(rt.r[0])));
@@ -3455,7 +3455,7 @@ pub fn func_08018678() callconv(.c) void {
     rt.r[1] = 0;
     rt.r[2] = abi.read32(obj +% 0x18);
     rt.r[3] = abi.read32(0x080186A4);
-    if (!abi.call(low_peel_10.func_08012A68, 0x08018697)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x08018697)) return;
 
     abi.fetches(5);
     rt.r[0] = obj;
@@ -3749,7 +3749,7 @@ pub fn func_08027F30() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(low_peel_3.func_08011910, 0x08027F37)) return;
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x08027F3B)) return;
+    if (!hw.markDisplayDirtyCall(0x08027F3B)) return;
     abi.fetches(4);
     if (!abi.call(func_080220F8, 0x08027F3F)) return;
     abi.fetches(4);
@@ -4249,7 +4249,7 @@ pub fn func_08046D98() callconv(.c) void {
     abi.fetches(4);
     if (!abi.call(low_peel_3.func_08011910, 0x08046DA3)) return;
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x08046DA7)) return;
+    if (!hw.markDisplayDirtyCall(0x08046DA7)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -4341,7 +4341,7 @@ pub fn func_08047944() callconv(.c) void {
     rt.r[1] = @bitCast(abi.signExtend16(abi.read16(sp_x)));
     rt.r[2] = @bitCast(abi.signExtend16(abi.read16(sp_y)));
     rt.r[3] = 0;
-    if (!abi.call(sprite_anim.func_08013550, 0x0804798D)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x0804798D)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 4;
@@ -4515,7 +4515,7 @@ pub fn func_08049C9C() callconv(.c) void {
     rt.r[1] = abi.read32(0x08049CEC);
     rt.r[2] = id;
     rt.r[3] = abi.read32(0x08049CE0);
-    if (!abi.call(hw.func_0800FE18, 0x08049CD1)) return;
+    if (!hw.syncDisplayRegCall(0x08049CD1)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -4539,7 +4539,7 @@ pub fn func_08049D68() callconv(.c) void {
     rt.r[1] = abi.read32(0x08049DA8);
     rt.r[2] = base;
     rt.r[3] = id;
-    if (!abi.call(hw.func_0800FE18, 0x08049D95)) return;
+    if (!hw.syncDisplayRegCall(0x08049D95)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -4658,7 +4658,7 @@ pub fn func_0804C6EC() callconv(.c) void {
     abi.pushLr();
     rt.r[0] = abi.read32(0x0804C708);
     rt.r[1] = abi.read32(0x0804C70C);
-    if (!abi.call(hw.func_0800FE18, 0x0804C6F7)) return;
+    if (!hw.syncDisplayRegCall(0x0804C6F7)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x0804C710);
@@ -5019,7 +5019,7 @@ pub fn func_08051B00() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08051B28);
     rt.r[1] = abi.read32(0x08051B2C);
-    if (!abi.call(hw.func_0800FE18, 0x08051B1D)) return;
+    if (!hw.syncDisplayRegCall(0x08051B1D)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -5115,7 +5115,7 @@ pub fn func_08054BA8() callconv(.c) void {
     rt.r[0] = val;
     rt.r[1] = @bitCast(abi.signExtend16(abi.read16(ent +% 8)));
     rt.r[2] = @bitCast(abi.signExtend16(abi.read16(ent +% 0xA) -% abi.read16(ref_ptr)));
-    if (!abi.call(sprite_anim.func_08013550, 0x08054BE5)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x08054BE5)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -5188,7 +5188,7 @@ pub fn func_08057060() callconv(.c) void {
     rt.r[1] = @bitCast(abi.signExtend16(target_x -% abi.read16(ptr_x)));
     rt.r[2] = @bitCast(abi.signExtend16(target_y -% abi.read16(ptr_y)));
     rt.updateNz(rt.r[2]);
-    if (!abi.call(sprite_anim.func_08013550, 0x080570A7)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x080570A7)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -5317,7 +5317,7 @@ pub fn func_0806CEBC() callconv(.c) void {
     rt.r[6] = vram_base;
     rt.r[0] = abi.read32(idx_off +% abi.read32(0x0806CEF0));
     rt.r[1] = (base_tile << 5) +% vram_base;
-    if (!abi.call(hw.func_0800FE18, 0x0806CED7)) return;
+    if (!hw.syncDisplayRegCall(0x0806CED7)) return;
 
     abi.fetches(11);
     rt.r[5] = idx_off +% abi.read32(0x0806CEF4);
@@ -5325,7 +5325,7 @@ pub fn func_0806CEBC() callconv(.c) void {
     rt.r[4] = (base_tile +% 8) << 5;
     rt.r[4] +%= vram_base;
     rt.r[1] = rt.r[4];
-    if (!abi.call(hw.func_0800FE18, 0x0806CEE9)) return;
+    if (!hw.syncDisplayRegCall(0x0806CEE9)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -5664,7 +5664,7 @@ pub fn func_0802C808() callconv(.c) void {
     abi.fetches(4);
     if (!abi.call(low_peel_3.func_08011910, 0x0802C815)) return;
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x0802C819)) return;
+    if (!hw.markDisplayDirtyCall(0x0802C819)) return;
     abi.fetches(4);
     if (!abi.call(state_mod.func_0803906C, 0x0802C81D)) return;
 
@@ -5934,7 +5934,7 @@ pub fn func_08042084() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(slot_ref)));
     rt.r[1] = @bitCast(abi.signExtend16(abi.read16(sp_base)));
     rt.r[2] = @bitCast(abi.signExtend16(abi.read16(sp_base +% 2) -% 2));
-    if (!abi.call(sprite_anim.func_08013550, 0x080420B1)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x080420B1)) return;
 
     abi.fetches(6);
     rt.r[0] = abi.read32(0x080420CC);
@@ -6001,7 +6001,7 @@ pub fn func_08042FA8() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0);
     rt.r[2] = dst;
     rt.r[3] = src;
-    if (!abi.call(low_peel_10.func_08012A68, 0x08042FEF)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x08042FEF)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;
@@ -6029,7 +6029,7 @@ pub fn func_08043C64() callconv(.c) void {
     const pal_idx = rt.r[1] & 0xFFFF;
     rt.r[0] = abi.read32(0x08043CB0);
     abi.setRegNz(&rt.r[1], (tile_idx << 5) +% abi.read32(0x08043CB4));
-    if (!abi.call(hw.func_0800FE18, 0x08043C81)) return;
+    if (!hw.syncDisplayRegCall(0x08043C81)) return;
 
     abi.fetches(11);
     rt.r[0] = (pal_idx << 6) +% abi.read32(0x08043CB8);
@@ -6120,7 +6120,7 @@ pub fn func_08046564() callconv(.c) void {
     if (!abi.call(low_peel_18.func_0804625C, 0x080465B9)) return;
 
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x080465BD)) return;
+    if (!hw.markDisplayDirtyCall(0x080465BD)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;
@@ -6151,7 +6151,7 @@ pub fn func_08046E24() callconv(.c) void {
     const pal_idx = rt.r[2] & 0xFF;
     rt.r[0] = abi.read32(0x08046E78);
     abi.setRegNz(&rt.r[1], (tile_idx << 5) +% abi.read32(0x08046E7C));
-    if (!abi.call(hw.func_0800FE18, 0x08046E47)) return;
+    if (!hw.syncDisplayRegCall(0x08046E47)) return;
 
     abi.fetches(13);
     abi.write32(rt.r[13], ((pal_bank << 12) | tile_idx) & 0xFFFF);
@@ -6331,7 +6331,7 @@ pub fn func_080496E4() callconv(.c) void {
     const base_tile = rt.r[1] & 0xFFFF;
     rt.r[0] = idx;
     abi.setRegNz(&rt.r[1], 6);
-    if (!abi.call(math.func_0807B564, 0x08049703)) return;
+    if (!math.modSigned32Call(0x08049703)) return;
 
     abi.fetches(17);
     const gfx_src = abi.read32(0x08049750);
@@ -6377,7 +6377,7 @@ pub fn func_08049758() callconv(.c) void {
     const base_tile = rt.r[1] & 0xFFFF;
     rt.r[0] = idx;
     abi.setRegNz(&rt.r[1], 6);
-    if (!abi.call(math.func_0807B564, 0x08049771)) return;
+    if (!math.modSigned32Call(0x08049771)) return;
 
     abi.fetches(14);
     const vram_dst = abi.read32(0x080497B0);
@@ -6451,7 +6451,7 @@ pub fn func_08049CF0() callconv(.c) void {
     const gfx_id = abi.read8(meta_tbl +% (@as(u32, item_id) *% 0xC) +% 0xA);
     rt.r[0] = abi.read32(gfx_tbl +% (@as(u32, gfx_id) << 2));
     rt.r[1] = abi.read32(0x08049D60);
-    if (!abi.call(hw.func_0800FE18, 0x08049D23)) return;
+    if (!hw.syncDisplayRegCall(0x08049D23)) return;
 
     abi.fetches(18);
     const item_id2 = abi.read8(map_arr +% abi.read8(page_ptr));
@@ -6495,7 +6495,7 @@ pub fn func_0804A20C() callconv(.c) void {
     const meta_tbl = abi.read32(0x0804A270);
     rt.r[0] = abi.read32(meta_tbl +% entry_off +% 4);
     rt.r[1] = (slot << 11) +% abi.read32(0x0804A274);
-    if (!abi.call(hw.func_0800FE18, 0x0804A24D)) return;
+    if (!hw.syncDisplayRegCall(0x0804A24D)) return;
 
     abi.fetches(13);
     const pal_id = abi.read8(meta_tbl +% entry_off +% 8);
@@ -6528,13 +6528,13 @@ pub fn func_0804B72C() callconv(.c) void {
     const pal_slot = rt.r[1] & 0xFFFF;
     rt.r[0] = cur_y;
     abi.setRegNz(&rt.r[1], 0x6D);
-    if (!abi.call(battle.func_0802FC70, 0x0804B743)) return;
+    if (!battle.resolveCombatStateCall(0x0804B743)) return;
 
     abi.fetches(9);
     cur_y = (cur_y +% rt.r[0]) & 0xFFFF;
     rt.r[0] = cur_y;
     abi.setRegNz(&rt.r[1], 0x6E);
-    if (!abi.call(battle.func_0802FC70, 0x0804B751)) return;
+    if (!battle.resolveCombatStateCall(0x0804B751)) return;
 
     abi.fetches(17);
     const pal_idx = abi.read8(abi.read32(0x0804B774) +% 0x194);
@@ -6571,7 +6571,7 @@ pub fn func_0804C69C() callconv(.c) void {
     if (!hw.fillTileRectCall(0x0804C6BD)) return;
 
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x0804C6C1)) return;
+    if (!hw.markDisplayDirtyCall(0x0804C6C1)) return;
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0804C6E0);
@@ -6748,19 +6748,19 @@ pub fn func_08050568() callconv(.c) void {
     var y_cur = abi.read32(0x080505DC);
     rt.r[0] = y_cur;
     abi.setRegNz(&rt.r[1], 0x54);
-    if (!abi.call(battle.func_0802FC70, 0x08050599)) return;
+    if (!battle.resolveCombatStateCall(0x08050599)) return;
 
     abi.fetches(10);
     y_cur = (y_cur +% rt.r[0]) & 0xFFFF;
     rt.r[0] = y_cur;
     abi.setRegNz(&rt.r[1], 0x55);
-    if (!abi.call(battle.func_0802FC70, 0x080505A9)) return;
+    if (!battle.resolveCombatStateCall(0x080505A9)) return;
 
     abi.fetches(9);
     y_cur = (y_cur +% rt.r[0]) & 0xFFFF;
     rt.r[0] = y_cur;
     abi.setRegNz(&rt.r[1], 0x56);
-    if (!abi.call(battle.func_0802FC70, 0x080505B7)) return;
+    if (!battle.resolveCombatStateCall(0x080505B7)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x080505E0);
@@ -6771,7 +6771,7 @@ pub fn func_08050568() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x080505E4);
     rt.r[1] = abi.read32(0x080505E8);
-    if (!abi.call(hw.func_0800FE18, 0x080505CB)) return;
+    if (!hw.syncDisplayRegCall(0x080505CB)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -7151,7 +7151,7 @@ pub fn func_080754F4() callconv(.c) void {
 
     rt.r[0] = abi.read32(0x08075538);
     rt.r[1] = abi.read32(0x0807553C);
-    if (!abi.call(hw.func_0800FE18, 0x08075501)) return;
+    if (!hw.syncDisplayRegCall(0x08075501)) return;
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08075540);
@@ -7513,12 +7513,12 @@ pub fn func_08041A80() callconv(.c) void {
     const tile_base = abi.read32(0x08041B74);
     rt.r[0] = tile_base;
     abi.setRegNz(&rt.r[1], 0x38);
-    if (!abi.call(battle.func_0802FC70, 0x08041AA3)) return;
+    if (!battle.resolveCombatStateCall(0x08041AA3)) return;
 
     abi.fetches(8);
     rt.r[0] = (rt.r[0] +% tile_base) & 0xFFFF;
     abi.setRegNz(&rt.r[1], 0x3B);
-    if (!abi.call(battle.func_0802FC70, 0x08041AAF)) return;
+    if (!battle.resolveCombatStateCall(0x08041AAF)) return;
 
     abi.fetches(9);
     const idx_ptr = abi.read32(0x08041B78);
@@ -7529,7 +7529,7 @@ pub fn func_08041A80() callconv(.c) void {
     abi.fetches(7);
     rt.r[0] = tile_base +% 0x1F;
     abi.setRegNz(&rt.r[1], 0x19);
-    if (!abi.call(battle.func_0802FC70, 0x08041AC7)) return;
+    if (!battle.resolveCombatStateCall(0x08041AC7)) return;
 
     const lz_pairs = [_]struct { src: u32, dst: u32, ret: u32 }{
         .{ .src = 0x08041B7C, .dst = 0x08041B80, .ret = 0x08041ACF },
@@ -7574,7 +7574,7 @@ pub fn func_08041A80() callconv(.c) void {
     rt.r[1] = 5;
     rt.r[2] = txt_dst;
     rt.r[3] = abi.read32(title_tbl +% (@as(u32, title_idx) << 2));
-    if (!abi.call(low_peel_10.func_08012A68, 0x08041B39)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x08041B39)) return;
 
     abi.fetches(10);
     abi.write32(rt.r[13], 0x8000);
@@ -7583,7 +7583,7 @@ pub fn func_08041A80() callconv(.c) void {
     rt.r[1] = 5;
     rt.r[2] = txt_dst;
     rt.r[3] = abi.read32(0x08041BA8);
-    if (!abi.call(low_peel_10.func_08012A68, 0x08041B49)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x08041B49)) return;
 
     abi.fetches(10);
     abi.write32(rt.r[13], 0x8000);
@@ -7592,7 +7592,7 @@ pub fn func_08041A80() callconv(.c) void {
     rt.r[1] = 5;
     rt.r[2] = txt_dst;
     rt.r[3] = abi.read32(0x08041BAC);
-    if (!abi.call(low_peel_10.func_08012A68, 0x08041B59)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x08041B59)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_15.func_08041428, 0x08041B5D)) return;
@@ -7742,7 +7742,7 @@ pub fn func_0804901C() callconv(.c) void {
     const mod_hi_x2 = (rt.r[0] & 0x7FFF) << 1;
     rt.r[0] = val;
     abi.setRegNz(&rt.r[1], 6);
-    if (!abi.call(math.func_0807B564, 0x08049043)) return;
+    if (!math.modSigned32Call(0x08049043)) return;
 
     abi.fetches(49);
     const rem_idx = rt.r[0] & 0xFFFF;
@@ -7874,7 +7874,7 @@ pub fn func_0804C7C0() callconv(.c) void {
     rt.r[1] = row;
     rt.r[2] = dst;
     rt.r[3] = abi.read32(entry_base);
-    if (!abi.call(low_peel_10.func_08012A68, 0x0804C807)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x0804C807)) return;
 
     abi.fetches(15);
     abi.write32(rt.r[13], pal_bits);
@@ -7892,7 +7892,7 @@ pub fn func_0804C7C0() callconv(.c) void {
     rt.r[1] = row;
     rt.r[2] = dst;
     rt.r[3] = abi.read32(0x0804C848);
-    if (!abi.call(low_peel_10.func_08012A68, 0x0804C835)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x0804C835)) return;
 
     abi.fetches(10);
     rt.r[13] +%= 8;
@@ -8059,7 +8059,7 @@ pub fn func_08050EB4() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08050F44);
     rt.r[1] = abi.read32(0x08050F48);
-    if (!abi.call(hw.func_0800FE18, 0x08050F39)) return;
+    if (!hw.syncDisplayRegCall(0x08050F39)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -8268,7 +8268,7 @@ pub fn func_080402D4() callconv(.c) void {
     rt.r[4] = dst;
     rt.r[0] = src;
     rt.r[1] = dst;
-    if (!abi.call(hw.func_0800FE18, 0x08040303)) return;
+    if (!hw.syncDisplayRegCall(0x08040303)) return;
 
     abi.fetches(3 + 3);
     rt.r[4] = abi.popReg();
@@ -8310,7 +8310,7 @@ pub fn func_080501DC() callconv(.c) void {
     rt.r[0] = base_val;
     rt.r[1] = ((raw_b << 16) +% (0x9C << 15)) >> 16;
     rt.updateNz(rt.r[1]);
-    if (!abi.call(battle.func_0802FC70, 0x080501F5)) return;
+    if (!battle.resolveCombatStateCall(0x080501F5)) return;
 
     abi.fetches(3 + 6);
     const sum = (base_val +% rt.r[0]) & 0xFFFF;
@@ -8318,7 +8318,7 @@ pub fn func_080501DC() callconv(.c) void {
     rt.r[0] = sum;
     abi.setRegNz(&rt.r[1], 0x57);
     abi.fetches(3);
-    if (!abi.call(battle.func_0802FC70, 0x08050203)) return;
+    if (!battle.resolveCombatStateCall(0x08050203)) return;
 
     abi.fetches(3 + 3 + 4);
     rt.r[4] = abi.popReg();

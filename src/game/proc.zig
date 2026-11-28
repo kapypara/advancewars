@@ -30,6 +30,11 @@ pub inline fn clearProcSlotCall(comptime ret_addr: u32) bool {
     return abi.call(low_peel_1.func_08013BD0, ret_addr);
 }
 
+/// Typed cross-module bridge allocating/initing a proc slot (`func_08013B70`) with exact ABI state.
+pub inline fn allocProcSlotCall(comptime ret_addr: u32) bool {
+    return abi.call(func_08013B70, ret_addr);
+}
+
 /// Typed cross-module bridge spawning a proc (`func_0801320C`) with exact ABI state.
 pub inline fn spawnProcCall(comptime ret_addr: u32) bool {
     return abi.call(low_peel_6.func_0801320C, ret_addr);
@@ -1780,7 +1785,7 @@ test "proc and script slot address helpers match GBA strides" {
 }
 
 test "proc typed call bridges have expected inline signatures" {
-    inline for (.{ clearProcSlotCall, spawnProcCall, killProcByCallbackCall }) |bridge| {
+    inline for (.{ clearProcSlotCall, allocProcSlotCall, spawnProcCall, killProcByCallbackCall }) |bridge| {
         const info = @typeInfo(@TypeOf(bridge)).@"fn";
         try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
         try std.testing.expect(info.param_types[0].? == u32);

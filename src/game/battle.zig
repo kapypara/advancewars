@@ -39,6 +39,11 @@ const types = @import("types.zig");
 const ui = @import("ui.zig");
 const unit = @import("unit.zig");
 
+/// Typed cross-module bridge resolving combat state (`func_0802FC70`).
+pub inline fn resolveCombatStateCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0802FC70, ret_addr);
+}
+
 /// [Phase 4 API — uncalled while GBA_VALIDATE requires bios.func_080796C8 SWI 0x06 Div]
 /// Compute raw scaled battle HP damage: `((100 - defense_pct) * base_damage) / 100`.
 pub inline fn computeScaledDamage(defense_pct: i32, base_damage: i32) i32 {
@@ -116,7 +121,7 @@ pub fn func_080234A0() callconv(.c) void {
     rt.r[0] = @bitCast((100 -% @as(i32, def_ctx.defense_pct)) *% @as(i32, atk_ctx.attack_power));
     rt.r[2] = 0xC;
     abi.setRegNz(&rt.r[1], 100);
-    if (!abi.call(bios.func_080796C8, 0x080234B9)) return;
+    if (!bios.divSwiCall(0x080234B9)) return;
 
     abi.fetches(12);
     const dmg = rt.r[0];
@@ -163,7 +168,7 @@ pub fn func_080234CC() callconv(.c) void {
     const cpower: i32 = mem.readI16(def +% cp_off);
     abi.setRegNz(&rt.r[0], @bitCast(eff_hp *% cpower));
     abi.setRegNz(&rt.r[1], 100);
-    if (!abi.call(bios.func_080796C8, 0x080234F7)) return;
+    if (!bios.divSwiCall(0x080234F7)) return;
 
     abi.fetches(7);
     mem.writeU16(def +% @offsetOf(types.BattleSideCtx, "attack_power"), @truncate(rt.r[0]));
@@ -1565,7 +1570,7 @@ pub fn func_0802E558() callconv(.c) void {
     if (!hw.fillTileRectCall(0x0802E595)) return;
 
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x0802E599)) return;
+    if (!hw.markDisplayDirtyCall(0x0802E599)) return;
     abi.fetches(4);
     if (!abi.call(low_peel_1.func_08011824, 0x0802E59D)) return;
 
@@ -3067,7 +3072,7 @@ pub fn func_08052410() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(slot_ptr)));
     rt.r[1] = @bitCast(abi.signExtend16(abi.read16(pos_entry +% 4)));
     rt.r[2] = @bitCast(abi.signExtend16(abi.read16(pos_entry +% 0xA)));
-    if (!abi.call(sprite_anim.func_08013550, 0x080524F5)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x080524F5)) return;
 
     abi.fetches(10);
     rt.r[13] +%= 8;
@@ -3710,7 +3715,7 @@ pub fn func_08055E48() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(slot_ref)));
     rt.r[1] = @bitCast(abi.signExtend16(abi.read16(p_entry +% 8)));
     rt.r[2] = @bitCast(abi.signExtend16(abi.read16(p_entry +% 0xA)));
-    if (!abi.call(sprite_anim.func_08013550, 0x08056003)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x08056003)) return;
 
     abi.fetches(10);
     rt.r[13] +%= 8;
@@ -3763,7 +3768,7 @@ pub fn func_08056048() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(slot_ref)));
     rt.r[1] = @bitCast(abi.signExtend16(nx));
     rt.r[2] = @bitCast(abi.signExtend16(ny -% abi.read16(off_y_ptr)));
-    if (!abi.call(sprite_anim.func_08013550, 0x080560D5)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x080560D5)) return;
 
     abi.fetches(8);
     popCalleeRegs(false, 2);
@@ -3862,7 +3867,7 @@ pub fn func_08056994() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(slot_ref)));
     rt.r[1] = @bitCast(abi.signExtend16(abi.read16(p_entry2 +% 8)));
     rt.r[2] = @bitCast(abi.signExtend16(abi.read16(p_entry2 +% 0xA)));
-    if (!abi.call(sprite_anim.func_08013550, 0x08056BBB)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x08056BBB)) return;
 
     abi.fetches(29);
     const side3 = abi.read16(side_ref);
@@ -4415,7 +4420,7 @@ pub fn func_08027B7C() callconv(.c) void {
     rt.r[1] = sx;
     rt.r[2] = sy;
     rt.updateNz(sy);
-    if (!abi.call(sprite_anim.func_08013550, 0x08027BF1)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x08027BF1)) return;
 
     abi.fetches(5);
     rt.r[0] = slot;

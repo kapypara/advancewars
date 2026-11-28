@@ -684,7 +684,7 @@ fn run08041F50(start_block: u32) void {
     rt.r[1] = abi.read32(0x08041F8C);
     rt.cpuAdd(&rt.r[4], rt.r[4], rt.r[1], true);
     abi.copyRegFlags(&rt.r[1], rt.r[4]);
-    if (!abi.call(hw.func_0800FE18, 0x08041F7D)) return;
+    if (!hw.syncDisplayRegCall(0x08041F7D)) return;
     abi.fetches(5);
     rt.r[4] = abi.popReg();
     popReturnTo(0);
@@ -737,7 +737,7 @@ fn run080501DC(start_block: u32) void {
         },
         3 => {
             abi.fetches(3);
-            if (!abi.call(battle.func_0802FC70, 0x08050203)) return;
+            if (!battle.resolveCombatStateCall(0x08050203)) return;
             continue :blk 4;
         },
         4 => {
@@ -1238,7 +1238,7 @@ pub fn func_08027B7E() callconv(.c) void {
     abi.copyRegFlags(&rt.r[0], rt.r[4]);
     abi.copyRegFlags(&rt.r[1], rt.r[6]);
     rt.r[2] = rt.r[8];
-    if (!abi.call(sprite_anim.func_08013550, 0x08027BF1)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x08027BF1)) return;
     abi.fetches(5);
     abi.copyRegFlags(&rt.r[0], rt.r[4]);
     if (!abi.call(proc.func_080147B8, 0x08027BF7)) return;

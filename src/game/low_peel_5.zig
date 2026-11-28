@@ -443,7 +443,7 @@ pub fn func_080451DC() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(low_peel_1.func_08011804, 0x0804520D)) return;
+            if (!hw.markDisplayDirtyCall(0x0804520D)) return;
             continue :blk 4;
         },
         4 => {
@@ -1744,7 +1744,7 @@ pub fn func_0804F6E8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804F71C);
             rt.r[1] = abi.read32(0x0804F720);
-            if (!abi.call(hw.func_0800FE18, 0x0804F705)) return;
+            if (!hw.syncDisplayRegCall(0x0804F705)) return;
             continue :blk 4;
         },
         3 => {
@@ -4430,7 +4430,7 @@ pub fn func_0806A45C() callconv(.c) void {
             abi.fetches(6);
             abi.pushLr();
             rt.r[0] = abi.read32(0x0806A47C);
-            if (!abi.call(proc.func_08013B70, 0x0806A465)) return;
+            if (!proc.allocProcSlotCall(0x0806A465)) return;
             continue :blk 1;
         },
         1 => {
@@ -5579,7 +5579,7 @@ pub fn func_0806E95C() callconv(.c) void {
         1 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x0806E98C);
-            if (!abi.call(proc.func_08013B70, 0x0806E971)) return;
+            if (!proc.allocProcSlotCall(0x0806E971)) return;
             continue :blk 2;
         },
         2 => {

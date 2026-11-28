@@ -820,7 +820,7 @@ pub fn func_08028D24() callconv(.c) void {
     rt.r[0] = slot;
     rt.r[1] = @bitCast(abi.signExtend16(dx));
     rt.r[2] = @bitCast(abi.signExtend16(dy));
-    if (!abi.call(sprite_anim.func_08013550, 0x08028D53)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x08028D53)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1297,7 +1297,7 @@ pub fn func_08028D64() callconv(.c) void {
     rt.r[0] = slot_idx;
     rt.r[1] = dx;
     rt.r[2] = dy;
-    if (!abi.call(sprite_anim.func_08013550, 0x08028DB3)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x08028DB3)) return;
 
     abi.fetches(6);
     rt.r[0] = rt.r[13] +% 4;

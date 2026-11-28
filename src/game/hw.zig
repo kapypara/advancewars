@@ -37,6 +37,16 @@ pub inline fn fillTileRectCall(comptime ret_addr: u32) bool {
     return abi.call(func_08010C70, ret_addr);
 }
 
+/// Typed cross-module bridge syncing GBA display control shadow registers (`func_0800FE18`).
+pub inline fn syncDisplayRegCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0800FE18, ret_addr);
+}
+
+/// Typed cross-module bridge marking the active display state dirty (`func_08011804`).
+pub inline fn markDisplayDirtyCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_1.func_08011804, ret_addr);
+}
+
 /// Poll GBA `KEYINPUT` (or replay stream when `battle_ui_state+0x32 != 0`) and update `key_state` (`0x0801122C`).
 pub fn func_0801122C() callconv(.c) void {
     if (!abi.enter(0x0801122C)) return;
@@ -1877,7 +1887,7 @@ test "register literal pool tables are sorted and contiguous in ROM" {
 }
 
 test "hw typed call bridges have expected inline signatures" {
-    inline for (.{ drawDispatchCall, fillTileRectCall }) |bridge| {
+    inline for (.{ drawDispatchCall, fillTileRectCall, syncDisplayRegCall, markDisplayDirtyCall }) |bridge| {
         const info = @typeInfo(@TypeOf(bridge)).@"fn";
         try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
         try std.testing.expect(info.param_types[0].? == u32);

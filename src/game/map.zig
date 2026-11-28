@@ -31,6 +31,26 @@ const unit = @import("unit.zig");
 /// Blank tile index (`0xBA << 1`) written into BG tilemap buffers (`0x0201_3340`).
 pub const blank_tile_entry: u16 = 0x0174;
 
+/// Typed cross-module bridge writing into a map tile grid layer (`func_08000D68`).
+pub inline fn writeTileGridCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_3.func_08000D68, ret_addr);
+}
+
+/// Typed cross-module bridge reading from a map tile grid layer (`func_08000E04`).
+pub inline fn readTileGridCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_3.func_08000E04, ret_addr);
+}
+
+/// Typed cross-module bridge querying a map tile attribute (`func_080011E4`).
+pub inline fn queryTileAttrCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_6.func_080011E4, ret_addr);
+}
+
+/// Typed cross-module bridge updating a tile overlay grid cell (`func_0800E698`).
+pub inline fn updateTileOverlayCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_10.func_0800E698, ret_addr);
+}
+
 /// Convert tile coordinate (`16px` per map cell) to pixel coordinate.
 pub inline fn tileToPx(tile: u16) u16 {
     return tile << 4;
@@ -1039,7 +1059,7 @@ pub fn func_080203E8() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(low_peel_3.func_08011910, 0x080203EF)) return;
     abi.fetches(4);
-    if (!abi.call(low_peel_1.func_08011804, 0x080203F3)) return;
+    if (!hw.markDisplayDirtyCall(0x080203F3)) return;
     abi.fetches(4);
     if (!abi.call(low_peel_7.func_08020190, 0x080203F7)) return;
     abi.fetches(4);
@@ -1831,4 +1851,13 @@ test "wrapped 2x2 tilemap offset wraps inside 16x16 meta-grid" {
     try std.testing.expectEqual(@as(u32, 0), wrappedTilemapByteOffset(4, 5, 4, 5));
     try std.testing.expectEqual(@as(u32, (2 << 2) + (3 << 7)), wrappedTilemapByteOffset(6, 8, 4, 5));
     try std.testing.expectEqual(@as(u32, (15 << 2)), wrappedTilemapByteOffset(3, 5, 4, 5));
+}
+
+test "map typed call bridges have expected inline signatures" {
+    inline for (.{ writeTileGridCall, readTileGridCall, queryTileAttrCall, updateTileOverlayCall }) |bridge| {
+        const info = @typeInfo(@TypeOf(bridge)).@"fn";
+        try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
+        try std.testing.expect(info.param_types[0].? == u32);
+        try std.testing.expect(info.return_type.? == bool);
+    }
 }

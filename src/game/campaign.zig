@@ -1112,7 +1112,7 @@ pub fn func_0803C5CC() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 7);
     rt.r[2] = dst;
     rt.r[3] = abi.read32(tbl +% entry_off1 +% 4);
-    if (!abi.call(low_peel_10.func_08012A68, 0x0803C611)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x0803C611)) return;
 
     abi.fetches(17);
     const entry_off2 = @as(u32, abi.read8(ptr_arg)) *% 0x70;
@@ -1122,7 +1122,7 @@ pub fn func_0803C5CC() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0xD);
     rt.r[2] = dst;
     rt.r[3] = abi.read32(tbl +% entry_off2 +% 8);
-    if (!abi.call(low_peel_10.func_08012A68, 0x0803C62F)) return;
+    if (!sprite_anim.spawnSpriteAnimCall(0x0803C62F)) return;
 
     abi.fetches(9);
     rt.r[13] +%= 8;
@@ -1183,7 +1183,7 @@ pub fn func_0803CCD0() callconv(.c) void {
 
     const card_id = rt.r[0] & 0xFF;
     rt.r[0] = abi.read32(0x0803CD30);
-    if (!abi.call(proc.func_08013B70, 0x0803CCE3)) return;
+    if (!proc.allocProcSlotCall(0x0803CCE3)) return;
 
     abi.fetches(11);
     const slot_i32 = abi.signExtend8(@truncate(rt.r[0]));
@@ -1235,7 +1235,7 @@ pub fn func_0803CD40() callconv(.c) void {
 
     const card_id = rt.r[0] & 0xFF;
     rt.r[0] = abi.read32(0x0803CD7C);
-    if (!abi.call(proc.func_08013B70, 0x0803CD4F)) return;
+    if (!proc.allocProcSlotCall(0x0803CD4F)) return;
 
     abi.fetches(7);
     const ctx = abi.read32(0x0803CD80);
@@ -1928,7 +1928,7 @@ pub fn func_0803B548() callconv(.c) void {
     rt.r[0] = slot;
     rt.r[1] = @bitCast(sx);
     abi.setRegNz(&rt.r[2], 0x50);
-    if (!abi.call(sprite_anim.func_08013550, 0x0803B5A3)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x0803B5A3)) return;
 
     abi.fetches(5);
     rt.r[0] = slot;
@@ -2101,7 +2101,7 @@ pub fn func_0803D680() callconv(.c) void {
     rt.r[1] = 0xAA;
     rt.r[2] = 0x20;
     rt.updateNz(0x20);
-    if (!abi.call(sprite_anim.func_08013550, 0x0803D6C9)) return;
+    if (!sprite_anim.updateSpriteAnimCall(0x0803D6C9)) return;
 
     abi.fetches(5);
     rt.r[0] = slot;
