@@ -5,7 +5,11 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const bios = @import("bios.zig");
+const dma = @import("dma.zig");
 const mem = @import("mem.zig");
+const proc = @import("proc.zig");
+const sound = @import("sound.zig");
 const types = @import("types.zig");
 
 /// Entity slot byte stride at `*[0x0828_2CBC]`.
@@ -447,7 +451,7 @@ pub fn func_08026A1C() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08026A2C);
-    if (!abi.call(decls.func_08013BA0, 0x08026A25)) return;
+    if (!abi.call(proc.func_08013BA0, 0x08026A25)) return;
     abi.fetches(6);
     const val: u32 = @as(u8, @truncate(rt.r[0]));
     const lr_val = abi.read32(rt.r[13]);
@@ -677,7 +681,7 @@ pub fn func_0801B8D4() callconv(.c) void {
     rt.r[0] = abi.read32(0x0801B908);
     rt.r[1] = (slot_bits << 14) +% 0x0600_0000;
     abi.setRegNz(&rt.r[2], 0x500);
-    if (!abi.call(decls.func_0800FFA8, 0x0801B901)) return;
+    if (!abi.call(dma.func_0800FFA8, 0x0801B901)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -775,7 +779,7 @@ pub fn func_0801F7B0() callconv(.c) void {
     rt.r[0] = src;
     rt.r[1] = dst;
     abi.setRegNz(&rt.r[2], 0x1000);
-    if (!abi.call(decls.func_0800FDA4, 0x0801F7DD)) return;
+    if (!abi.call(dma.func_0800FDA4, 0x0801F7DD)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1304,7 +1308,7 @@ pub fn func_08028D64() callconv(.c) void {
 
     abi.fetches(5);
     rt.r[0] = 0x10;
-    if (!abi.call(decls.func_0803D880, 0x08028DF3)) return;
+    if (!abi.call(sound.func_0803D880, 0x08028DF3)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 0xC;
@@ -1509,7 +1513,7 @@ fn uploadUnitCardTiles(
     rt.r[0] = base_ptr +% tile_off;
     rt.r[1] = dst_off +% abi.read32(pools[4] + 4);
     rt.r[2] = dma_len;
-    if (!abi.call(decls.func_0800FFA8, ret_addr)) return;
+    if (!abi.call(dma.func_0800FFA8, ret_addr)) return;
 
     abi.fetches(if (mode == .mini_icon) 5 else 7);
     if (mode != .mini_icon) {
@@ -1632,13 +1636,13 @@ pub fn func_0805E808() callconv(.c) void {
     rt.r[0] = abi.read32(0x0805E83C);
     rt.r[1] = 0xC0 << 19;
     rt.r[2] = 0xB0 << 3;
-    if (!abi.call(decls.func_080796C0, 0x0805E819)) return;
+    if (!abi.call(bios.func_080796C0, 0x0805E819)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x0805E840);
     rt.r[1] = 0xA0 << 19;
     rt.r[2] = 8;
-    if (!abi.call(decls.func_080796C0, 0x0805E825)) return;
+    if (!abi.call(bios.func_080796C0, 0x0805E825)) return;
 
     abi.fetches(7);
     rt.r[4] = abi.read32(0x0805E844);
@@ -1704,7 +1708,7 @@ pub fn func_0805E930() callconv(.c) void {
     rt.r[0] = abi.read32(0x0805E954);
     rt.r[1] = abi.read32(0x0805E958);
     rt.r[2] = 0x10;
-    if (!abi.call(decls.func_080796C0, 0x0805E94F)) return;
+    if (!abi.call(bios.func_080796C0, 0x0805E94F)) return;
     abi.fetches(4);
     abi.popReturn();
 }

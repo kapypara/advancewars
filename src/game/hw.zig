@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const bios = @import("bios.zig");
 const dma = @import("dma.zig");
 const mem = @import("mem.zig");
 const types = @import("types.zig");
@@ -83,7 +84,7 @@ pub fn func_0801129C() callconv(.c) void {
         rt.r[0] = types.addr.palette_shadow_buf;
         abi.setRegNz(&rt.r[1], types.addr.pal_ram);
         abi.setRegNz(&rt.r[2], types.pal_ram_size);
-        if (!abi.call(decls.func_0800FDA4, 0x080112B5)) return;
+        if (!abi.call(dma.func_0800FDA4, 0x080112B5)) return;
     }
 
     abi.fetches(4);
@@ -126,7 +127,7 @@ pub fn func_080112C0() callconv(.c) void {
         rt.r[0] = types.addr.palette_shadow_buf;
         abi.setRegNz(&rt.r[1], types.addr.pal_ram);
         abi.setRegNz(&rt.r[2], types.pal_ram_size);
-        if (!abi.call(decls.func_0800FDA4, 0x080112DD)) return;
+        if (!abi.call(dma.func_0800FDA4, 0x080112DD)) return;
         abi.fetches(3);
     } else {
         abi.fetches(6);
@@ -139,7 +140,7 @@ pub fn func_080112C0() callconv(.c) void {
             rt.r[0] = types.addr.palette_shadow_buf;
             abi.setRegNz(&rt.r[1], types.addr.pal_ram);
             abi.setRegNz(&rt.r[2], types.pal_ram_size);
-            if (!abi.call(decls.func_0800FFA8, 0x080112FF)) return;
+            if (!abi.call(dma.func_0800FFA8, 0x080112FF)) return;
             abi.fetches(4);
             abi.setRegNz(&rt.r[0], 1);
             mem.writeU8(types.addr.palette_synced_flag, 1);
@@ -837,7 +838,7 @@ fn uploadBgTileSliceFFA8(
     rt.r[0] = abi.read32(tbl +% (idx << 5)) +% dst_off;
     rt.r[1] = src_off +% abi.read32(dst_base_ref);
     abi.setRegNz(&rt.r[2], @as(u32, 0x80) << count_shift);
-    if (!abi.call(decls.func_0800FFA8, ret_addr)) return;
+    if (!abi.call(dma.func_0800FFA8, ret_addr)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -890,7 +891,7 @@ pub fn func_08052AB4() callconv(.c) void {
     rt.r[4] = tbl +% (sub +% slot);
     rt.r[0] = abi.read32(rt.r[4]);
     rt.r[2] = (rt.r[2] << 9) >> 11;
-    if (!abi.call(decls.func_080796C0, 0x08052AD5)) return;
+    if (!abi.call(bios.func_080796C0, 0x08052AD5)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1000,7 +1001,7 @@ pub fn func_0806CC18() callconv(.c) void {
     rt.r[3] = (slot | 0x10000) +% 0x0600_0000;
     rt.r[1] = rt.r[3];
     abi.setRegNz(&rt.r[2], 0x100);
-    if (!abi.call(decls.func_0800FFA8, 0x0806CC3F)) return;
+    if (!abi.call(dma.func_0800FFA8, 0x0806CC3F)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1028,7 +1029,7 @@ pub fn func_0806CC78() callconv(.c) void {
     rt.r[0] = abi.read32(0x0806CCA0);
     rt.r[1] = (slot | 0x10000) +% 0x0600_0000;
     abi.setRegNz(&rt.r[2], 0x580);
-    if (!abi.call(decls.func_0800FFA8, 0x0806CC97)) return;
+    if (!abi.call(dma.func_0800FFA8, 0x0806CC97)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1490,7 +1491,7 @@ pub fn func_0800FDDC() callconv(.c) void {
     rt.r[1] = src;
     rt.r[2] = len16;
     rt.updateNz(len16);
-    if (!abi.call(decls.func_0800FDA4, 0x0800FE07)) return;
+    if (!abi.call(dma.func_0800FDA4, 0x0800FE07)) return;
 
     abi.fetches(5);
     rt.r[0] = tmp;

@@ -61,6 +61,10 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
 
 ## Phase 4 — Cross-Module Direct Calls & ABI Bridge Removal
 - **Objective:** Import refactored subsystems directly between `src/game/` modules, call typed Zig functions instead of `decls.func_XXXXXXXX()`, and delete obsolete `func_08XXXXXX` wrappers and `rt.r[..]` shuffling.
+  - [x] **4A — Core Engine & Runtime Module Graph (`build.zig`, `core.zig`, `hw.zig`, `main_loop.zig`, `unit.zig`, `battle.zig`, `proc.zig`, `sound.zig`, `math.zig`):** Consolidate `math.zig`, `main_loop.zig`, `sound.zig`, and `proc.zig` into `core.zig` and replace cross-module `decls.*` calls (DMA, BIOS, HW, Sound, Proc) with direct Zig module calls.
+  - [ ] **4B — Gameplay Domain Module Graph (`map.zig`, `co.zig`, `sprite_anim.zig`, `state.zig`):** Consolidate `map.zig`, `co.zig`, `sprite_anim.zig`, and `state.zig` into `core.zig` and rewire cross-module `decls.*` calls to direct Zig imports.
+  - [ ] **4C — High-Level UI, Turn, Menu & Campaign Graph (`turn.zig`, `menu.zig`, `campaign.zig`):** Consolidate `turn.zig`, `menu.zig`, and `campaign.zig` into `core.zig` and rewire cross-module `decls.*` calls to direct Zig imports.
+  - [ ] **4D — Typed Zig API Extraction & Wrapper Cleanup (`battle.zig`, `dma.zig`, `menu.zig`, `decls.zig`):** Expose clean typed Zig call paths across core modules and prune redundant ABI bridge entries where safe.
 
 ## Phase 5 — Hardware Decoupling
 - **Objective:** Replace direct GBA MMIO (`0x0400_0000`) register writes and PPU frame-lock loops with native rendering, audio, and input interfaces so the game can eventually run independent of GBA hardware emulation.

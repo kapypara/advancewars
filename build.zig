@@ -54,6 +54,10 @@ fn isStandaloneGameFile(name: []const u8) bool {
         "bios.zig",
         "dma.zig",
         "hw.zig",
+        "math.zig",
+        "main_loop.zig",
+        "sound.zig",
+        "proc.zig",
         "unit.zig",
         "battle.zig",
     };

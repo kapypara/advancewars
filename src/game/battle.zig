@@ -6,8 +6,10 @@ const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
+const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
+const sound = @import("sound.zig");
 const types = @import("types.zig");
 const unit = @import("unit.zig");
 
@@ -392,7 +394,7 @@ pub fn func_08027E18() callconv(.c) void {
     rt.r[0] = (@as(u32, src_idx) << 9) +% abi.read32(0x08027E38);
     rt.r[1] = (@as(u32, dst_idx) << 9) +% abi.read32(0x08027E3C);
     abi.setRegNz(&rt.r[2], 0x200);
-    if (!abi.call(decls.func_0800FFA8, 0x08027E33)) return;
+    if (!abi.call(dma.func_0800FFA8, 0x08027E33)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -927,7 +929,7 @@ pub fn func_0802F5C4() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0x76);
-    if (!abi.call(decls.func_0803D880, 0x0802F5CD)) return;
+    if (!abi.call(sound.func_0803D880, 0x0802F5CD)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_0802C694, 0x0802F5D1)) return;
     abi.fetches(4);
@@ -979,7 +981,7 @@ pub fn func_0802FC70() callconv(.c) void {
     rt.r[4] = entry;
     rt.r[5] = h;
     rt.updateNz(rt.r[2]);
-    if (!abi.call(decls.func_0800FDA4, 0x0802FCA1)) return;
+    if (!abi.call(dma.func_0800FDA4, 0x0802FCA1)) return;
 
     abi.fetches(9);
     const w2 = abi.read8(entry +% 2);
@@ -1057,7 +1059,7 @@ pub fn func_08030DC8() callconv(.c) void {
     rt.r[4] = idx << 1;
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(rt.r[13] +% (idx << 1))));
     rt.r[1] = 0;
-    if (!abi.call(decls.func_0803D880, 0x08030DEB)) return;
+    if (!abi.call(sound.func_0803D880, 0x08030DEB)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;
@@ -1178,7 +1180,7 @@ pub fn func_0806A2D0() callconv(.c) void {
     rt.r[0] = abi.read32(0x0806A2F4);
     rt.r[1] = abi.read32(0x0806A2F8);
     abi.setRegNz(&rt.r[2], @as(u32, 0xFC) << 5);
-    if (!abi.call(decls.func_0800FFA8, 0x0806A2DF)) return;
+    if (!abi.call(dma.func_0800FFA8, 0x0806A2DF)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x0806A2FC);
@@ -1679,7 +1681,7 @@ pub fn func_0802EC3C() callconv(.c) void {
 
     abi.fetches(5);
     rt.r[0] = 0x65;
-    if (!abi.call(decls.func_0803D880, 0x0802EC95)) return;
+    if (!abi.call(sound.func_0803D880, 0x0802EC95)) return;
 
     abi.fetches(6);
     rt.r[0] = abi.read8(abi.read32(0x0802ECBC));
@@ -3490,7 +3492,7 @@ pub fn func_08054A5C() callconv(.c) void {
     rt.r[0] = abi.read32(gfx_tbl +% (@as(u32, pal_lut) *% 12));
     rt.r[1] = tile_dst_off +% abi.read32(0x08054B98);
     rt.r[2] = 0x400;
-    if (!abi.call(decls.func_080796C0, 0x08054B15)) return;
+    if (!abi.call(bios.func_080796C0, 0x08054B15)) return;
 
     abi.fetches(12);
     const sub_tbl = abi.read32(0x08054B9C);

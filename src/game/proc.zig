@@ -7,6 +7,7 @@ const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
 const mem = @import("mem.zig");
+const sound = @import("sound.zig");
 const types = @import("types.zig");
 
 /// Tick proc slot `u8(r0)` if its active bit (`flags & 1`) is set (`0x08013984`).
@@ -889,7 +890,7 @@ pub fn func_080140A0() callconv(.c) void {
 /// Proc script opcode: play sound effect `i16(half4)` via `0x0803D880` (`0x080140D0`).
 pub fn func_080140D0() callconv(.c) void {
     if (!abi.enter(0x080140D0)) return;
-    runProcScriptStep(0x080140FC, .sext16_4_r0, decls.func_0803D880, 0, 0x080140ED);
+    runProcScriptStep(0x080140FC, .sext16_4_r0, sound.func_0803D880, 0, 0x080140ED);
 }
 
 /// Proc script opcode: spawn menu proc `0x0800F71C(half4)` (`0x08014100`).

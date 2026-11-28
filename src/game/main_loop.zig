@@ -5,13 +5,14 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const hw = @import("hw.zig");
 const mem = @import("mem.zig");
+const sound = @import("sound.zig");
 const types = @import("types.zig");
 
 /// Return true if active-low `KEYINPUT` has A + B + Select + Start pressed simultaneously.
 pub fn isSoftResetComboPressed(keyinput: u16) bool {
-    const pressed = types.key_mask_all & ~@as(u32, keyinput);
-    return (pressed & types.key_mask_soft_reset) == types.key_mask_soft_reset;
+    return (hw.decodeActiveLowKeys(keyinput) & types.key_mask_soft_reset) == types.key_mask_soft_reset;
 }
 
 /// Check `KEYINPUT` for A+B+Select+Start soft-reset combo and trigger soft reset (`0x08038824`).
@@ -21,7 +22,7 @@ fn func_08038824() callconv(.c) void {
     abi.pushLr();
 
     const keyinput = mem.readU16(types.addr.reg_keyinput);
-    const pressed_combo = (types.key_mask_all & ~@as(u32, keyinput)) & types.key_mask_soft_reset;
+    const pressed_combo = hw.decodeActiveLowKeys(keyinput) & types.key_mask_soft_reset;
     rt.r[2] = types.key_mask_all;
     rt.r[1] = types.key_mask_soft_reset;
     rt.r[0] = pressed_combo;
@@ -29,7 +30,7 @@ fn func_08038824() callconv(.c) void {
 
     if (isSoftResetComboPressed(keyinput)) {
         abi.fetches(4);
-        if (!abi.call(decls.func_080386D8, 0x0803883D)) return;
+        if (!abi.call(sound.func_080386D8, 0x0803883D)) return;
     }
 
     abi.fetches(4);
@@ -51,13 +52,13 @@ fn func_080383F8() callconv(.c) void {
     if (done == 0) {
         const frame_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
             .{ .func = decls.func_080159CC, .ret = 0x08038407 },
-            .{ .func = decls.func_0801122C, .ret = 0x0803840B },
+            .{ .func = hw.func_0801122C, .ret = 0x0803840B },
             .{ .func = func_0805BA34, .ret = 0x0803840F },
             .{ .func = decls.func_08018530, .ret = 0x08038413 },
             .{ .func = decls.func_080138F8, .ret = 0x08038417 },
-            .{ .func = decls.func_080134E0, .ret = 0x0803841B },
+            .{ .func = hw.func_080134E0, .ret = 0x0803841B },
             .{ .func = decls.func_08015874, .ret = 0x0803841F },
-            .{ .func = decls.func_0803D7A8, .ret = 0x08038423 },
+            .{ .func = sound.func_0803D7A8, .ret = 0x08038423 },
         };
         inline for (frame_steps) |step| {
             abi.fetches(4);
@@ -112,7 +113,7 @@ fn func_0803849C() callconv(.c) void {
         if (gated == 0) {
             const pre_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
                 .{ .func = decls.func_080159F0, .ret = 0x080384B9 },
-                .{ .func = decls.func_0801122C, .ret = 0x080384BD },
+                .{ .func = hw.func_0801122C, .ret = 0x080384BD },
                 .{ .func = func_0805BA34, .ret = 0x080384C1 },
                 .{ .func = decls.func_08018530, .ret = 0x080384C5 },
             };
@@ -138,9 +139,9 @@ fn func_0803849C() callconv(.c) void {
                 .{ .func = decls.func_080138F8, .ret = 0x080384D9 },
                 .{ .func = decls.func_0802196C, .ret = 0x080384DD },
                 .{ .func = decls.func_080224C8, .ret = 0x080384E1 },
-                .{ .func = decls.func_080134E0, .ret = 0x080384E5 },
+                .{ .func = hw.func_080134E0, .ret = 0x080384E5 },
                 .{ .func = decls.func_08015874, .ret = 0x080384E9 },
-                .{ .func = decls.func_0803D7A8, .ret = 0x080384ED },
+                .{ .func = sound.func_0803D7A8, .ret = 0x080384ED },
             };
             inline for (post_steps) |step| {
                 abi.fetches(4);

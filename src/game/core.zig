@@ -2,15 +2,23 @@
 //! so shared `@import`s do not duplicate strong `@export` symbols.
 
 pub const bios = @import("bios.zig");
+pub const math = @import("math.zig");
 pub const dma = @import("dma.zig");
 pub const hw = @import("hw.zig");
+pub const main_loop = @import("main_loop.zig");
+pub const sound = @import("sound.zig");
+pub const proc = @import("proc.zig");
 pub const unit = @import("unit.zig");
 pub const battle = @import("battle.zig");
 
 comptime {
     _ = bios;
+    _ = math;
     _ = dma;
     _ = hw;
+    _ = main_loop;
+    _ = sound;
+    _ = proc;
     _ = unit;
     _ = battle;
 }
