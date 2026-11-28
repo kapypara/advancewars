@@ -1978,6 +1978,71 @@ pub fn func_0803DA20() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Spawn campaign cursor/icon animator slot at `(0xAA, 0x20)` with OAM flags `0x4074` (`0x0803D680`).
+pub fn func_0803D680() callconv(.c) void {
+    if (!abi.enter(0x0803D680)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    abi.pushReg(5);
+    abi.pushReg(4);
+    rt.r[13] -%= 0xC;
+    abi.write32(rt.r[13] +% 0x0, 0);
+    rt.r[0] = abi.read32(0x0803D6F0);
+    rt.r[1] = 0;
+    rt.r[2] = abi.read32(0x0803D6F4);
+    rt.r[3] = 0;
+    rt.updateNz(0);
+    if (!abi.call(decls.func_080133C0, 0x0803D693)) return;
+
+    abi.fetches(9);
+    const slot: u32 = @bitCast(abi.signExtend8(@truncate(rt.r[0])));
+    rt.r[4] = slot;
+    rt.r[0] = rt.r[13] +% 0x4;
+    rt.r[1] = slot;
+    if (!abi.call(decls.func_080135C8, 0x0803D6A1)) return;
+
+    abi.fetches(17);
+    rt.r[1] = abi.read32(rt.r[13] +% 0x4);
+    const old_flags = abi.read32(rt.r[13] +% 0x8);
+    const flags = ((old_flags & abi.read32(0x0803D6F8)) | (0x80 << 7)) & abi.read32(0x0803D6FC) | 0x74;
+    rt.r[0] = slot;
+    rt.r[2] = flags;
+    rt.updateNz(flags);
+    if (!abi.call(decls.func_08013598, 0x0803D6BF)) return;
+
+    abi.fetches(7);
+    rt.r[0] = slot;
+    rt.r[1] = 0xAA;
+    rt.r[2] = 0x20;
+    rt.updateNz(0x20);
+    if (!abi.call(decls.func_08013550, 0x0803D6C9)) return;
+
+    abi.fetches(5);
+    rt.r[0] = slot;
+    if (!abi.call(decls.func_080147B8, 0x0803D6CF)) return;
+
+    abi.fetches(5);
+    rt.r[0] = slot;
+    if (!abi.call(decls.func_080148DC, 0x0803D6D5)) return;
+
+    abi.fetches(10);
+    rt.r[5] = 0x200;
+    rt.r[0] = slot;
+    rt.r[1] = 0x200;
+    if (!abi.call(decls.func_08013744, 0x0803D6E1)) return;
+
+    abi.fetches(6);
+    rt.r[0] = slot;
+    rt.r[1] = 0x200;
+    if (!abi.call(decls.func_08013794, 0x0803D6E9)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 0xC;
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080378C8, .{ .name = "func_080378C8", .linkage = .strong });
@@ -2064,6 +2129,7 @@ comptime {
         @export(&func_0803C644, .{ .name = "func_0803C644", .linkage = .strong });
         @export(&func_0803C758, .{ .name = "func_0803C758", .linkage = .strong });
         @export(&func_0803DA20, .{ .name = "func_0803DA20", .linkage = .strong });
+        @export(&func_0803D680, .{ .name = "func_0803D680", .linkage = .strong });
     }
 }
 

@@ -531,6 +531,17 @@ pub fn func_0807CE28() callconv(.c) void {
     popReturnPcMath();
 }
 
+/// Unsigned 32x32->64 multiply returning high 32 bits (`0x080775A4`).
+pub fn func_080775A4() callconv(.c) void {
+    if (!abi.enter(0x080775A4)) return;
+    abi.fetches(8);
+    const prod: u64 = @as(u64, rt.r[0]) *% @as(u64, rt.r[1]);
+    rt.r[2] = @truncate(prod);
+    rt.r[3] = @truncate(prod >> 32);
+    rt.r[0] = rt.r[3];
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010A84, .{ .name = "func_08010A84", .linkage = .strong });
@@ -551,6 +562,7 @@ comptime {
         @export(&func_0807C7E4, .{ .name = "func_0807C7E4", .linkage = .strong });
         @export(&func_0807CB4C, .{ .name = "func_0807CB4C", .linkage = .strong });
         @export(&func_0807CE28, .{ .name = "func_0807CE28", .linkage = .strong });
+        @export(&func_080775A4, .{ .name = "func_080775A4", .linkage = .strong });
     }
 }
 

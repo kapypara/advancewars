@@ -658,6 +658,47 @@ pub fn func_0803D7B8() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Dispatch dual sound setup handles from ROM pools (`0x08052200`).
+pub fn func_08052200() callconv(.c) void {
+    if (!abi.enter(0x08052200)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[0] = abi.read32(0x08052214);
+    if (!abi.call(decls.func_0801329C, 0x08052209)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x08052218);
+    if (!abi.call(decls.func_0801329C, 0x0805220F)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Decode big-endian 24-bit channel offset and merge status from `0x08077A58` (`0x08077A80`).
+pub fn func_08077A80() callconv(.c) void {
+    if (!abi.enter(0x08077A80)) return;
+    abi.fetches(3);
+    abi.pushLr();
+    abi.fetches(13);
+    const ptr = abi.read32(rt.r[1] +% 0x40);
+    rt.r[2] = ptr;
+    var val: u32 = abi.read8(ptr +% 3);
+    val <<= 8;
+    const b2: u32 = abi.read8(ptr +% 2);
+    val |= b2;
+    val <<= 8;
+    const b1: u32 = abi.read8(ptr +% 1);
+    val |= b1;
+    val <<= 8;
+    rt.r[3] = b1;
+    rt.r[0] = val;
+    rt.updateNz(rt.r[0]);
+    if (!abi.call(decls.func_08077A58, 0x08077A99)) return;
+    abi.fetches(6);
+    rt.r[0] |= rt.r[3];
+    rt.updateNz(rt.r[0]);
+    abi.write32(rt.r[1] +% 0x40, rt.r[0]);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
@@ -709,6 +750,8 @@ comptime {
         @export(&func_08051C90, .{ .name = "func_08051C90", .linkage = .strong });
         @export(&func_080521A4, .{ .name = "func_080521A4", .linkage = .strong });
         @export(&func_0803D7B8, .{ .name = "func_0803D7B8", .linkage = .strong });
+        @export(&func_08052200, .{ .name = "func_08052200", .linkage = .strong });
+        @export(&func_08077A80, .{ .name = "func_08077A80", .linkage = .strong });
     }
 }
 

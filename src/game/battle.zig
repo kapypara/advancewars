@@ -4185,6 +4185,126 @@ pub fn func_0805AE88() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Spawn battle animation slot with signed `(x, y)` position and layer/tile priority (`0x08027B7C`).
+pub fn func_08027B7C() callconv(.c) void {
+    if (!abi.enter(0x08027B7C)) return;
+    abi.fetches(3);
+    abi.pushLr();
+    abi.pushReg(6);
+    abi.pushReg(5);
+    abi.pushReg(4);
+    abi.fetches(23);
+    abi.pushReg(8);
+    rt.r[13] -%= 0xC;
+    const x: u32 = rt.r[0] & 0xFFFF;
+    const y: u32 = rt.r[1] & 0xFFFF;
+    var prio: u32 = rt.r[2] & 0xFFFF;
+    rt.r[6] = x;
+    rt.r[8] = y;
+    rt.r[5] = prio;
+
+    abi.write32(rt.r[13] +% 0x0, 0);
+    rt.r[0] = abi.read32(0x08027C24);
+    rt.r[1] = 0;
+    rt.r[2] = abi.read32(0x08027C28);
+    rt.r[3] = 0;
+    rt.updateNz(0);
+    if (!abi.call(decls.func_080133C0, 0x08027BA9)) return;
+
+    abi.fetches(9);
+    const slot: u32 = @bitCast(abi.signExtend8(@truncate(rt.r[0])));
+    rt.r[4] = slot;
+    rt.r[0] = rt.r[13] +% 0x4;
+    rt.r[1] = slot;
+    if (!abi.call(decls.func_080135C8, 0x08027BB7)) return;
+
+    abi.fetches(20);
+    rt.r[1] = abi.read32(rt.r[13] +% 0x4);
+    const old_flags = abi.read32(rt.r[13] +% 0x8);
+    var flags = (old_flags & abi.read32(0x08027C2C)) | (0xC0 << 6);
+    prio = (prio +% abi.read32(0x08027C30)) & abi.read32(0x08027C34);
+    flags = (flags & abi.read32(0x08027C38)) | prio;
+    rt.r[5] = prio;
+    rt.r[0] = slot;
+    rt.r[2] = flags;
+    rt.updateNz(flags);
+    if (!abi.call(decls.func_08013598, 0x08027BDB)) return;
+
+    abi.fetches(13);
+    const sx: u32 = @bitCast(abi.signExtend16(@truncate(x)));
+    const sy: u32 = @bitCast(abi.signExtend16(@truncate(y)));
+    rt.r[6] = sx;
+    rt.r[8] = sy;
+    rt.r[0] = slot;
+    rt.r[1] = sx;
+    rt.r[2] = sy;
+    rt.updateNz(sy);
+    if (!abi.call(decls.func_08013550, 0x08027BF1)) return;
+
+    abi.fetches(5);
+    rt.r[0] = slot;
+    if (!abi.call(decls.func_080147B8, 0x08027BF7)) return;
+
+    abi.fetches(5);
+    rt.r[0] = slot;
+    if (!abi.call(decls.func_080148DC, 0x08027BFD)) return;
+
+    abi.fetches(8);
+    rt.r[5] = 0x200;
+    rt.r[0] = slot;
+    rt.r[1] = 0x200;
+    rt.updateNz(0x200);
+    if (!abi.call(decls.func_08013744, 0x08027C09)) return;
+
+    abi.fetches(6);
+    rt.r[0] = slot;
+    rt.r[1] = 0x200;
+    if (!abi.call(decls.func_08013794, 0x08027C11)) return;
+
+    abi.fetches(6);
+    rt.r[0] = slot;
+    rt.r[1] = 0x20;
+    rt.updateNz(0x20);
+    if (!abi.call(decls.func_08013878, 0x08027C19)) return;
+
+    abi.fetches(8);
+    rt.r[13] +%= 0xC;
+    rt.r[8] = abi.popReg();
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    rt.r[6] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Apply cursor map focus from `[0x0802FA00]`, reset preview state, and set battle phase to 4 (`0x0802F9E0`).
+pub fn func_0802F9E0() callconv(.c) void {
+    if (!abi.enter(0x0802F9E0)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    const pos_ptr = abi.read32(0x0802FA00);
+    rt.r[0] = @bitCast(abi.signExtend16(abi.read16(pos_ptr +% 0)));
+    rt.r[1] = @bitCast(abi.signExtend16(abi.read16(pos_ptr +% 2)));
+    rt.r[2] = 2;
+    rt.updateNz(2);
+    if (!abi.call(decls.func_08020538, 0x0802F9F1)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0802E730, 0x0802F9F5)) return;
+
+    abi.fetches(3);
+    const phase_ptr = abi.read32(0x0802FA04);
+    rt.r[1] = phase_ptr;
+    abi.fetches(5);
+    rt.r[0] = 4;
+    rt.updateNz(4);
+    abi.write16(phase_ptr, 4);
+    abi.fetches(3);
+    const lr = abi.popReg();
+    rt.r[0] = lr;
+    rt.r[15] = lr;
+    rt.recompReturn(lr);
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08022220, .{ .name = "func_08022220", .linkage = .strong });
@@ -4316,6 +4436,8 @@ comptime {
         @export(&func_0805A7A0, .{ .name = "func_0805A7A0", .linkage = .strong });
         @export(&func_0805AAF4, .{ .name = "func_0805AAF4", .linkage = .strong });
         @export(&func_0805AE88, .{ .name = "func_0805AE88", .linkage = .strong });
+        @export(&func_08027B7C, .{ .name = "func_08027B7C", .linkage = .strong });
+        @export(&func_0802F9E0, .{ .name = "func_0802F9E0", .linkage = .strong });
     }
 }
 

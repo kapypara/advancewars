@@ -20,6 +20,19 @@ pub inline fn pushLr() void {
     rt.bus_write32(rt.r[13], rt.r[14]);
 }
 
+/// Push register `r[reg]` onto the emulated GBA stack.
+pub inline fn pushReg(comptime reg: u5) void {
+    rt.r[13] -%= 4;
+    rt.bus_write32(rt.r[13], rt.r[reg]);
+}
+
+/// Pop a 32-bit word from the emulated GBA stack.
+pub inline fn popReg() u32 {
+    const val = rt.bus_read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    return val;
+}
+
 /// Pop return address from the emulated GBA stack into `r0`/`r15` and return.
 pub inline fn popReturn() void {
     const lr_val = rt.bus_read32(rt.r[13]);

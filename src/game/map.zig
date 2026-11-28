@@ -1524,6 +1524,29 @@ pub fn func_080226B8() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Copy 3KB map graphics chunk (`slot * 0xC00`) to `*[0x0801F818]` from active layer bank (`0x0801F7EC`).
+pub fn func_0801F7EC() callconv(.c) void {
+    if (!abi.enter(0x0801F7EC)) return;
+    abi.fetches(4);
+    abi.pushLr();
+    const slot = abi.arg(0) & 0xFF;
+    abi.fetches(10);
+    const dst = slot *% 0xC00 +% abi.read32(0x0801F818);
+    const bank_bits = abi.read32(abi.read32(0x0801F81C));
+    abi.fetches(4);
+    const bank = (bank_bits << 28) >> 30;
+    abi.fetches(10);
+    const src = (bank << 14) +% abi.read32(0x0801F820);
+    rt.r[0] = dst;
+    rt.r[1] = src;
+    rt.r[2] = 0xC00;
+    rt.r[3] = dst;
+    rt.updateNz(rt.r[2]);
+    if (!abi.call(decls.func_0800FDA4, 0x0801F815)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_080191E8, .{ .name = "func_080191E8", .linkage = .strong });
@@ -1572,6 +1595,7 @@ comptime {
         @export(&func_08020414, .{ .name = "func_08020414", .linkage = .strong });
         @export(&func_08020D6C, .{ .name = "func_08020D6C", .linkage = .strong });
         @export(&func_080226B8, .{ .name = "func_080226B8", .linkage = .strong });
+        @export(&func_0801F7EC, .{ .name = "func_0801F7EC", .linkage = .strong });
     }
 }
 

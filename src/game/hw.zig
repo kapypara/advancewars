@@ -1314,6 +1314,298 @@ pub fn func_0807AE14() callconv(.c) void {
     popReturnPcHw();
 }
 
+/// Decompress/transfer `(src -> temp -> dst)` via SRAM/WRAM staging buffer (`0x0800FDDC`).
+pub fn func_0800FDDC() callconv(.c) void {
+    if (!abi.enter(0x0800FDDC)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    abi.pushReg(6);
+    abi.pushReg(5);
+    abi.pushReg(4);
+    abi.pushReg(8);
+    const dst = rt.r[0];
+    const src = rt.r[1];
+    const len = rt.r[2];
+    rt.r[6] = dst;
+    rt.r[8] = src;
+    rt.r[4] = len;
+    rt.r[0] = len;
+    if (!abi.call(decls.func_08012D8C, 0x0800FDEF)) return;
+
+    abi.fetches(7);
+    const tmp = rt.r[0];
+    rt.r[5] = tmp;
+    rt.r[0] = dst;
+    rt.r[1] = tmp;
+    if (!abi.call(decls.func_0800FE24, 0x0800FDF9)) return;
+
+    abi.fetches(9);
+    const len16 = len & 0xFFFF;
+    rt.r[4] = len16;
+    rt.r[0] = tmp;
+    rt.r[1] = src;
+    rt.r[2] = len16;
+    rt.updateNz(len16);
+    if (!abi.call(decls.func_0800FDA4, 0x0800FE07)) return;
+
+    abi.fetches(5);
+    rt.r[0] = tmp;
+    if (!abi.call(decls.func_08012E14, 0x0800FE0D)) return;
+
+    abi.fetches(7);
+    rt.r[8] = abi.popReg();
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    rt.r[6] = abi.popReg();
+    abi.popReturn();
+}
+
+fn enableDisplayLayersMask(reg_addr: u32, set_b0: u8) void {
+    abi.write8(reg_addr +% 0, (abi.read8(reg_addr +% 0) | set_b0));
+    const b1 = abi.read8(reg_addr +% 1);
+    abi.write8(reg_addr +% 1, b1 & 0xE0);
+}
+
+/// Enable display mode flags with `0x42` phase tag (`0x080702FC`).
+pub fn func_080702FC() callconv(.c) void {
+    if (!abi.enter(0x080702FC)) return;
+    abi.fetches(4);
+    abi.pushLr();
+    abi.pushReg(4);
+    const state = rt.r[0];
+    rt.r[4] = state;
+    abi.fetches(3);
+    if (!abi.call(decls.func_080104B0, 0x08070305)) return;
+    abi.fetches(3);
+    abi.fetches(50);
+    const disp_ptr = abi.read32(0x08070364);
+    abi.write8(disp_ptr +% 0, (abi.read8(disp_ptr +% 0) & 0x3F) | 0x9F);
+    abi.write8(disp_ptr +% 1, abi.read8(disp_ptr +% 1) & 0xE0);
+    const p1 = abi.read32(0x08070368);
+    abi.write8(p1, abi.read8(p1) | 0x20);
+    const p2 = abi.read32(0x0807036C);
+    abi.write8(p2, abi.read8(p2) & 0xDF);
+    rt.r[0] = 0x42;
+    rt.updateNz(0x42);
+    abi.write16(state +% 0x42, 0x42);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Reset BG window/blend shadow registers and clear `state+0x44` (`0x080703B0`).
+pub fn func_080703B0() callconv(.c) void {
+    if (!abi.enter(0x080703B0)) return;
+    abi.fetches(41);
+    abi.write8(abi.read32(0x08070410), 0);
+    abi.write8(abi.read32(0x08070414), 0);
+    abi.write8(abi.read32(0x08070418), 0xF0);
+    abi.write8(abi.read32(0x0807041C), 0);
+    const p20 = abi.read32(0x08070420);
+    abi.write8(p20 +% 1, abi.read8(p20 +% 1) | 0x20);
+    const p24 = abi.read32(0x08070424);
+    abi.write8(p24, (abi.read8(p24) | 0x0F) & 0xEF);
+    const p28 = abi.read32(0x08070428);
+    abi.fetches(3 + 3 + 3 + 8);
+    abi.write8(p28, (abi.read8(p28) & 0xF0) | 0x10);
+    abi.write16(rt.r[0] +% 0x44, 0);
+    rt.r[1] = 0;
+    rt.updateNz(0);
+    abi.retLr();
+}
+
+/// Enable BG/OBJ layers and window bits, clearing `state+0x44` (`0x08070AF0`).
+pub fn func_08070AF0() callconv(.c) void {
+    if (!abi.enter(0x08070AF0)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.pushReg(4);
+    const state = rt.r[0];
+    rt.r[4] = state;
+    if (!abi.call(decls.func_080104B0, 0x08070AF9)) return;
+    abi.fetches(12 + 36);
+    enableDisplayLayersMask(abi.read32(0x08070B50), 0xDF);
+    const p54 = abi.read32(0x08070B54);
+    abi.write8(p54, abi.read8(p54) | 0x20);
+    const p58 = abi.read32(0x08070B58);
+    const prev58 = abi.read8(p58);
+    abi.write8(p58, prev58 | 0x20);
+    rt.r[1] = p58;
+    rt.r[2] = prev58;
+    rt.r[0] = 0;
+    rt.updateNz(0);
+    abi.write16(state +% 0x44, 0);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Convert RGB555 components `(r, g, b)` to greyscale RGB555 luminance (`(3r + 6g + b) / 10`) (`0x08074430`).
+pub fn func_08074430() callconv(.c) void {
+    if (!abi.enter(0x08074430)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    const r = rt.r[0] & 0xFFFF;
+    const g = rt.r[1] & 0xFFFF;
+    const b = rt.r[2] & 0xFFFF;
+    abi.fetches(11);
+    rt.r[0] = r *% 3 +% g *% 6 +% b;
+    rt.r[1] = 0xA;
+    rt.updateNz(0xA);
+    if (!abi.call(decls.func_0807B488, 0x08074455)) return;
+
+    abi.fetches(14);
+    const luma = rt.r[0] & 0xFFFF;
+    const grey = (((luma >> 1) << 10) +% (luma << 5) +% luma) & 0xFFFF;
+    rt.r[0] = grey;
+    rt.r[1] = grey;
+    rt.updateNz(grey);
+    const lr = abi.popReg();
+    rt.r[1] = lr;
+    rt.r[15] = lr;
+    rt.recompReturn(lr);
+}
+
+/// Dereference `*(u8*)ptr` via stack home slot and return via shared Flash helper epilogue (`0x08079A5C`).
+pub fn func_08079A5C() callconv(.c) void {
+    if (!abi.enter(0x08079A5C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    abi.pushReg(7);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[0]);
+    const byte = abi.read8(abi.read32(rt.r[13]));
+    rt.r[0] = byte;
+    rt.r[1] = byte;
+    rt.updateNz(byte);
+    // Inlined tail epilogue enter_08078238(50)
+    abi.fetches(6);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.popReg();
+    const lr = abi.popReg();
+    rt.r[1] = lr;
+    rt.r[15] = lr;
+    rt.recompReturn(lr);
+}
+
+const FlashOpCfg = struct {
+    frame_size: u32,
+    buf_off: u32,
+    save_off: u32,
+    info_off: u16,
+    pre_setup: bool,
+    pool_io: u32,
+    pool_mask: u32,
+    pool_info: u32,
+    pool_cmd_aa: u32,
+    pool_cmd_55: u32,
+    pool_timer: u32,
+    ret_setup: u32,
+    ret_verify: u32,
+};
+
+fn writeFlashChipUnlock(cmd_aa_addr: u32, cmd_55_addr: u32, opcode: u8) void {
+    const a5 = abi.read32(cmd_aa_addr);
+    const a2 = abi.read32(cmd_55_addr);
+    abi.write8(a5, 0xAA);
+    abi.write8(a2, 0x55);
+    abi.write8(a5, 0x80);
+    abi.write8(a5, 0xAA);
+    abi.write8(a2, 0x55);
+    abi.write8(a5, opcode);
+}
+
+fn runFlashEraseAndVerify(comptime cfg: FlashOpCfg) void {
+    abi.pushLr();
+    abi.pushReg(7);
+    rt.r[13] -%= cfg.frame_size;
+    const fp = rt.r[13];
+    rt.r[7] = fp;
+
+    if (!cfg.pre_setup) {
+        rt.r[0] = fp +% cfg.buf_off;
+        if (!abi.call(decls.func_08079A74, cfg.ret_setup)) return;
+        abi.fetches(39);
+    }
+
+    const io_ptr = abi.read32(cfg.pool_io);
+    const mask = abi.read32(cfg.pool_mask);
+    const info = abi.read16(abi.read32(abi.read32(cfg.pool_info)) +% cfg.info_off);
+    abi.write16(io_ptr, @truncate((abi.read16(io_ptr) & mask) | info));
+    writeFlashChipUnlock(cfg.pool_cmd_aa, cfg.pool_cmd_55, 0x10);
+
+    if (cfg.pre_setup) {
+        rt.r[0] = fp +% cfg.buf_off;
+        if (!abi.call(decls.func_08079A74, cfg.ret_setup)) return;
+    }
+
+    abi.fetches(10);
+    rt.r[3] = abi.read32(abi.read32(cfg.pool_timer));
+    rt.r[0] = 3;
+    rt.r[1] = 0xE0 << 20;
+    rt.r[2] = 0xFF;
+    rt.updateNz(0xFF);
+    if (!abi.call(decls.func_0807B458, cfg.ret_verify)) return;
+
+    abi.fetches(22);
+    abi.write16(fp +% cfg.save_off, @truncate(rt.r[0]));
+    const post_io = abi.read32(cfg.pool_io);
+    abi.write16(post_io, @truncate((abi.read16(post_io) & mask) | 3));
+    const status = abi.read16(fp +% cfg.save_off);
+    rt.r[0] = status;
+    rt.r[1] = status;
+    rt.updateNz(status);
+
+    // Inlined epilogue from enter_080779F0(76/82)
+    abi.fetches(6);
+    rt.r[13] +%= cfg.frame_size;
+    rt.r[7] = abi.popReg();
+    const lr = abi.popReg();
+    rt.r[1] = lr;
+    rt.r[15] = lr;
+    rt.recompReturn(lr);
+}
+
+/// Erase full Flash save chip and verify timeout using timing table `+0x10` (`0x08079E78`).
+pub fn func_08079E78() callconv(.c) void {
+    if (!abi.enter(0x08079E78)) return;
+    abi.fetches(39);
+    runFlashEraseAndVerify(.{
+        .frame_size = 0x48,
+        .buf_off = 0x4,
+        .save_off = 0x44,
+        .info_off = 0x10,
+        .pre_setup = true,
+        .pool_io = 0x08079EFC,
+        .pool_mask = 0x08079F00,
+        .pool_info = 0x08079F04,
+        .pool_cmd_aa = 0x08079F08,
+        .pool_cmd_55 = 0x08079F0C,
+        .pool_timer = 0x08079F10,
+        .ret_setup = 0x08079EC3,
+        .ret_verify = 0x08079ED3,
+    });
+}
+
+/// Erase full Flash save chip and verify timeout using timing table `+0x24` (`0x0807A3BC`).
+pub fn func_0807A3BC() callconv(.c) void {
+    if (!abi.enter(0x0807A3BC)) return;
+    abi.fetches(10);
+    runFlashEraseAndVerify(.{
+        .frame_size = 0x4C,
+        .buf_off = 0xC,
+        .save_off = 0x8,
+        .info_off = 0x24,
+        .pre_setup = false,
+        .pool_io = 0x0807A440,
+        .pool_mask = 0x0807A444,
+        .pool_info = 0x0807A448,
+        .pool_cmd_aa = 0x0807A44C,
+        .pool_cmd_55 = 0x0807A450,
+        .pool_timer = 0x0807A454,
+        .ret_setup = 0x0807A3CD,
+        .ret_verify = 0x0807A417,
+    });
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -1393,6 +1685,14 @@ comptime {
         @export(&func_0807AE04, .{ .name = "func_0807AE04", .linkage = .strong });
         @export(&func_0807AE14, .{ .name = "func_0807AE14", .linkage = .strong });
         @export(&func_08010C70, .{ .name = "func_08010C70", .linkage = .strong });
+        @export(&func_0800FDDC, .{ .name = "func_0800FDDC", .linkage = .strong });
+        @export(&func_080702FC, .{ .name = "func_080702FC", .linkage = .strong });
+        @export(&func_080703B0, .{ .name = "func_080703B0", .linkage = .strong });
+        @export(&func_08070AF0, .{ .name = "func_08070AF0", .linkage = .strong });
+        @export(&func_08074430, .{ .name = "func_08074430", .linkage = .strong });
+        @export(&func_08079A5C, .{ .name = "func_08079A5C", .linkage = .strong });
+        @export(&func_08079E78, .{ .name = "func_08079E78", .linkage = .strong });
+        @export(&func_0807A3BC, .{ .name = "func_0807A3BC", .linkage = .strong });
     }
 }
 

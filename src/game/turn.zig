@@ -1401,6 +1401,122 @@ pub fn func_080340F8() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Tear down turn/combat UI subsystems and clear active turn phase pointer (`0x0802FCBC`).
+pub fn func_0802FCBC() callconv(.c) void {
+    if (!abi.enter(0x0802FCBC)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    const pre_calls = .{
+        .{ decls.func_0801B820, @as(u32, 0x0802FCC3) },
+        .{ decls.func_08034C98, @as(u32, 0x0802FCC7) },
+        .{ decls.func_08034C74, @as(u32, 0x0802FCCB) },
+        .{ decls.func_080149E0, @as(u32, 0x0802FCCF) },
+        .{ decls.func_080134D4, @as(u32, 0x0802FCD3) },
+        .{ decls.func_0800FC58, @as(u32, 0x0802FCD7) },
+        .{ decls.func_0800FBC4, @as(u32, 0x0802FCDB) },
+        .{ decls.func_08018290, @as(u32, 0x0802FCDF) },
+        .{ decls.func_08036464, @as(u32, 0x0802FCE3) },
+        .{ decls.func_0800F164, @as(u32, 0x0802FCE7) },
+        .{ decls.func_0801CCF0, @as(u32, 0x0802FCEB) },
+        .{ decls.func_08010A00, @as(u32, 0x0802FCEF) },
+        .{ decls.func_08010AD8, @as(u32, 0x0802FCF3) },
+    };
+    inline for (pre_calls) |c| {
+        if (!abi.call(c[0], c[1])) return;
+        abi.fetches(4);
+    }
+    abi.fetches(2); // blk 13 had 3 fetches, blk 14 had 3 fetches -> net +2 over fetches(4)
+    if (!abi.call(decls.func_080104D4, 0x0802FCF7)) return;
+    abi.fetches(6);
+    if (!abi.call(decls.func_080104B0, 0x0802FCFB)) return;
+    abi.fetches(7);
+    if (!abi.call(decls.func_08010974, 0x0802FCFF)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08042E24, 0x0802FD03)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0802FD24);
+    if (!abi.call(decls.func_08010D00, 0x0802FD09)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0802FD28);
+    if (!abi.call(decls.func_0806CBE8, 0x0802FD0F)) return;
+    const post_calls = .{
+        .{ decls.func_0800FD54, @as(u32, 0x0802FD13) },
+        .{ decls.func_0800FBC4, @as(u32, 0x0802FD17) },
+        .{ decls.func_080117E0, @as(u32, 0x0802FD1B) },
+    };
+    inline for (post_calls) |c| {
+        abi.fetches(4);
+        if (!abi.call(c[0], c[1])) return;
+    }
+    abi.fetches(7);
+    rt.r[1] = abi.read32(0x0802FD2C);
+    rt.r[0] = 0;
+    rt.updateNz(0);
+    abi.write32(rt.r[1], 0);
+    abi.popReturn();
+}
+
+/// Reset battle/turn phase scratchpad struct and copy default bounds `[0x080307C0]->[0x080307BC]` (`0x08030708`).
+pub fn func_08030708() callconv(.c) void {
+    if (!abi.enter(0x08030708)) return;
+    abi.fetches(4);
+    abi.pushLr();
+    abi.pushReg(6);
+    abi.pushReg(5);
+    abi.pushReg(4);
+    const g0 = abi.read32(0x080307A0);
+    abi.fetches(42);
+    abi.write8(g0 +% 0x32, 0);
+    const mgr_ptr = abi.read32(0x080307A4);
+    const mgr = abi.read32(mgr_ptr);
+    abi.write8(mgr +% 0x0, 0);
+    abi.write8(abi.read32(mgr_ptr) +% 0x1, 0);
+    const cur = abi.read32(mgr_ptr);
+    abi.write16(cur +% 0x4, 0);
+    abi.write16(cur +% 0x2, 0);
+    abi.write8(abi.read32(0x080307A8), 0);
+    abi.write8(cur +% 0x6, 0xFF);
+    for ([_]u32{ 0x7, 0x8, 0x9, 0x1C, 0x1D, 0x1E }) |off| {
+        abi.write8(abi.read32(mgr_ptr) +% off, 0);
+    }
+    rt.r[4] = mgr_ptr;
+    rt.r[5] = 0;
+    rt.r[6] = 0;
+    rt.r[0] = 0xFF;
+    rt.updateNz(0xFF);
+    if (!abi.call(decls.func_080305E4, 0x0803075D)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080303E0, 0x08030761)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08030634, 0x08030765)) return;
+
+    abi.fetches(32);
+    const base_a = abi.read32(mgr_ptr);
+    abi.write16(base_a +% abi.read32(0x080307AC), 0);
+    abi.write8(base_a +% abi.read32(0x080307B0), 0);
+    const base_b = abi.read32(mgr_ptr);
+    abi.write8(base_b +% abi.read32(0x080307B4), 0);
+    const base_c = abi.read32(mgr_ptr);
+    abi.write8(base_c +% abi.read32(0x080307B8), 0xFF);
+
+    const dst = abi.read32(0x080307BC);
+    const src = abi.read32(0x080307C0);
+    const w0 = abi.read32(src +% 0);
+    const w1 = abi.read32(src +% 4);
+    const w2 = abi.read32(src +% 8);
+    abi.write32(dst +% 0, w0);
+    abi.write32(dst +% 4, w1);
+    abi.write32(dst +% 8, w2);
+    rt.r[1] = dst +% 12;
+    rt.r[2] = w0;
+    rt.r[3] = w1;
+    abi.write32(abi.read32(0x080307C4), 0);
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    rt.r[6] = abi.popReg();
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08032200, .{ .name = "func_08032200", .linkage = .strong });
@@ -1462,6 +1578,8 @@ comptime {
         @export(&func_08034CC0, .{ .name = "func_08034CC0", .linkage = .strong });
         @export(&func_08034E7C, .{ .name = "func_08034E7C", .linkage = .strong });
         @export(&func_080340F8, .{ .name = "func_080340F8", .linkage = .strong });
+        @export(&func_0802FCBC, .{ .name = "func_0802FCBC", .linkage = .strong });
+        @export(&func_08030708, .{ .name = "func_08030708", .linkage = .strong });
     }
 }
 
