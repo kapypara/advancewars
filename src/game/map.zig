@@ -11,6 +11,11 @@ const types = @import("types.zig");
 /// Blank tile index (`0xBA << 1`) written into BG tilemap buffers (`0x0201_3340`).
 pub const blank_tile_entry: u16 = 0x0174;
 
+/// Convert tile coordinate (`16px` per map cell) to pixel coordinate.
+pub inline fn tileToPx(tile: u16) u16 {
+    return tile << 4;
+}
+
 /// Compute byte offset inside a 32x32 halfword tilemap (`0x40` bytes/row) relative to `(cam_x, cam_y)`.
 pub inline fn wrappedTilemapByteOffset(tile_x: u16, tile_y: u16, cam_x: u16, cam_y: u16) u32 {
     const local_x: u32 = (tile_x -% cam_x) & 0xF;
@@ -50,6 +55,22 @@ pub fn func_0801FD98() callconv(.c) void {
     rt.recompReturn(lr_val);
 }
 
+/// Set both tile cursor (`0x0300_36A4`) and pixel cursor (`0x0300_36A0`) from `(u16 r0, u16 r1)` (`0x08020538`).
+pub fn func_08020538() callconv(.c) void {
+    if (!abi.enter(0x08020538)) return;
+    abi.fetches(15);
+    const tx: u16 = @truncate(rt.r[0]);
+    const ty: u16 = @truncate(rt.r[1]);
+    mem.writeCursorTile(tx, ty);
+    rt.r[2] = types.addr.cursor_x_px;
+    const px = tileToPx(tx);
+    const py = tileToPx(ty);
+    abi.setRegNz(&rt.r[0], px);
+    abi.setRegNz(&rt.r[1], py);
+    mem.writeCursorPx(px, py);
+    abi.retLr();
+}
+
 /// Write pixel cursor coordinates `(x, y)` to `0x0300_36A0` (`0x0802055C`).
 pub fn func_0802055C() callconv(.c) void {
     if (!abi.enter(0x0802055C)) return;
@@ -64,12 +85,74 @@ pub fn func_08020568() callconv(.c) void {
     if (!abi.enter(0x08020568)) return;
     abi.fetches(11);
     const tile = mem.readCursorTile();
-    const py: u32 = @as(u32, tile.y) << 4;
-    mem.writeCursorPx(tile.x << 4, @truncate(py));
+    const px = tileToPx(tile.x);
+    const py = tileToPx(tile.y);
+    mem.writeCursorPx(px, py);
     rt.r[3] = tile.x;
     rt.r[2] = types.addr.cursor_x_px;
     rt.r[1] = tile.y;
     abi.setRegNz(&rt.r[0], py);
+    abi.retLr();
+}
+
+/// Save active cursor tile (`0x0300_36A4`) into `addr.saved_cursor_tile` (`0x0300_4444`) (`0x08021E04`).
+pub fn func_08021E04() callconv(.c) void {
+    if (!abi.enter(0x08021E04)) return;
+    abi.fetches(9);
+    const tile = mem.readCursorTile();
+    mem.writeSavedCursorTile(tile.x, tile.y);
+    rt.r[2] = types.addr.saved_cursor_tile;
+    rt.r[1] = types.addr.cursor_tile_x;
+    rt.r[0] = tile.y;
+    abi.retLr();
+}
+
+fn restoreSavedCursorTo(dst_tile_addr: u32) void {
+    abi.fetches(13);
+    const saved = mem.readSavedCursorTile();
+    mem.writeU16(dst_tile_addr, saved.x);
+    mem.writeU16(dst_tile_addr +% 2, saved.y);
+    rt.r[2] = types.addr.cursor_x_px;
+    const px = tileToPx(saved.x);
+    const py = tileToPx(saved.y);
+    abi.setRegNz(&rt.r[0], px);
+    abi.setRegNz(&rt.r[1], py);
+    mem.writeCursorPx(px, py);
+    abi.retLr();
+}
+
+/// Restore `addr.saved_cursor_tile` into `addr.cursor_tile_x` and sync pixel cursor (`0x08021E1C`).
+pub fn func_08021E1C() callconv(.c) void {
+    if (!abi.enter(0x08021E1C)) return;
+    abi.fetches(3);
+    rt.r[2] = types.addr.cursor_tile_x;
+    restoreSavedCursorTo(rt.r[2]);
+}
+
+/// Restore `addr.saved_cursor_tile` into `r2` tile destination and sync pixel cursor (`0x08021E1E`).
+pub fn func_08021E1E() callconv(.c) void {
+    if (!abi.enter(0x08021E1E)) return;
+    restoreSavedCursorTo(rt.r[2]);
+}
+
+/// Return pointer to map workspace metadata at `+0x4722` (`0x080227EC`).
+pub fn func_080227EC() callconv(.c) void {
+    if (!abi.enter(0x080227EC)) return;
+    abi.fetches(7);
+    rt.r[0] = mem.cameraStateAddr();
+    rt.r[1] = types.map_meta_4722_off;
+    rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
+    abi.retLr();
+}
+
+/// Read `u8` metadata flag at map workspace `+0x473B` (`0x08022800`).
+pub fn func_08022800() callconv(.c) void {
+    if (!abi.enter(0x08022800)) return;
+    abi.fetches(8);
+    rt.r[0] = mem.cameraStateAddr();
+    rt.r[1] = types.map_meta_473b_off;
+    rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
+    rt.r[0] = mem.readU8(rt.r[0]);
     abi.retLr();
 }
 
@@ -1547,8 +1630,14 @@ comptime {
         @export(&func_0801FD98, .{ .name = "func_0801FD98", .linkage = .strong });
         @export(&func_080202A0, .{ .name = "func_080202A0", .linkage = .strong });
         @export(&func_08020510, .{ .name = "func_08020510", .linkage = .strong });
+        @export(&func_08020538, .{ .name = "func_08020538", .linkage = .strong });
         @export(&func_0802055C, .{ .name = "func_0802055C", .linkage = .strong });
         @export(&func_08020568, .{ .name = "func_08020568", .linkage = .strong });
+        @export(&func_08021E04, .{ .name = "func_08021E04", .linkage = .strong });
+        @export(&func_08021E1C, .{ .name = "func_08021E1C", .linkage = .strong });
+        @export(&func_08021E1E, .{ .name = "func_08021E1E", .linkage = .strong });
+        @export(&func_080227EC, .{ .name = "func_080227EC", .linkage = .strong });
+        @export(&func_08022800, .{ .name = "func_08022800", .linkage = .strong });
         @export(&func_0802C640, .{ .name = "func_0802C640", .linkage = .strong });
         @export(&func_0802C650, .{ .name = "func_0802C650", .linkage = .strong });
         @export(&func_08033108, .{ .name = "func_08033108", .linkage = .strong });
@@ -1594,6 +1683,9 @@ comptime {
 }
 
 test "wrapped 2x2 tilemap offset wraps inside 16x16 meta-grid" {
+    try std.testing.expectEqual(@as(u16, 0), tileToPx(0));
+    try std.testing.expectEqual(@as(u16, 16), tileToPx(1));
+    try std.testing.expectEqual(@as(u16, 240), tileToPx(15));
     try std.testing.expectEqual(@as(u32, 0), wrappedTilemapByteOffset(4, 5, 4, 5));
     try std.testing.expectEqual(@as(u32, (2 << 2) + (3 << 7)), wrappedTilemapByteOffset(6, 8, 4, 5));
     try std.testing.expectEqual(@as(u32, (15 << 2)), wrappedTilemapByteOffset(3, 5, 4, 5));

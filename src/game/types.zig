@@ -45,6 +45,7 @@ pub const addr = struct {
     pub const battle_lock_a: u32 = 0x0300_43C8;
     pub const battle_lock_b: u32 = 0x0300_4470;
     pub const battle_turn_counter: u32 = 0x0300_4474;
+    pub const saved_cursor_tile: u32 = 0x0300_4444;
     pub const irq_handler_table: u32 = 0x0300_6630;
     pub const dispcnt_shadow: u32 = 0x0300_337C;
     pub const bldcnt_shadow: u32 = 0x0300_3354;
@@ -93,6 +94,9 @@ pub const MapWorkspace = extern struct {
     cam_x: i16,
     cam_y: i16,
 };
+
+pub const map_meta_4722_off: u32 = 0x4722;
+pub const map_meta_473b_off: u32 = 0x473B;
 
 /// 40-slot GBA proc entry in `addr.proc_table` (`0x0300_0E10`, stride `0x60` bytes).
 pub const proc_slot_count: usize = 40;

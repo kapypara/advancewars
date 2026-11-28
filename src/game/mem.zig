@@ -92,6 +92,23 @@ pub inline fn readCursorTile() CursorTile {
     };
 }
 
+pub inline fn writeCursorTile(tile_x: u16, tile_y: u16) void {
+    writeU16(types.addr.cursor_tile_x, tile_x);
+    writeU16(types.addr.cursor_tile_y, tile_y);
+}
+
+pub inline fn readSavedCursorTile() CursorTile {
+    return .{
+        .x = readU16(types.addr.saved_cursor_tile),
+        .y = readU16(types.addr.saved_cursor_tile +% 2),
+    };
+}
+
+pub inline fn writeSavedCursorTile(tile_x: u16, tile_y: u16) void {
+    writeU16(types.addr.saved_cursor_tile, tile_x);
+    writeU16(types.addr.saved_cursor_tile +% 2, tile_y);
+}
+
 pub inline fn writeCursorPx(x_px: u16, y_px: u16) void {
     writeU16(types.addr.cursor_x_px, x_px);
     writeU16(types.addr.cursor_y_px, y_px);

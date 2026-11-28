@@ -1839,24 +1839,6 @@ fn func_0802030C() callconv(.c) void {
     }
 }
 
-fn func_08020538() callconv(.c) void {
-    if (!abi.enter(0x08020538)) return;
-    abi.fetches(15);
-    abi.setRegNz(&rt.r[0], rt.r[0] << 16);
-    abi.setRegNz(&rt.r[0], rt.r[0] >> 16);
-    abi.setRegNz(&rt.r[1], rt.r[1] << 16);
-    abi.setRegNz(&rt.r[1], rt.r[1] >> 16);
-    rt.r[2] = abi.read32(0x08020554);
-    abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
-    abi.write16(rt.r[2] +% 0x2, @truncate(rt.r[1]));
-    rt.r[2] = abi.read32(0x08020558);
-    abi.setRegNz(&rt.r[0], rt.r[0] << 4);
-    abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
-    abi.setRegNz(&rt.r[1], rt.r[1] << 4);
-    abi.write16(rt.r[2] +% 0x2, @truncate(rt.r[1]));
-    rt.recompReturn(rt.r[14]); return;
-}
-
 fn func_080210C6() callconv(.c) void {
     if (!abi.enter(0x080210C6)) return;
     blk: switch (@as(u32, 0)) {
@@ -1885,81 +1867,6 @@ fn func_080210C6() callconv(.c) void {
         },
         else => unreachable,
     }
-}
-
-fn func_08021E04() callconv(.c) void {
-    if (!abi.enter(0x08021E04)) return;
-    abi.fetches(9);
-    rt.r[2] = abi.read32(0x08021E14);
-    rt.r[1] = abi.read32(0x08021E18);
-    rt.r[0] = abi.read16(rt.r[1] +% 0x0);
-    abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
-    rt.r[0] = abi.read16(rt.r[1] +% 0x2);
-    abi.write16(rt.r[2] +% 0x2, @truncate(rt.r[0]));
-    rt.recompReturn(rt.r[14]); return;
-}
-
-fn func_08021E1C() callconv(.c) void {
-    if (!abi.enter(0x08021E1C)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(3);
-            rt.r[2] = abi.read32(0x08021E34);
-            continue :blk 1;
-        },
-        1 => {
-            abi.fetches(13);
-            rt.r[1] = abi.read32(0x08021E38);
-            rt.r[0] = abi.read16(rt.r[1] +% 0x0);
-            abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
-            rt.r[1] = abi.read16(rt.r[1] +% 0x2);
-            abi.write16(rt.r[2] +% 0x2, @truncate(rt.r[1]));
-            rt.r[2] = abi.read32(0x08021E3C);
-            abi.setRegNz(&rt.r[0], rt.r[0] << 4);
-            abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
-            abi.setRegNz(&rt.r[1], rt.r[1] << 4);
-            abi.write16(rt.r[2] +% 0x2, @truncate(rt.r[1]));
-            rt.recompReturn(rt.r[14]); return;
-        },
-        else => unreachable,
-    }
-}
-
-fn func_08021E1E() callconv(.c) void {
-    if (!abi.enter(0x08021E1E)) return;
-    abi.fetches(13);
-    rt.r[1] = abi.read32(0x08021E38);
-    rt.r[0] = abi.read16(rt.r[1] +% 0x0);
-    abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
-    rt.r[1] = abi.read16(rt.r[1] +% 0x2);
-    abi.write16(rt.r[2] +% 0x2, @truncate(rt.r[1]));
-    rt.r[2] = abi.read32(0x08021E3C);
-    abi.setRegNz(&rt.r[0], rt.r[0] << 4);
-    abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
-    abi.setRegNz(&rt.r[1], rt.r[1] << 4);
-    abi.write16(rt.r[2] +% 0x2, @truncate(rt.r[1]));
-    rt.recompReturn(rt.r[14]); return;
-}
-
-fn func_080227EC() callconv(.c) void {
-    if (!abi.enter(0x080227EC)) return;
-    abi.fetches(7);
-    rt.r[0] = abi.read32(0x080227F8);
-    rt.r[0] = abi.read32(rt.r[0] +% 0x0);
-    rt.r[1] = abi.read32(0x080227FC);
-    rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
-    rt.recompReturn(rt.r[14]); return;
-}
-
-fn func_08022800() callconv(.c) void {
-    if (!abi.enter(0x08022800)) return;
-    abi.fetches(8);
-    rt.r[0] = abi.read32(0x0802280C);
-    rt.r[0] = abi.read32(rt.r[0] +% 0x0);
-    rt.r[1] = abi.read32(0x08022810);
-    rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
-    rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-    rt.recompReturn(rt.r[14]); return;
 }
 
 fn func_08022898() callconv(.c) void {
@@ -4030,13 +3937,7 @@ comptime {
         @export(&func_0801FB02, .{ .name = "func_0801FB02", .linkage = .strong });
         @export(&func_08020304, .{ .name = "func_08020304", .linkage = .strong });
         @export(&func_0802030C, .{ .name = "func_0802030C", .linkage = .strong });
-        @export(&func_08020538, .{ .name = "func_08020538", .linkage = .strong });
         @export(&func_080210C6, .{ .name = "func_080210C6", .linkage = .strong });
-        @export(&func_08021E04, .{ .name = "func_08021E04", .linkage = .strong });
-        @export(&func_08021E1C, .{ .name = "func_08021E1C", .linkage = .strong });
-        @export(&func_08021E1E, .{ .name = "func_08021E1E", .linkage = .strong });
-        @export(&func_080227EC, .{ .name = "func_080227EC", .linkage = .strong });
-        @export(&func_08022800, .{ .name = "func_08022800", .linkage = .strong });
         @export(&func_08022898, .{ .name = "func_08022898", .linkage = .strong });
         @export(&func_080238B0, .{ .name = "func_080238B0", .linkage = .strong });
         @export(&func_08024124, .{ .name = "func_08024124", .linkage = .strong });
