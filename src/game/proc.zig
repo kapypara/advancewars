@@ -25,6 +25,21 @@ const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 const unit = @import("unit.zig");
 
+/// Typed cross-module bridge clearing a proc slot (`func_08013BD0`) with exact ABI state.
+pub inline fn clearProcSlotCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_1.func_08013BD0, ret_addr);
+}
+
+/// Typed cross-module bridge spawning a proc (`func_0801320C`) with exact ABI state.
+pub inline fn spawnProcCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_6.func_0801320C, ret_addr);
+}
+
+/// Typed cross-module bridge killing procs by callback (`func_0801329C`) with exact ABI state.
+pub inline fn killProcByCallbackCall(comptime ret_addr: u32) bool {
+    return abi.call(low_peel_6.func_0801329C, ret_addr);
+}
+
 /// Tick proc slot `u8(r0)` if its active bit (`flags & 1`) is set (`0x08013984`).
 pub fn func_08013984() callconv(.c) void {
     if (!abi.enter(0x08013984)) return;
@@ -570,7 +585,7 @@ pub fn func_08019608() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08019614);
-    if (!abi.call(low_peel_6.func_0801329C, 0x08019611)) return;
+    if (!killProcByCallbackCall(0x08019611)) return;
     abi.fetches(4);
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -638,7 +653,7 @@ pub fn func_08010F10() callconv(.c) void {
     rt.r[4] = rt.r[0];
     rt.r[0] = abi.read32(0x08010F24);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x08010F1D)) return;
+    if (!spawnProcCall(0x08010F1D)) return;
 
     abi.fetches(6);
     abi.write32(rt.r[0] +% 0x18, rt.r[4]);
@@ -1102,7 +1117,7 @@ pub fn func_08011060() callconv(.c) void {
     rt.r[8] = rt.r[2];
     rt.r[0] = abi.read32(0x0801108C);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x08011075)) return;
+    if (!spawnProcCall(0x08011075)) return;
 
     abi.fetches(5);
     rt.r[4] = rt.r[0];
@@ -1762,4 +1777,13 @@ test "proc and script slot address helpers match GBA strides" {
     try std.testing.expectEqual(@as(u32, 0x0300_1D68), mem.scriptSlotAddr(1));
     try std.testing.expectEqual(@as(u32, 0x0300_1D54), scriptCursorFieldAddr(0));
     try std.testing.expectEqual(@as(u32, 0x0300_1D6C), scriptCursorFieldAddr(1));
+}
+
+test "proc typed call bridges have expected inline signatures" {
+    inline for (.{ clearProcSlotCall, spawnProcCall, killProcByCallbackCall }) |bridge| {
+        const info = @typeInfo(@TypeOf(bridge)).@"fn";
+        try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
+        try std.testing.expect(info.param_types[0].? == u32);
+        try std.testing.expect(info.return_type.? == bool);
+    }
 }

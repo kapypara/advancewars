@@ -84,7 +84,7 @@ pub fn func_080438E4() callconv(.c) void {
         1 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x08043914);
-            if (!abi.call(low_peel_6.func_0801329C, 0x0804390B)) return;
+            if (!proc.killProcByCallbackCall(0x0804390B)) return;
             continue :blk 3;
         },
         2 => {
@@ -345,7 +345,7 @@ pub fn func_08044B6C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08044B94);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08044B8D)) return;
+            if (!proc.clearProcSlotCall(0x08044B8D)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -391,7 +391,7 @@ pub fn func_08044E34() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08044E68);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08044E5D)) return;
+            if (!proc.clearProcSlotCall(0x08044E5D)) return;
             continue :blk 4;
         },
         4 => {
@@ -433,7 +433,7 @@ pub fn func_080451DC() callconv(.c) void {
             abi.write32(rt.r[13] +% 0x4, rt.r[0]);
             rt.cpuAdd(&rt.r[0], rt.r[3], 0x0, true);
             abi.setRegNz(&rt.r[3], 0x8);
-            if (!abi.call(hw.func_08010C70, 0x08045209)) return;
+            if (!hw.fillTileRectCall(0x08045209)) return;
             continue :blk 3;
         },
         2 => {
@@ -524,7 +524,7 @@ pub fn func_0804781C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08047834);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08047831)) return;
+            if (!proc.clearProcSlotCall(0x08047831)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -687,7 +687,7 @@ pub fn func_080487D8() callconv(.c) void {
             abi.write8(rt.r[0] +% 0x0, @truncate(rt.r[1]));
             rt.r[0] = abi.read32(0x08048800);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x080487F9)) return;
+            if (!proc.clearProcSlotCall(0x080487F9)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -728,7 +728,7 @@ pub fn func_08048814() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08048838);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08048831)) return;
+            if (!proc.clearProcSlotCall(0x08048831)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -762,7 +762,7 @@ pub fn func_08048A28() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08048A40);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08048A3D)) return;
+            if (!proc.clearProcSlotCall(0x08048A3D)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -871,7 +871,7 @@ pub fn func_08048E68() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08048E88);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08048E83)) return;
+            if (!proc.clearProcSlotCall(0x08048E83)) return;
             continue :blk 4;
         },
         3 => {
@@ -982,7 +982,7 @@ pub fn func_080494C4() callconv(.c) void {
             abi.write16(rt.r[2] +% 0x1A, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(0x080494FC);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x080494EB)) return;
+            if (!proc.clearProcSlotCall(0x080494EB)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -1065,7 +1065,7 @@ pub fn func_0804C1B8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804C1D0);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804C1CD)) return;
+            if (!proc.clearProcSlotCall(0x0804C1CD)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -1099,7 +1099,7 @@ pub fn func_0804C1D4() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804C1EC);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804C1E9)) return;
+            if (!proc.clearProcSlotCall(0x0804C1E9)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -1142,7 +1142,7 @@ pub fn func_0804C1F0() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804C21C);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804C211)) return;
+            if (!proc.clearProcSlotCall(0x0804C211)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -1176,7 +1176,7 @@ pub fn func_0804C39C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804C3B4);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804C3B1)) return;
+            if (!proc.clearProcSlotCall(0x0804C3B1)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -1390,7 +1390,7 @@ pub fn func_0804D848() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804D860);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804D85D)) return;
+            if (!proc.clearProcSlotCall(0x0804D85D)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -1444,7 +1444,7 @@ pub fn func_0804D864() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804D890);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804D889)) return;
+            if (!proc.clearProcSlotCall(0x0804D889)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -1494,7 +1494,7 @@ pub fn func_0804D894() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804D8C0);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804D8B5)) return;
+            if (!proc.clearProcSlotCall(0x0804D8B5)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -1534,14 +1534,14 @@ pub fn func_0804E068() callconv(.c) void {
             abi.write8(rt.r[1] +% 0x0, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(0x0804E0A0);
             abi.setRegNz(&rt.r[1], 0x0);
-            if (!abi.call(low_peel_6.func_0801320C, 0x0804E08F)) return;
+            if (!proc.spawnProcCall(0x0804E08F)) return;
             continue :blk 3;
         },
         3 => {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804E0A4);
             abi.setRegNz(&rt.r[1], 0x0);
-            if (!abi.call(low_peel_6.func_0801320C, 0x0804E097)) return;
+            if (!proc.spawnProcCall(0x0804E097)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -1601,7 +1601,7 @@ pub fn func_0804ED98() callconv(.c) void {
             abi.write8(rt.r[1] +% 0x0, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(0x0804EDE0);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804EDDB)) return;
+            if (!proc.clearProcSlotCall(0x0804EDDB)) return;
             continue :blk 5;
         },
         5 => {
@@ -1636,7 +1636,7 @@ pub fn func_0804EFD8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804EFF0);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804EFEB)) return;
+            if (!proc.clearProcSlotCall(0x0804EFEB)) return;
             continue :blk 4;
         },
         3 => {
@@ -1659,7 +1659,7 @@ pub fn func_0804EFD8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804F014);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804F00D)) return;
+            if (!proc.clearProcSlotCall(0x0804F00D)) return;
             continue :blk 6;
         },
         6 => {
@@ -1756,14 +1756,14 @@ pub fn func_0804F6E8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804F724);
             abi.setRegNz(&rt.r[1], 0x0);
-            if (!abi.call(low_peel_6.func_0801320C, 0x0804F70D)) return;
+            if (!proc.spawnProcCall(0x0804F70D)) return;
             continue :blk 5;
         },
         5 => {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804F728);
             abi.setRegNz(&rt.r[1], 0x0);
-            if (!abi.call(low_peel_6.func_0801320C, 0x0804F715)) return;
+            if (!proc.spawnProcCall(0x0804F715)) return;
             continue :blk 6;
         },
         6 => {
@@ -1798,7 +1798,7 @@ pub fn func_0804F734() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804F750);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804F749)) return;
+            if (!proc.clearProcSlotCall(0x0804F749)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -1831,7 +1831,7 @@ pub fn func_0804F8F4() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804F914);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804F90F)) return;
+            if (!proc.clearProcSlotCall(0x0804F90F)) return;
             continue :blk 4;
         },
         3 => {
@@ -1874,7 +1874,7 @@ pub fn func_0804F8FA() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0804F914);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0804F90F)) return;
+            if (!proc.clearProcSlotCall(0x0804F90F)) return;
             continue :blk 3;
         },
         2 => {
@@ -1965,7 +1965,7 @@ pub fn func_080500F2() callconv(.c) void {
             abi.setRegNz(&rt.r[3], rt.r[3] >> 16);
             abi.setRegNz(&rt.r[0], 0x5A);
             abi.setRegNz(&rt.r[1], 0x59);
-            if (!abi.call(hw.func_0801B888, 0x0805010D)) return;
+            if (!hw.drawDispatchCall(0x0805010D)) return;
             continue :blk 5;
         },
         5 => {
@@ -2009,7 +2009,7 @@ pub fn func_080500F4() callconv(.c) void {
             abi.setRegNz(&rt.r[3], rt.r[3] >> 16);
             abi.setRegNz(&rt.r[0], 0x5A);
             abi.setRegNz(&rt.r[1], 0x59);
-            if (!abi.call(hw.func_0801B888, 0x0805010D)) return;
+            if (!hw.drawDispatchCall(0x0805010D)) return;
             continue :blk 4;
         },
         4 => {
@@ -2047,7 +2047,7 @@ pub fn func_080500F8() callconv(.c) void {
             abi.setRegNz(&rt.r[3], rt.r[3] >> 16);
             abi.setRegNz(&rt.r[0], 0x5A);
             abi.setRegNz(&rt.r[1], 0x59);
-            if (!abi.call(hw.func_0801B888, 0x0805010D)) return;
+            if (!hw.drawDispatchCall(0x0805010D)) return;
             continue :blk 3;
         },
         3 => {
@@ -2080,7 +2080,7 @@ pub fn func_080500FA() callconv(.c) void {
             abi.setRegNz(&rt.r[3], rt.r[3] >> 16);
             abi.setRegNz(&rt.r[0], 0x5A);
             abi.setRegNz(&rt.r[1], 0x59);
-            if (!abi.call(hw.func_0801B888, 0x0805010D)) return;
+            if (!hw.drawDispatchCall(0x0805010D)) return;
             continue :blk 2;
         },
         2 => {
@@ -2105,7 +2105,7 @@ pub fn func_08050102() callconv(.c) void {
             abi.setRegNz(&rt.r[3], rt.r[3] >> 16);
             abi.setRegNz(&rt.r[0], 0x5A);
             abi.setRegNz(&rt.r[1], 0x59);
-            if (!abi.call(hw.func_0801B888, 0x0805010D)) return;
+            if (!hw.drawDispatchCall(0x0805010D)) return;
             continue :blk 1;
         },
         1 => {
@@ -2188,7 +2188,7 @@ pub fn func_080502FE() callconv(.c) void {
         10 => {
             abi.fetches(5);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050319)) return;
+            if (!proc.clearProcSlotCall(0x08050319)) return;
             continue :blk 11;
         },
         11 => {
@@ -2260,7 +2260,7 @@ pub fn func_08050300() callconv(.c) void {
         9 => {
             abi.fetches(5);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050319)) return;
+            if (!proc.clearProcSlotCall(0x08050319)) return;
             continue :blk 10;
         },
         10 => {
@@ -2327,7 +2327,7 @@ pub fn func_08050302() callconv(.c) void {
         8 => {
             abi.fetches(5);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050319)) return;
+            if (!proc.clearProcSlotCall(0x08050319)) return;
             continue :blk 9;
         },
         9 => {
@@ -2389,7 +2389,7 @@ pub fn func_08050304() callconv(.c) void {
         7 => {
             abi.fetches(5);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050319)) return;
+            if (!proc.clearProcSlotCall(0x08050319)) return;
             continue :blk 8;
         },
         8 => {
@@ -2434,7 +2434,7 @@ pub fn func_0805030C() callconv(.c) void {
         4 => {
             abi.fetches(5);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050319)) return;
+            if (!proc.clearProcSlotCall(0x08050319)) return;
             continue :blk 5;
         },
         5 => {
@@ -2472,7 +2472,7 @@ pub fn func_08050358() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08050370);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0805036D)) return;
+            if (!proc.clearProcSlotCall(0x0805036D)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -2522,7 +2522,7 @@ pub fn func_08050374() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x080503A4);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050397)) return;
+            if (!proc.clearProcSlotCall(0x08050397)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -2737,7 +2737,7 @@ pub fn func_080505EC() callconv(.c) void {
         },
         6 => {
             abi.fetches(4);
-            if (!abi.call(hw.func_0801B888, 0x0805060D)) return;
+            if (!hw.drawDispatchCall(0x0805060D)) return;
             continue :blk 7;
         },
         7 => {
@@ -2827,7 +2827,7 @@ pub fn func_08050C34() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08050C58);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050C51)) return;
+            if (!proc.clearProcSlotCall(0x08050C51)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -2902,14 +2902,14 @@ pub fn func_08051888() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x080518B0);
             abi.setRegNz(&rt.r[1], 0x0);
-            if (!abi.call(low_peel_6.func_0801320C, 0x080518AD)) return;
+            if (!proc.spawnProcCall(0x080518AD)) return;
             continue :blk 4;
         },
         3 => {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x080518A0);
             abi.setRegNz(&rt.r[1], 0x0);
-            if (!abi.call(low_peel_6.func_0801320C, 0x0805189F)) return;
+            if (!proc.spawnProcCall(0x0805189F)) return;
             continue :blk 5;
         },
         4 => {
@@ -3040,7 +3040,7 @@ pub fn func_0805A018() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0805A044);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0805A03D)) return;
+            if (!proc.clearProcSlotCall(0x0805A03D)) return;
             continue :blk 3;
         },
         else => unreachable,
@@ -4454,7 +4454,7 @@ pub fn func_0806A45C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806A480);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806A479)) return;
+            if (!proc.clearProcSlotCall(0x0806A479)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -4484,14 +4484,14 @@ pub fn func_0806B01C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806B040);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806B02F)) return;
+            if (!proc.clearProcSlotCall(0x0806B02F)) return;
             continue :blk 3;
         },
         3 => {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806B044);
             abi.setRegNz(&rt.r[1], 0x8);
-            if (!abi.call(low_peel_6.func_0801320C, 0x0806B037)) return;
+            if (!proc.spawnProcCall(0x0806B037)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -4594,7 +4594,7 @@ pub fn func_0806C0F4() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806C128);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806C11D)) return;
+            if (!proc.clearProcSlotCall(0x0806C11D)) return;
             continue :blk 7;
         },
         7 => {
@@ -4646,7 +4646,7 @@ pub fn func_0806C12C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806C160);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806C159)) return;
+            if (!proc.clearProcSlotCall(0x0806C159)) return;
             continue :blk 4;
         },
         4 => {
@@ -4723,7 +4723,7 @@ pub fn func_0806C494() callconv(.c) void {
         1 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x0806C4AC);
-            if (!abi.call(low_peel_6.func_0801329C, 0x0806C49F)) return;
+            if (!proc.killProcByCallbackCall(0x0806C49F)) return;
             continue :blk 2;
         },
         2 => {
@@ -4791,7 +4791,7 @@ pub fn func_0806C8D0() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806C908);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806C8FB)) return;
+            if (!proc.clearProcSlotCall(0x0806C8FB)) return;
             continue :blk 4;
         },
         else => unreachable,
@@ -4825,7 +4825,7 @@ pub fn func_0806CAF0() callconv(.c) void {
             abi.setRegNz(&rt.r[2], rt.r[2] << 19);
             rt.cpuAdd(&rt.r[1], rt.r[1], rt.r[2], true);
             abi.setRegNz(&rt.r[2], 0x80);
-            if (!abi.call(dma.func_0800FFA8, 0x0806CB2B)) return;
+            if (!dma.enqueueOrCopyAbiCall(0x0806CB2B)) return;
             continue :blk 3;
         },
         2 => {
@@ -4877,7 +4877,7 @@ pub fn func_0806CB50() callconv(.c) void {
             abi.fetches(6);
             abi.setRegNz(&rt.r[0], rt.r[4] << 24);
             abi.setRegNz(&rt.r[0], rt.r[0] >> 24);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806CB6D)) return;
+            if (!proc.clearProcSlotCall(0x0806CB6D)) return;
             continue :blk 3;
         },
         3 => {
@@ -5309,7 +5309,7 @@ pub fn func_0806D9C0() callconv(.c) void {
             rt.cpuAdd(&rt.r[1], rt.r[2], 0x0, true);
             rt.cpuAdd(&rt.r[2], rt.r[5], 0x0, true);
             rt.cpuAdd(&rt.r[3], rt.r[4], 0x0, true);
-            if (!abi.call(hw.func_0801B888, 0x0806D9F7)) return;
+            if (!hw.drawDispatchCall(0x0806D9F7)) return;
             continue :blk 3;
         },
         2 => {
@@ -5361,7 +5361,7 @@ pub fn func_0806DF10() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806DF44);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806DF37)) return;
+            if (!proc.clearProcSlotCall(0x0806DF37)) return;
             continue :blk 1;
         },
         3 => {
@@ -5406,7 +5406,7 @@ pub fn func_0806E2E4() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806E318);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806E30B)) return;
+            if (!proc.clearProcSlotCall(0x0806E30B)) return;
             continue :blk 3;
         },
         3 => {
@@ -5451,7 +5451,7 @@ pub fn func_0806E2E8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806E318);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806E30B)) return;
+            if (!proc.clearProcSlotCall(0x0806E30B)) return;
             continue :blk 2;
         },
         2 => {
@@ -5573,7 +5573,7 @@ pub fn func_0806E95C() callconv(.c) void {
             abi.setRegNz(&rt.r[0], 0xB0);
             abi.setRegNz(&rt.r[1], 0x8);
             abi.setRegNz(&rt.r[3], 0x0);
-            if (!abi.call(hw.func_0801B888, 0x0806E96B)) return;
+            if (!hw.drawDispatchCall(0x0806E96B)) return;
             continue :blk 1;
         },
         1 => {
@@ -5603,7 +5603,7 @@ pub fn func_0806E95C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806E990);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0806E985)) return;
+            if (!proc.clearProcSlotCall(0x0806E985)) return;
             continue :blk 3;
         },
         else => unreachable,
@@ -5750,7 +5750,7 @@ pub fn func_0806FD00() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0806FD28);
             abi.setRegNz(&rt.r[1], 0x4);
-            if (!abi.call(low_peel_6.func_0801320C, 0x0806FD1F)) return;
+            if (!proc.spawnProcCall(0x0806FD1F)) return;
             continue :blk 4;
         },
         4 => {
@@ -5893,7 +5893,7 @@ pub fn func_08070248() callconv(.c) void {
         4 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x08070268);
-            if (!abi.call(low_peel_6.func_0801329C, 0x08070261)) return;
+            if (!proc.killProcByCallbackCall(0x08070261)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -5932,7 +5932,7 @@ pub fn func_08070604() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070638);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070623)) return;
+            if (!proc.clearProcSlotCall(0x08070623)) return;
             continue :blk 4;
         },
         4 => {
@@ -5954,7 +5954,7 @@ pub fn func_08070604() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070638);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070631)) return;
+            if (!proc.clearProcSlotCall(0x08070631)) return;
             continue :blk 5;
         },
         else => unreachable,
@@ -5988,7 +5988,7 @@ pub fn func_08070606() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070638);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070623)) return;
+            if (!proc.clearProcSlotCall(0x08070623)) return;
             continue :blk 3;
         },
         3 => {
@@ -6010,7 +6010,7 @@ pub fn func_08070606() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070638);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070631)) return;
+            if (!proc.clearProcSlotCall(0x08070631)) return;
             continue :blk 4;
         },
         else => unreachable,
@@ -6039,7 +6039,7 @@ pub fn func_08070608() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070638);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070623)) return;
+            if (!proc.clearProcSlotCall(0x08070623)) return;
             continue :blk 2;
         },
         2 => {
@@ -6061,7 +6061,7 @@ pub fn func_08070608() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070638);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070631)) return;
+            if (!proc.clearProcSlotCall(0x08070631)) return;
             continue :blk 3;
         },
         else => unreachable,
@@ -6097,7 +6097,7 @@ pub fn func_08070B5C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070B84);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070B7B)) return;
+            if (!proc.clearProcSlotCall(0x08070B7B)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6142,7 +6142,7 @@ pub fn func_08070ED0() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070EF8);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070EF3)) return;
+            if (!proc.clearProcSlotCall(0x08070EF3)) return;
             continue :blk 3;
         },
         else => unreachable,
@@ -6190,7 +6190,7 @@ pub fn func_08070F98() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08070FD0);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070FC5)) return;
+            if (!proc.clearProcSlotCall(0x08070FC5)) return;
             continue :blk 4;
         },
         4 => {
@@ -6235,7 +6235,7 @@ pub fn func_08070FD8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08071000);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08070FFD)) return;
+            if (!proc.clearProcSlotCall(0x08070FFD)) return;
             continue :blk 4;
         },
         4 => {
@@ -6288,7 +6288,7 @@ pub fn func_08071A24() callconv(.c) void {
             abi.write8(rt.r[1] +% 0x0, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(0x08071A74);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08071A5B)) return;
+            if (!proc.clearProcSlotCall(0x08071A5B)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6469,7 +6469,7 @@ pub fn func_08072144() callconv(.c) void {
             abi.setRegNz(&rt.r[3], 0xB8);
             abi.setRegNz(&rt.r[3], rt.r[3] << 7);
             abi.setRegNz(&rt.r[0], 0x0);
-            if (!abi.call(hw.func_0801B888, 0x08072159)) return;
+            if (!hw.drawDispatchCall(0x08072159)) return;
             continue :blk 1;
         },
         1 => {
@@ -6495,7 +6495,7 @@ pub fn func_08072144() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08072178);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x0807216F)) return;
+            if (!proc.clearProcSlotCall(0x0807216F)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -6530,7 +6530,7 @@ pub fn func_08072CC0() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08072CE4);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08072CDD)) return;
+            if (!proc.clearProcSlotCall(0x08072CDD)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6578,7 +6578,7 @@ pub fn func_080732BC() callconv(.c) void {
             abi.write16(rt.r[1] +% 0x0, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(0x08073300);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x080732F3)) return;
+            if (!proc.clearProcSlotCall(0x080732F3)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6615,7 +6615,7 @@ pub fn func_08073304() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0807332C);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08073325)) return;
+            if (!proc.clearProcSlotCall(0x08073325)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6654,7 +6654,7 @@ pub fn func_08073330() callconv(.c) void {
             abi.write8(rt.r[1] +% 0x0, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(0x08073360);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08073355)) return;
+            if (!proc.clearProcSlotCall(0x08073355)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6699,7 +6699,7 @@ pub fn func_080738A0() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x080738C8);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x080738C3)) return;
+            if (!proc.clearProcSlotCall(0x080738C3)) return;
             continue :blk 3;
         },
         else => unreachable,
@@ -6732,7 +6732,7 @@ pub fn func_08073B14() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08073B34);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08073B2D)) return;
+            if (!proc.clearProcSlotCall(0x08073B2D)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6913,7 +6913,7 @@ pub fn func_08073E84() callconv(.c) void {
             abi.write16(rt.r[1] +% 0x0, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(0x08073EC0);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08073EB5)) return;
+            if (!proc.clearProcSlotCall(0x08073EB5)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -6990,7 +6990,7 @@ pub fn func_08074980() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0807499C);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08074999)) return;
+            if (!proc.clearProcSlotCall(0x08074999)) return;
             continue :blk 1;
         },
         else => unreachable,
@@ -7030,7 +7030,7 @@ pub fn func_08074C4C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08074C80);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08074C67)) return;
+            if (!proc.clearProcSlotCall(0x08074C67)) return;
             continue :blk 1;
         },
         3 => {
@@ -7086,7 +7086,7 @@ pub fn func_08074D40() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x08074D74);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08074D5B)) return;
+            if (!proc.clearProcSlotCall(0x08074D5B)) return;
             continue :blk 1;
         },
         3 => {

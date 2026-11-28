@@ -74,6 +74,16 @@ pub inline fn copyPaletteCall(comptime ret_addr: u32) bool {
     return abi.call(func_08011330, ret_addr);
 }
 
+/// Typed cross-module bridge forwarding existing register state to `func_0800FDA4` (`cpuCopyAuto`).
+pub inline fn copyAutoAbiCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0800FDA4, ret_addr);
+}
+
+/// Typed cross-module bridge forwarding existing register state to `func_0800FFA8` (VBlank DMA queue/copy).
+pub inline fn enqueueOrCopyAbiCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0800FFA8, ret_addr);
+}
+
 /// Copy `u16(r2)` bytes from `r0` to `r1` using `CpuFastSet` if 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
 pub fn func_0800FDA4() callconv(.c) void {
     if (!abi.enter(0x0800FDA4)) return;

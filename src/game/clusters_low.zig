@@ -273,7 +273,7 @@ fn run08041F0C(start_block: u32) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08041F1C);
-    if (!abi.call(low_peel_6.func_0801329C, 0x08041F19)) return;
+    if (!proc.killProcByCallbackCall(0x08041F19)) return;
     abi.fetches(4);
     popReturnTo(0);
 }
@@ -523,7 +523,7 @@ fn run0801F7EC(start_block: u32) void {
             abi.setRegNz(&rt.r[2], 0xC0);
             abi.setRegNz(&rt.r[2], rt.r[2] << 4);
             abi.copyRegFlags(&rt.r[0], rt.r[3]);
-            if (!abi.call(dma.func_0800FDA4, 0x0801F815)) return;
+            if (!dma.copyAutoAbiCall(0x0801F815)) return;
             abi.fetches(4);
             popReturnTo(0);
         },
@@ -550,12 +550,12 @@ pub fn func_0801F804() callconv(.c) void {
 pub fn func_08003502() callconv(.c) void {
     if (!abi.enter(0x08003502)) return;
     abi.fetches(4);
-    if (!abi.call(dma.func_0800FFA8, 0x08003507)) return;
+    if (!dma.enqueueOrCopyAbiCall(0x08003507)) return;
     abi.fetches(7);
     rt.r[0] = abi.read32(0x08003530);
     rt.r[1] = abi.read32(0x08003534);
     abi.setRegNz(&rt.r[2], 0x80);
-    if (!abi.call(dma.func_0800FFA8, 0x08003511)) return;
+    if (!dma.enqueueOrCopyAbiCall(0x08003511)) return;
     abi.fetches(8);
     rt.r[0] = abi.read32(0x08003538);
     abi.setRegNz(&rt.r[1], 0xE8);
@@ -624,21 +624,21 @@ pub fn func_08003542() callconv(.c) void {
     abi.setRegNz(&rt.r[4], rt.r[4] << 8);
     abi.setRegNz(&rt.r[0], 0x18);
     abi.copyRegFlags(&rt.r[3], rt.r[4]);
-    if (!abi.call(hw.func_0801B888, 0x08003551)) return;
+    if (!hw.drawDispatchCall(0x08003551)) return;
     abi.fetches(9);
     abi.setRegNz(&rt.r[1], 0x86);
     abi.setRegNz(&rt.r[1], rt.r[1] << 3);
     rt.r[2] = abi.read32(0x08003578);
     abi.setRegNz(&rt.r[0], 0x18);
     abi.copyRegFlags(&rt.r[3], rt.r[4]);
-    if (!abi.call(hw.func_0801B888, 0x0800355F)) return;
+    if (!hw.drawDispatchCall(0x0800355F)) return;
     abi.fetches(9);
     abi.setRegNz(&rt.r[1], 0x88);
     abi.setRegNz(&rt.r[1], rt.r[1] << 3);
     rt.r[2] = abi.read32(0x0800357C);
     abi.setRegNz(&rt.r[0], 0x18);
     abi.copyRegFlags(&rt.r[3], rt.r[4]);
-    if (!abi.call(hw.func_0801B888, 0x0800356D)) return;
+    if (!hw.drawDispatchCall(0x0800356D)) return;
     abi.fetches(5);
     rt.r[4] = abi.popReg();
     popReturnTo(0);
@@ -874,7 +874,7 @@ pub fn func_0800FDF8() callconv(.c) void {
     abi.copyRegFlags(&rt.r[0], rt.r[5]);
     rt.r[1] = rt.r[8];
     abi.copyRegFlags(&rt.r[2], rt.r[4]);
-    if (!abi.call(dma.func_0800FDA4, 0x0800FE07)) return;
+    if (!dma.copyAutoAbiCall(0x0800FE07)) return;
     abi.fetches(5);
     abi.copyRegFlags(&rt.r[0], rt.r[5]);
     if (!abi.call(low_peel_3.func_08012E14, 0x0800FE0D)) return;

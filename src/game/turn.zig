@@ -25,6 +25,7 @@ const low_peel_9 = @import("low_peel_9.zig");
 const map = @import("map.zig");
 const math = @import("math.zig");
 const mem = @import("mem.zig");
+const proc = @import("proc.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
@@ -117,7 +118,7 @@ pub fn func_080338FC() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08033910);
-    if (!abi.call(low_peel_6.func_0801329C, 0x08033905)) return;
+    if (!proc.killProcByCallbackCall(0x08033905)) return;
     abi.fetches(8);
     const ctrl_ptr = abi.read32(abi.read32(0x08033914));
     abi.write16(ctrl_ptr +% 2, 3);
@@ -231,7 +232,7 @@ pub fn func_080346E4() callconv(.c) void {
     rt.r[4] = rt.r[1];
     rt.r[0] = abi.read32(0x08034708);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x080346F3)) return;
+    if (!proc.spawnProcCall(0x080346F3)) return;
 
     abi.fetches(12);
     abi.write32(rt.r[0] +% 0x20, rt.r[4]);
@@ -619,7 +620,7 @@ pub fn func_08031F68() callconv(.c) void {
 
     abi.fetches(6);
     rt.r[0] = abi.read8(abi.read32(0x08031F9C));
-    if (!abi.call(low_peel_1.func_08013BD0, 0x08031F8B)) return;
+    if (!proc.clearProcSlotCall(0x08031F8B)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -660,7 +661,7 @@ pub fn func_080328E8() callconv(.c) void {
 
     abi.fetches(6);
     rt.r[0] = abi.read8(abi.read32(0x08032908));
-    if (!abi.call(low_peel_1.func_08013BD0, 0x08032903)) return;
+    if (!proc.clearProcSlotCall(0x08032903)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -950,7 +951,7 @@ pub fn func_080353A8() callconv(.c) void {
     abi.write8(abi.read32(0x080353CC), 0x32);
     rt.r[0] = abi.read32(0x080353D0);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x080353C3)) return;
+    if (!proc.spawnProcCall(0x080353C3)) return;
 
     abi.fetches(6);
     abi.write16(rt.r[0] +% 0x20, @truncate(val));
@@ -1160,7 +1161,7 @@ pub fn func_0803323C() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0xC);
     abi.setRegNz(&rt.r[2], 8);
     abi.setRegNz(&rt.r[3], 2);
-    if (!abi.call(hw.func_08010C70, 0x08033259)) return;
+    if (!hw.fillTileRectCall(0x08033259)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_1.func_08011804, 0x0803325D)) return;
@@ -1179,7 +1180,7 @@ pub fn func_0803323C() callconv(.c) void {
     rt.r[1] = sy;
     rt.r[2] = abi.read32(icon_tbl +% idx);
     rt.r[3] = abi.read32(0x08033298);
-    if (!abi.call(hw.func_0801B888, 0x08033283)) return;
+    if (!hw.drawDispatchCall(0x08033283)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;
@@ -1220,7 +1221,7 @@ pub fn func_08033300() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0xC);
     abi.setRegNz(&rt.r[2], 8);
     abi.setRegNz(&rt.r[3], 2);
-    if (!abi.call(hw.func_08010C70, 0x08033333)) return;
+    if (!hw.fillTileRectCall(0x08033333)) return;
 
     abi.fetches(26);
     abi.write8(work +% 0x18, 1);
@@ -1444,7 +1445,7 @@ pub fn func_08034E7C() callconv(.c) void {
     rt.r[1] = draw_y;
     rt.r[2] = gfx;
     rt.r[3] = attr;
-    if (!abi.call(hw.func_0801B888, 0x08034EB9)) return;
+    if (!hw.drawDispatchCall(0x08034EB9)) return;
 
     abi.fetches(5);
     rt.r[0] = y;
@@ -1456,7 +1457,7 @@ pub fn func_08034E7C() callconv(.c) void {
     rt.r[1] = draw_y;
     rt.r[2] = gfx;
     rt.r[3] = attr;
-    if (!abi.call(hw.func_0801B888, 0x08034ED3)) return;
+    if (!hw.drawDispatchCall(0x08034ED3)) return;
 
     abi.fetches(8);
     rt.r[3] = abi.read32(rt.r[13]);

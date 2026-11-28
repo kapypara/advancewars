@@ -676,7 +676,7 @@ pub fn func_08016918() callconv(.c) void {
     rt.r[4] = rt.r[0] & 0xFFFF;
     rt.r[0] = abi.read32(0x08016930);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x08016929)) return;
+    if (!proc.spawnProcCall(0x08016929)) return;
 
     abi.fetches(6);
     abi.write16(rt.r[0] +% 0x1E, @truncate(rt.r[4]));
@@ -697,7 +697,7 @@ pub fn func_08016F44() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 0);
     abi.setRegNz(&rt.r[2], 0);
     abi.setRegNz(&rt.r[3], 0x1E);
-    if (!abi.call(hw.func_08010C70, 0x08016F5F)) return;
+    if (!hw.fillTileRectCall(0x08016F5F)) return;
     abi.fetches(5);
     rt.r[13] +%= 8;
     abi.popReturn();
@@ -974,7 +974,7 @@ pub fn func_08038848() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08038860);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x0803885D)) return;
+    if (!proc.spawnProcCall(0x0803885D)) return;
     abi.fetches(4);
     abi.popReturn();
 }

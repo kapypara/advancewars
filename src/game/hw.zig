@@ -27,6 +27,16 @@ pub inline fn decodeActiveLowKeys(raw_keyinput: u16) u16 {
     return @truncate(types.key_mask_all & ~@as(u32, raw_keyinput));
 }
 
+/// Typed cross-module bridge calling indirect draw dispatch `func_0801B888` with exact ABI state.
+pub inline fn drawDispatchCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0801B888, ret_addr);
+}
+
+/// Typed cross-module bridge calling 2D tilemap rectangle fill `func_08010C70` with exact ABI state.
+pub inline fn fillTileRectCall(comptime ret_addr: u32) bool {
+    return abi.call(func_08010C70, ret_addr);
+}
+
 /// Poll GBA `KEYINPUT` (or replay stream when `battle_ui_state+0x32 != 0`) and update `key_state` (`0x0801122C`).
 pub fn func_0801122C() callconv(.c) void {
     if (!abi.enter(0x0801122C)) return;
@@ -1004,7 +1014,7 @@ pub fn func_0806CC18() callconv(.c) void {
     rt.r[3] = (slot | 0x10000) +% 0x0600_0000;
     rt.r[1] = rt.r[3];
     abi.setRegNz(&rt.r[2], 0x100);
-    if (!abi.call(dma.func_0800FFA8, 0x0806CC3F)) return;
+    if (!dma.enqueueOrCopyAbiCall(0x0806CC3F)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1032,7 +1042,7 @@ pub fn func_0806CC78() callconv(.c) void {
     rt.r[0] = abi.read32(0x0806CCA0);
     rt.r[1] = (slot | 0x10000) +% 0x0600_0000;
     abi.setRegNz(&rt.r[2], 0x580);
-    if (!abi.call(dma.func_0800FFA8, 0x0806CC97)) return;
+    if (!dma.enqueueOrCopyAbiCall(0x0806CC97)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1494,7 +1504,7 @@ pub fn func_0800FDDC() callconv(.c) void {
     rt.r[1] = src;
     rt.r[2] = len16;
     rt.updateNz(len16);
-    if (!abi.call(dma.func_0800FDA4, 0x0800FE07)) return;
+    if (!dma.copyAutoAbiCall(0x0800FE07)) return;
 
     abi.fetches(5);
     rt.r[0] = tmp;
@@ -1863,5 +1873,14 @@ test "register literal pool tables are sorted and contiguous in ROM" {
     }
     for (1..window_reg_ptr_addrs.len) |i| {
         try std.testing.expectEqual(window_reg_ptr_addrs[i - 1] + 4, window_reg_ptr_addrs[i]);
+    }
+}
+
+test "hw typed call bridges have expected inline signatures" {
+    inline for (.{ drawDispatchCall, fillTileRectCall }) |bridge| {
+        const info = @typeInfo(@TypeOf(bridge)).@"fn";
+        try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
+        try std.testing.expect(info.param_types[0].? == u32);
+        try std.testing.expect(info.return_type.? == bool);
     }
 }

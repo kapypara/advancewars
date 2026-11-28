@@ -339,7 +339,7 @@ fn enter_0800F164(start_block: u32) void {
             abi.setRegNz(&rt.r[4], 0x80);
             abi.setRegNz(&rt.r[4], rt.r[4] << 3);
             rt.cpuAdd(&rt.r[2], rt.r[4], 0x0, true);
-            if (!abi.call(dma.func_0800FDA4, 0x08018307)) return;
+            if (!dma.copyAutoAbiCall(0x08018307)) return;
             continue :blk 5;
         },
         5 => {
@@ -347,7 +347,7 @@ fn enter_0800F164(start_block: u32) void {
             rt.r[0] = abi.read32(0x08018334);
             rt.r[1] = abi.read32(0x08018338);
             rt.cpuAdd(&rt.r[2], rt.r[4], 0x0, true);
-            if (!abi.call(dma.func_0800FDA4, 0x08018311)) return;
+            if (!dma.copyAutoAbiCall(0x08018311)) return;
             continue :blk 6;
         },
         6 => {
@@ -1389,7 +1389,7 @@ fn enter_08035230(start_block: u32) void {
             abi.setRegNz(&rt.r[2], 0xC0);
             abi.setRegNz(&rt.r[2], rt.r[2] << 3);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
-            if (!abi.call(dma.func_0800FFA8, 0x0803648B)) return;
+            if (!dma.enqueueOrCopyAbiCall(0x0803648B)) return;
             continue :blk 2;
         },
         2 => {

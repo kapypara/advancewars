@@ -15,6 +15,7 @@ const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_8 = @import("low_peel_8.zig");
 const low_peel_9 = @import("low_peel_9.zig");
 const mem = @import("mem.zig");
+const proc = @import("proc.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
@@ -267,7 +268,7 @@ pub fn func_0803D700() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x0803D70C);
-    if (!abi.call(low_peel_6.func_0801329C, 0x0803D709)) return;
+    if (!proc.killProcByCallbackCall(0x0803D709)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -587,7 +588,7 @@ pub fn func_0803D968() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x0803D984);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x0803D97B)) return;
+    if (!proc.spawnProcCall(0x0803D97B)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -649,7 +650,7 @@ pub fn func_0804E650() callconv(.c) void {
     abi.write8(st +% 0x31, 0);
     rt.r[0] = abi.read32(0x0804E678);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x0804E669)) return;
+    if (!proc.spawnProcCall(0x0804E669)) return;
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0x74);
@@ -670,7 +671,7 @@ pub fn func_08051C90() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = abi.read32(0x08051CA4);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x08051CA1)) return;
+    if (!proc.spawnProcCall(0x08051CA1)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -742,10 +743,10 @@ pub fn func_08052200() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x08052214);
-    if (!abi.call(low_peel_6.func_0801329C, 0x08052209)) return;
+    if (!proc.killProcByCallbackCall(0x08052209)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08052218);
-    if (!abi.call(low_peel_6.func_0801329C, 0x0805220F)) return;
+    if (!proc.killProcByCallbackCall(0x0805220F)) return;
     abi.fetches(4);
     abi.popReturn();
 }

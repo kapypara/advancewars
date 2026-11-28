@@ -11,6 +11,7 @@ const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const mem = @import("mem.zig");
+const proc = @import("proc.zig");
 const sound = @import("sound.zig");
 const turn = @import("turn.zig");
 const types = @import("types.zig");
@@ -361,7 +362,7 @@ pub fn func_0801BF00() callconv(.c) void {
     rt.r[4] = (dst_idx << 5) +% abi.read32(0x0801BF28);
     rt.r[1] = rt.r[4];
     abi.setRegNz(&rt.r[2], 0x200);
-    if (!abi.call(dma.func_0800FFA8, 0x0801BF21)) return;
+    if (!dma.enqueueOrCopyAbiCall(0x0801BF21)) return;
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -422,7 +423,7 @@ pub fn func_0801C910() callconv(.c) void {
     if (!abi.call(low_peel_1.func_08011804, 0x0801C91B)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0801C924);
-    if (!abi.call(low_peel_6.func_0801329C, 0x0801C921)) return;
+    if (!proc.killProcByCallbackCall(0x0801C921)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -495,7 +496,7 @@ pub fn func_0806CA08() callconv(.c) void {
     rt.r[4] = dst;
     rt.r[1] = dst;
     abi.setRegNz(&rt.r[2], @as(u32, 0x80) << 2);
-    if (!abi.call(dma.func_0800FFA8, 0x0806CA2F)) return;
+    if (!dma.enqueueOrCopyAbiCall(0x0806CA2F)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -609,7 +610,7 @@ pub fn func_0801C55C() callconv(.c) void {
     rt.r[0] = abi.read32(0x0801C5A0);
     rt.r[1] = char_bank +% abi.read32(0x0801C5A8);
     abi.setRegNz(&rt.r[2], @as(u32, 0x80) << 4);
-    if (!abi.call(dma.func_0800FFA8, 0x0801C579)) return;
+    if (!dma.enqueueOrCopyAbiCall(0x0801C579)) return;
 
     abi.fetches(10);
     abi.write32(rt.r[13], abi.read32(0x0801C5B4));

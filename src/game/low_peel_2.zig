@@ -11,6 +11,7 @@ const low_peel_18 = @import("low_peel_18.zig");
 const low_peel_5 = @import("low_peel_5.zig");
 const low_peel_7 = @import("low_peel_7.zig");
 const low_peel_9 = @import("low_peel_9.zig");
+const proc = @import("proc.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
@@ -3216,7 +3217,7 @@ pub fn func_08040602() callconv(.c) void {
             rt.r[2] = abi.read32(0x08040624);
             rt.r[3] = abi.read32(0x08040628);
             abi.setRegNz(&rt.r[1], 0x1);
-            if (!abi.call(hw.func_0801B888, 0x08040617)) return;
+            if (!hw.drawDispatchCall(0x08040617)) return;
             continue :blk 1;
         },
         1 => {
@@ -3496,7 +3497,7 @@ pub fn func_08050312() callconv(.c) void {
         0 => {
             abi.fetches(5);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050319)) return;
+            if (!proc.clearProcSlotCall(0x08050319)) return;
             continue :blk 1;
         },
         1 => {
@@ -3541,7 +3542,7 @@ pub fn func_0805053E() callconv(.c) void {
         1 => {
             abi.fetches(5);
             rt.r[0] = abi.read8(rt.r[2] +% 0x0);
-            if (!abi.call(low_peel_1.func_08013BD0, 0x08050547)) return;
+            if (!proc.clearProcSlotCall(0x08050547)) return;
             continue :blk 2;
         },
         2 => {
@@ -3578,7 +3579,7 @@ pub fn func_08050600() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(hw.func_0801B888, 0x0805060D)) return;
+            if (!hw.drawDispatchCall(0x0805060D)) return;
             continue :blk 4;
         },
         4 => {
@@ -3606,7 +3607,7 @@ pub fn func_08050602() callconv(.c) void {
         },
         2 => {
             abi.fetches(4);
-            if (!abi.call(hw.func_0801B888, 0x0805060D)) return;
+            if (!hw.drawDispatchCall(0x0805060D)) return;
             continue :blk 3;
         },
         3 => {
@@ -3629,7 +3630,7 @@ pub fn func_08050604() callconv(.c) void {
         },
         1 => {
             abi.fetches(4);
-            if (!abi.call(hw.func_0801B888, 0x0805060D)) return;
+            if (!hw.drawDispatchCall(0x0805060D)) return;
             continue :blk 2;
         },
         2 => {
@@ -3646,7 +3647,7 @@ pub fn func_08050608() callconv(.c) void {
     blk: switch (@as(u32, 0)) {
         0 => {
             abi.fetches(4);
-            if (!abi.call(hw.func_0801B888, 0x0805060D)) return;
+            if (!hw.drawDispatchCall(0x0805060D)) return;
             continue :blk 1;
         },
         1 => {

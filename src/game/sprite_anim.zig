@@ -10,6 +10,7 @@ const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const mem = @import("mem.zig");
+const proc = @import("proc.zig");
 const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 
@@ -1297,7 +1298,7 @@ pub fn func_080123A8() callconv(.c) void {
     abi.write32(rt.r[13] +% 0xC, s1);
     rt.r[0] = abi.read32(0x08012418);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(low_peel_6.func_0801320C, 0x080123E1)) return;
+    if (!proc.spawnProcCall(0x080123E1)) return;
 
     abi.fetches(18);
     const proc_ptr = rt.r[0];

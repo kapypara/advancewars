@@ -173,7 +173,7 @@ pub fn func_080009FC() callconv(.c) void {
         },
         1 => {
             abi.fetches(4);
-            if (!abi.call(dma.func_0800FFA8, 0x08000A07)) return;
+            if (!dma.enqueueOrCopyAbiCall(0x08000A07)) return;
             continue :blk 2;
         },
         2 => {
@@ -191,7 +191,7 @@ pub fn func_08000A02() callconv(.c) void {
     blk: switch (@as(u32, 0)) {
         0 => {
             abi.fetches(4);
-            if (!abi.call(dma.func_0800FFA8, 0x08000A07)) return;
+            if (!dma.enqueueOrCopyAbiCall(0x08000A07)) return;
             continue :blk 1;
         },
         1 => {
@@ -1713,7 +1713,7 @@ pub fn func_0801FB00() callconv(.c) void {
         1 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], rt.r[2] << 4);
-            if (!abi.call(dma.func_0800FDA4, 0x0801FB09)) return;
+            if (!dma.copyAutoAbiCall(0x0801FB09)) return;
             continue :blk 2;
         },
         2 => {
@@ -1731,7 +1731,7 @@ pub fn func_0801FB02() callconv(.c) void {
         0 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], rt.r[2] << 4);
-            if (!abi.call(dma.func_0800FDA4, 0x0801FB09)) return;
+            if (!dma.copyAutoAbiCall(0x0801FB09)) return;
             continue :blk 1;
         },
         1 => {
