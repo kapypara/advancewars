@@ -9,6 +9,105 @@ const dma = @import("dma.zig");
 const mem = @import("mem.zig");
 const types = @import("types.zig");
 
+/// Decode active-low GBA `KEYINPUT` halfword into active-high 10-bit button mask.
+pub inline fn decodeActiveLowKeys(raw_keyinput: u16) u16 {
+    return @truncate(types.key_mask_all & ~@as(u32, raw_keyinput));
+}
+
+/// Poll GBA `KEYINPUT` (or replay stream when `battle_ui_state+0x32 != 0`) and update `key_state` (`0x0801122C`).
+pub fn func_0801122C() callconv(.c) void {
+    if (!abi.enter(0x0801122C)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    abi.pushReg(4);
+
+    const mode = mem.readU8(types.addr.battle_ui_state +% 0x32);
+    rt.r[0] = mode;
+    rt.cpuSub(null, mode, 0, true);
+
+    var poll_hw = (mode == 0);
+    if (!poll_hw) {
+        abi.fetches(4);
+        if (!abi.call(decls.func_080316B4, 0x0801123D)) return;
+        abi.fetches(6);
+        const is_replay: u8 = @truncate(rt.r[0]);
+        abi.setRegNz(&rt.r[0], is_replay);
+        rt.cpuSub(null, is_replay, 1, true);
+        if (is_replay == 1) {
+            abi.fetches(4);
+            if (!abi.call(decls.func_080316CC, 0x08011249)) return;
+            abi.fetches(6);
+            abi.setRegNz(&rt.r[0], rt.r[0] << 16);
+            abi.setRegNz(&rt.r[4], rt.r[0] >> 16);
+            if (!abi.call(decls.func_08031544, 0x08011251)) return;
+            abi.fetches(3);
+            poll_hw = false;
+        } else {
+            poll_hw = true;
+        }
+    }
+
+    if (poll_hw) {
+        abi.fetches(8);
+        const raw_keys = mem.readU16(types.addr.reg_keyinput);
+        const pressed = decodeActiveLowKeys(raw_keys);
+        rt.r[0] = types.key_mask_all;
+        rt.r[1] = raw_keys;
+        rt.r[2] = types.key_mask_all;
+        abi.setRegNz(&rt.r[4], pressed);
+    }
+
+    abi.fetches(7);
+    rt.r[0] = types.addr.key_state;
+    const keys_s16: i16 = @bitCast(@as(u16, @truncate(rt.r[4])));
+    abi.setRegNz(&rt.r[1], @bitCast(@as(i32, keys_s16)));
+    if (!abi.call(decls.func_080111A8, 0x0801126F)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Sync shadow palette buffer (`0x0300_1EF0`) into Palette RAM when `[0x0300_0048] == 1` (`0x0801129C`).
+pub fn func_0801129C() callconv(.c) void {
+    if (!abi.enter(0x0801129C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+
+    const synced = mem.readU8(types.addr.palette_synced_flag);
+    rt.r[0] = synced;
+    rt.cpuSub(null, synced, 1, true);
+
+    if (synced == 1) {
+        abi.fetches(9);
+        rt.r[0] = types.addr.palette_shadow_buf;
+        abi.setRegNz(&rt.r[1], types.addr.pal_ram);
+        abi.setRegNz(&rt.r[2], types.pal_ram_size);
+        if (!abi.call(decls.func_0800FDA4, 0x080112B5)) return;
+    }
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear all 32 palette dirty flags at `0x0201_04B4` (`0x080113D0`).
+pub fn func_080113D0() callconv(.c) void {
+    if (!abi.enter(0x080113D0)) return;
+    abi.fetches(5);
+    var i: i32 = @intCast(types.palette_dirty_count - 1);
+    while (i >= 0) : (i -= 1) {
+        abi.fetches(7);
+        mem.writeU8(types.addr.palette_dirty_flags +% @as(u32, @intCast(i)), 0);
+    }
+    abi.fetches(3);
+    rt.r[0] = types.addr.palette_dirty_flags;
+    rt.r[1] = 0xFFFF_FFFF;
+    rt.r[2] = 0;
+    rt.r[3] = types.addr.palette_dirty_flags;
+    rt.cpuSub(null, 0xFFFF_FFFF, 0, true);
+    abi.retLr();
+}
+
 /// Flush shadow palette buffer (`0x0300_1EF0`) into GBA Palette RAM (`0x0500_0000`) (`0x080112C0`).
 pub fn func_080112C0() callconv(.c) void {
     if (!abi.enter(0x080112C0)) return;
@@ -1738,8 +1837,18 @@ comptime {
         @export(&func_08079A5C, .{ .name = "func_08079A5C", .linkage = .strong });
         @export(&func_08079E78, .{ .name = "func_08079E78", .linkage = .strong });
         @export(&func_0807A3BC, .{ .name = "func_0807A3BC", .linkage = .strong });
+        @export(&func_0801122C, .{ .name = "func_0801122C", .linkage = .strong });
+        @export(&func_0801129C, .{ .name = "func_0801129C", .linkage = .strong });
         @export(&func_080112C0, .{ .name = "func_080112C0", .linkage = .strong });
+        @export(&func_080113D0, .{ .name = "func_080113D0", .linkage = .strong });
     }
+}
+
+test "decodeActiveLowKeys maps active-low KEYINPUT bits to active-high mask" {
+    try std.testing.expectEqual(@as(u16, 0x0000), decodeActiveLowKeys(0x03FF));
+    try std.testing.expectEqual(@as(u16, 0x000F), decodeActiveLowKeys(0x03F0));
+    try std.testing.expectEqual(@as(u16, 0x03FF), decodeActiveLowKeys(0x0000));
+    try std.testing.expectEqual(@as(u16, 0x0000), decodeActiveLowKeys(0xFFFF));
 }
 
 test "register literal pool tables are sorted and contiguous in ROM" {

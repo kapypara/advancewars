@@ -953,35 +953,6 @@ fn func_08011140() callconv(.c) void {
     rt.recompReturn(rt.r[14]); return;
 }
 
-fn func_080113D0() callconv(.c) void {
-    if (!abi.enter(0x080113D0)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(5);
-            abi.setRegNz(&rt.r[1], 0x1F);
-            rt.r[3] = abi.read32(0x080113E4);
-            abi.setRegNz(&rt.r[2], 0x0);
-            continue :blk 1;
-        },
-        1 => {
-            abi.fetches(7);
-            rt.cpuAdd(&rt.r[0], rt.r[1], rt.r[3], true);
-            abi.write8(rt.r[0] +% 0x0, @truncate(rt.r[2]));
-            rt.cpuSub(&rt.r[1], rt.r[1], 0x1, true);
-            rt.cpuSub(null, rt.r[1], 0x0, true);
-            if ((rt.CPU_N == rt.CPU_V)) {
-                continue :blk 1;
-            }
-            continue :blk 2;
-        },
-        2 => {
-            abi.fetches(3);
-            rt.recompReturn(rt.r[14]); return;
-        },
-        else => unreachable,
-    }
-}
-
 fn func_080117E0() callconv(.c) void {
     if (!abi.enter(0x080117E0)) return;
     abi.fetches(6);
@@ -3746,7 +3717,6 @@ comptime {
         @export(&func_08010CF0, .{ .name = "func_08010CF0", .linkage = .strong });
         @export(&func_08010F28, .{ .name = "func_08010F28", .linkage = .strong });
         @export(&func_08011140, .{ .name = "func_08011140", .linkage = .strong });
-        @export(&func_080113D0, .{ .name = "func_080113D0", .linkage = .strong });
         @export(&func_080117E0, .{ .name = "func_080117E0", .linkage = .strong });
         @export(&func_080117EC, .{ .name = "func_080117EC", .linkage = .strong });
         @export(&func_08011804, .{ .name = "func_08011804", .linkage = .strong });
