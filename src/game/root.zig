@@ -33,6 +33,7 @@ pub const low_peel_1 = @import("low_peel_1.zig");
 pub const low_peel_2 = @import("low_peel_2.zig");
 pub const low_peel_3 = @import("low_peel_3.zig");
 pub const low_peel_4 = @import("low_peel_4.zig");
+pub const low_peel_5 = @import("low_peel_5.zig");
 pub const clusters_hi = @import("clusters_hi.zig");
 pub const hi_peel_1 = @import("hi_peel_1.zig");
 
@@ -68,6 +69,7 @@ comptime {
     _ = low_peel_2;
     _ = low_peel_3;
     _ = low_peel_4;
+    _ = low_peel_5;
     _ = clusters_hi;
     _ = hi_peel_1;
 }
@@ -104,6 +106,7 @@ test {
     _ = low_peel_2;
     _ = low_peel_3;
     _ = low_peel_4;
+    _ = low_peel_5;
     _ = clusters_hi;
     _ = hi_peel_1;
 }
