@@ -462,9 +462,9 @@ fn func_0800C2C8() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
             rt.r[0] = abi.read32(rt.r[0] +% 0x0);
             switch (rt.r[0] & ~@as(u32, 1)) {
-                0x0800C30C => continue :blk 349,
-                0x0800C30E => continue :blk 350,
-                0x0800C308 => continue :blk 348,
+                0x0800C30C => continue :blk 4,
+                0x0800C30E => continue :blk 2,
+                0x0800C308 => continue :blk 3,
                 else => {},
             }
             decls.awre_cpu_bx(rt.r[0] | 1); return;
@@ -473,6 +473,16 @@ fn func_0800C2C8() callconv(.c) void {
             abi.fetches(4);
             rt.cpuAdd(&rt.r[0], rt.r[2], 0x0, true);
             rt.recompReturn(rt.r[14]); return;
+        },
+        3 => {
+            abi.fetches(4);
+            abi.setRegNz(&rt.r[2], 0x2);
+            continue :blk 2;
+        },
+        4 => {
+            abi.fetches(3);
+            abi.setRegNz(&rt.r[2], 0x1);
+            continue :blk 2;
         },
         else => unreachable,
     }
