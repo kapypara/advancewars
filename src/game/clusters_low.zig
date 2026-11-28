@@ -1,13 +1,12 @@
 //! Self-contained low-ROM (`< 0x08080000`) shared-body `enter_*` clusters.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const bios = @import("bios.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
+const dispatch = @import("dispatch.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
@@ -1489,7 +1488,7 @@ pub fn func_080000C0() callconv(.c) void {
     rt.r[15] = 0x080000E4;
     rt.r[14] = rt.r[15];
     rt.g_ret = 0;
-    decls.awre_cpu_bx(rt.r[1]);
+    dispatch.awre_cpu_bx(rt.r[1]);
     if (!rt.recompCalled(0x080000E4)) return;
     abi.fetches(3);
 }
@@ -1957,91 +1956,6 @@ pub fn func_0805EDF2() callconv(.c) void {
     run0805EC80(32);
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_0803FD0C, .{ .name = "func_0803FD0C", .linkage = .strong });
-        @export(&func_0800F8FC, .{ .name = "func_0800F8FC", .linkage = .strong });
-        @export(&func_0800F902, .{ .name = "func_0800F902", .linkage = .strong });
-        @export(&func_08070500, .{ .name = "func_08070500", .linkage = .strong });
-        @export(&func_08070502, .{ .name = "func_08070502", .linkage = .strong });
-        @export(&func_08070504, .{ .name = "func_08070504", .linkage = .strong });
-        @export(&func_08070506, .{ .name = "func_08070506", .linkage = .strong });
-        @export(&func_08037950, .{ .name = "func_08037950", .linkage = .strong });
-        @export(&func_0801A768, .{ .name = "func_0801A768", .linkage = .strong });
-        @export(&func_0801A784, .{ .name = "func_0801A784", .linkage = .strong });
-        @export(&func_0801A78A, .{ .name = "func_0801A78A", .linkage = .strong });
-        @export(&func_0805220E, .{ .name = "func_0805220E", .linkage = .strong });
-        @export(&func_080700EE, .{ .name = "func_080700EE", .linkage = .strong });
-        @export(&func_080700FA, .{ .name = "func_080700FA", .linkage = .strong });
-        @export(&func_08041F0C, .{ .name = "func_08041F0C", .linkage = .strong });
-        @export(&func_08041F10, .{ .name = "func_08041F10", .linkage = .strong });
-        @export(&func_08060600, .{ .name = "func_08060600", .linkage = .strong });
-        @export(&func_08060602, .{ .name = "func_08060602", .linkage = .strong });
-        @export(&func_08060604, .{ .name = "func_08060604", .linkage = .strong });
-        @export(&func_08060606, .{ .name = "func_08060606", .linkage = .strong });
-        @export(&func_08060608, .{ .name = "func_08060608", .linkage = .strong });
-        @export(&func_0803F008, .{ .name = "func_0803F008", .linkage = .strong });
-        @export(&func_0802F9F6, .{ .name = "func_0802F9F6", .linkage = .strong });
-        @export(&func_08044374, .{ .name = "func_08044374", .linkage = .strong });
-        @export(&func_080305F0, .{ .name = "func_080305F0", .linkage = .strong });
-        @export(&func_080305F4, .{ .name = "func_080305F4", .linkage = .strong });
-        @export(&func_08014AF0, .{ .name = "func_08014AF0", .linkage = .strong });
-        @export(&func_08014B14, .{ .name = "func_08014B14", .linkage = .strong });
-        @export(&func_0801A1FC, .{ .name = "func_0801A1FC", .linkage = .strong });
-        @export(&func_0801F7F0, .{ .name = "func_0801F7F0", .linkage = .strong });
-        @export(&func_0801F800, .{ .name = "func_0801F800", .linkage = .strong });
-        @export(&func_0801F804, .{ .name = "func_0801F804", .linkage = .strong });
-        @export(&func_08003502, .{ .name = "func_08003502", .linkage = .strong });
-        @export(&func_0800FB9C, .{ .name = "func_0800FB9C", .linkage = .strong });
-        @export(&func_0800FBBC, .{ .name = "func_0800FBBC", .linkage = .strong });
-        @export(&func_0801FFF6, .{ .name = "func_0801FFF6", .linkage = .strong });
-        @export(&func_08003542, .{ .name = "func_08003542", .linkage = .strong });
-        @export(&func_08020D00, .{ .name = "func_08020D00", .linkage = .strong });
-        @export(&func_08041F50, .{ .name = "func_08041F50", .linkage = .strong });
-        @export(&func_08041F54, .{ .name = "func_08041F54", .linkage = .strong });
-        @export(&func_08074442, .{ .name = "func_08074442", .linkage = .strong });
-        @export(&func_080501F6, .{ .name = "func_080501F6", .linkage = .strong });
-        @export(&func_080501FE, .{ .name = "func_080501FE", .linkage = .strong });
-        @export(&func_08050200, .{ .name = "func_08050200", .linkage = .strong });
-        @export(&func_08050204, .{ .name = "func_08050204", .linkage = .strong });
-        @export(&func_08040300, .{ .name = "func_08040300", .linkage = .strong });
-        @export(&func_08040304, .{ .name = "func_08040304", .linkage = .strong });
-        @export(&func_08070B0C, .{ .name = "func_08070B0C", .linkage = .strong });
-        @export(&func_080703FE, .{ .name = "func_080703FE", .linkage = .strong });
-        @export(&func_08070400, .{ .name = "func_08070400", .linkage = .strong });
-        @export(&func_08070402, .{ .name = "func_08070402", .linkage = .strong });
-        @export(&func_08070404, .{ .name = "func_08070404", .linkage = .strong });
-        @export(&func_0800FDF8, .{ .name = "func_0800FDF8", .linkage = .strong });
-        @export(&func_08070300, .{ .name = "func_08070300", .linkage = .strong });
-        @export(&func_08070302, .{ .name = "func_08070302", .linkage = .strong });
-        @export(&func_08052368, .{ .name = "func_08052368", .linkage = .strong });
-        @export(&func_080781B4, .{ .name = "func_080781B4", .linkage = .strong });
-        @export(&func_0801319C, .{ .name = "func_0801319C", .linkage = .strong });
-        @export(&func_0801B820, .{ .name = "func_0801B820", .linkage = .strong });
-        @export(&func_0803D6DC, .{ .name = "func_0803D6DC", .linkage = .strong });
-        @export(&func_0803070C, .{ .name = "func_0803070C", .linkage = .strong });
-        @export(&func_08027B7E, .{ .name = "func_08027B7E", .linkage = .strong });
-        @export(&func_0804FEF2, .{ .name = "func_0804FEF2", .linkage = .strong });
-        @export(&func_0804FEF6, .{ .name = "func_0804FEF6", .linkage = .strong });
-        @export(&func_0804FF04, .{ .name = "func_0804FF04", .linkage = .strong });
-        @export(&func_0804FF0A, .{ .name = "func_0804FF0A", .linkage = .strong });
-        @export(&func_08014BF8, .{ .name = "func_08014BF8", .linkage = .strong });
-        @export(&func_0801A03C, .{ .name = "func_0801A03C", .linkage = .strong });
-        @export(&func_0802FCF4, .{ .name = "func_0802FCF4", .linkage = .strong });
-        @export(&func_0802FCF8, .{ .name = "func_0802FCF8", .linkage = .strong });
-        @export(&func_080000C0, .{ .name = "func_080000C0", .linkage = .strong });
-        @export(&func_080000E4, .{ .name = "func_080000E4", .linkage = .strong });
-        @export(&func_080796A8, .{ .name = "func_080796A8", .linkage = .strong });
-        @export(&func_080796B0, .{ .name = "func_080796B0", .linkage = .strong });
-        @export(&func_080796B8, .{ .name = "func_080796B8", .linkage = .strong });
-        @export(&func_08078728, .{ .name = "func_08078728", .linkage = .strong });
-        @export(&func_080788B8, .{ .name = "func_080788B8", .linkage = .strong });
-        @export(&func_08078934, .{ .name = "func_08078934", .linkage = .strong });
-        @export(&func_08078970, .{ .name = "func_08078970", .linkage = .strong });
-        @export(&func_0805EDEC, .{ .name = "func_0805EDEC", .linkage = .strong });
-        @export(&func_0805EDF2, .{ .name = "func_0805EDF2", .linkage = .strong });
-    }
-}
 
 test "clusters_low ROM entry export is callable" {
     try std.testing.expect(@TypeOf(func_080000C0) == fn () callconv(.c) void);

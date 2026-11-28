@@ -1,7 +1,6 @@
 //! Lifted Advance Wars Commanding Officer (CO) portraits, palette & data table getters (`0x0801BDDC..0x0801BEE4`).
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const dma = @import("dma.zig");
@@ -683,41 +682,6 @@ pub fn func_0803BC48() callconv(.c) void {
     abi.popReturn();
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_0801BDDC, .{ .name = "func_0801BDDC", .linkage = .strong });
-        @export(&func_0801BE04, .{ .name = "func_0801BE04", .linkage = .strong });
-        @export(&func_0801BE10, .{ .name = "func_0801BE10", .linkage = .strong });
-        @export(&func_0801BE30, .{ .name = "func_0801BE30", .linkage = .strong });
-        @export(&func_0801BE50, .{ .name = "func_0801BE50", .linkage = .strong });
-        @export(&func_0801BEA0, .{ .name = "func_0801BEA0", .linkage = .strong });
-        @export(&func_0801BEBC, .{ .name = "func_0801BEBC", .linkage = .strong });
-        @export(&func_0801BEE4, .{ .name = "func_0801BEE4", .linkage = .strong });
-        @export(&func_0801BF50, .{ .name = "func_0801BF50", .linkage = .strong });
-        @export(&func_0801BFE8, .{ .name = "func_0801BFE8", .linkage = .strong });
-        @export(&func_0801C000, .{ .name = "func_0801C000", .linkage = .strong });
-        @export(&func_0801C0E4, .{ .name = "func_0801C0E4", .linkage = .strong });
-        @export(&func_08038064, .{ .name = "func_08038064", .linkage = .strong });
-        @export(&func_08038078, .{ .name = "func_08038078", .linkage = .strong });
-        @export(&func_0803808C, .{ .name = "func_0803808C", .linkage = .strong });
-        @export(&func_0801B8BC, .{ .name = "func_0801B8BC", .linkage = .strong });
-        @export(&func_0801BE88, .{ .name = "func_0801BE88", .linkage = .strong });
-        @export(&func_0801BF00, .{ .name = "func_0801BF00", .linkage = .strong });
-        @export(&func_0801BF2C, .{ .name = "func_0801BF2C", .linkage = .strong });
-        @export(&func_0801C19C, .{ .name = "func_0801C19C", .linkage = .strong });
-        @export(&func_0801C1B4, .{ .name = "func_0801C1B4", .linkage = .strong });
-        @export(&func_0801C910, .{ .name = "func_0801C910", .linkage = .strong });
-        @export(&func_0801C93C, .{ .name = "func_0801C93C", .linkage = .strong });
-        @export(&func_0801CA18, .{ .name = "func_0801CA18", .linkage = .strong });
-        @export(&func_0806C9A0, .{ .name = "func_0806C9A0", .linkage = .strong });
-        @export(&func_0806CA08, .{ .name = "func_0806CA08", .linkage = .strong });
-        @export(&func_0806CA38, .{ .name = "func_0806CA38", .linkage = .strong });
-        @export(&func_0806CD10, .{ .name = "func_0806CD10", .linkage = .strong });
-        @export(&func_0806CE84, .{ .name = "func_0806CE84", .linkage = .strong });
-        @export(&func_0801C55C, .{ .name = "func_0801C55C", .linkage = .strong });
-        @export(&func_0803BC48, .{ .name = "func_0803BC48", .linkage = .strong });
-    }
-}
 
 test "CO portrait ROM stride helpers align with GBA tables" {
     try std.testing.expectEqual(@as(u8, 0x0A), normalizeCoId(0x0B));

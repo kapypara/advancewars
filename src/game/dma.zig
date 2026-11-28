@@ -1,7 +1,6 @@
 //! Lifted CpuSet / CpuFastSet memory copy wrappers and hardware flag helpers.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
@@ -355,23 +354,6 @@ pub fn func_08011398() callconv(.c) void {
     abi.popReturn();
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_0800F894, .{ .name = "func_0800F894", .linkage = .strong });
-        @export(&func_0800FDA4, .{ .name = "func_0800FDA4", .linkage = .strong });
-        @export(&func_0800FFA8, .{ .name = "func_0800FFA8", .linkage = .strong });
-        @export(&func_08011330, .{ .name = "func_08011330", .linkage = .strong });
-        @export(&func_08011374, .{ .name = "func_08011374", .linkage = .strong });
-        @export(&func_08011398, .{ .name = "func_08011398", .linkage = .strong });
-        @export(&func_0800FD94, .{ .name = "func_0800FD94", .linkage = .strong });
-        @export(&func_0800FDCC, .{ .name = "func_0800FDCC", .linkage = .strong });
-        @export(&func_08010AC8, .{ .name = "func_08010AC8", .linkage = .strong });
-        @export(&func_08011310, .{ .name = "func_08011310", .linkage = .strong });
-        @export(&func_08011354, .{ .name = "func_08011354", .linkage = .strong });
-        @export(&func_080178F4, .{ .name = "func_080178F4", .linkage = .strong });
-        @export(&func_0803C32C, .{ .name = "func_0803C32C", .linkage = .strong });
-    }
-}
 
 test "CpuSet and CpuFastSet transfer size conversions truncate cleanly to u16 counts" {
     try std.testing.expectEqual(@as(u32, 0x1C0), byteCountToWords(0x700));

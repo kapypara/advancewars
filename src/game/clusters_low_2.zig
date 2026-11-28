@@ -1,7 +1,6 @@
 //! Remaining closed low-ROM (`< 0x08080000`) shared-body `enter_*` clusters (Stage 41).
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
@@ -2621,41 +2620,6 @@ fn enter_0806EC18(start_block: u32) void {
     }
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_0800F164, .{ .name = "func_0800F164", .linkage = .strong });
-        @export(&func_0800FBC4, .{ .name = "func_0800FBC4", .linkage = .strong });
-        @export(&func_0800FC58, .{ .name = "func_0800FC58", .linkage = .strong });
-        @export(&func_0800FD54, .{ .name = "func_0800FD54", .linkage = .strong });
-        @export(&func_08010A00, .{ .name = "func_08010A00", .linkage = .strong });
-        @export(&func_0801114C, .{ .name = "func_0801114C", .linkage = .strong });
-        @export(&func_080130A0, .{ .name = "func_080130A0", .linkage = .strong });
-        @export(&func_080130BE, .{ .name = "func_080130BE", .linkage = .strong });
-        @export(&func_080134D4, .{ .name = "func_080134D4", .linkage = .strong });
-        @export(&func_080139D4, .{ .name = "func_080139D4", .linkage = .strong });
-        @export(&func_080149E0, .{ .name = "func_080149E0", .linkage = .strong });
-        @export(&func_08018290, .{ .name = "func_08018290", .linkage = .strong });
-        @export(&func_0801A69C, .{ .name = "func_0801A69C", .linkage = .strong });
-        @export(&func_0801B700, .{ .name = "func_0801B700", .linkage = .strong });
-        @export(&func_0801F114, .{ .name = "func_0801F114", .linkage = .strong });
-        @export(&func_08034BA8, .{ .name = "func_08034BA8", .linkage = .strong });
-        @export(&func_08036464, .{ .name = "func_08036464", .linkage = .strong });
-        @export(&func_08077EB0, .{ .name = "func_08077EB0", .linkage = .strong });
-        @export(&func_08078424, .{ .name = "func_08078424", .linkage = .strong });
-        @export(&func_08078A9C, .{ .name = "func_08078A9C", .linkage = .strong });
-        @export(&func_080303E0, .{ .name = "func_080303E0", .linkage = .strong });
-        @export(&func_080303F4, .{ .name = "func_080303F4", .linkage = .strong });
-        @export(&func_080304FE, .{ .name = "func_080304FE", .linkage = .strong });
-        @export(&func_0803050A, .{ .name = "func_0803050A", .linkage = .strong });
-        @export(&func_08030634, .{ .name = "func_08030634", .linkage = .strong });
-        @export(&func_08042E24, .{ .name = "func_08042E24", .linkage = .strong });
-        @export(&func_08078258, .{ .name = "func_08078258", .linkage = .strong });
-        @export(&func_080784E0, .{ .name = "func_080784E0", .linkage = .strong });
-        @export(&func_08078630, .{ .name = "func_08078630", .linkage = .strong });
-        @export(&func_080787CC, .{ .name = "func_080787CC", .linkage = .strong });
-        @export(&func_0806EE0A, .{ .name = "func_0806EE0A", .linkage = .strong });
-    }
-}
 
 test "clusters_low_2 exports are callable" {
     try std.testing.expect(@TypeOf(func_0800F164) == fn () callconv(.c) void);

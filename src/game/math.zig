@@ -1,7 +1,6 @@
 //! Lifted core math, PRNG, and trig utility functions for Advance Wars.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
@@ -936,33 +935,6 @@ pub fn func_080775A4() callconv(.c) void {
     abi.retLr();
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_08010A84, .{ .name = "func_08010A84", .linkage = .strong });
-        @export(&func_08003918, .{ .name = "func_08003918", .linkage = .strong });
-        @export(&func_0806CF50, .{ .name = "func_0806CF50", .linkage = .strong });
-        @export(&func_0806D23C, .{ .name = "func_0806D23C", .linkage = .strong });
-        @export(&func_0806D260, .{ .name = "func_0806D260", .linkage = .strong });
-        @export(&func_0807AED4, .{ .name = "func_0807AED4", .linkage = .strong });
-        @export(&func_0807B488, .{ .name = "func_0807B488", .linkage = .strong });
-        @export(&func_0807B564, .{ .name = "func_0807B564", .linkage = .strong });
-        @export(&func_0807B6AC, .{ .name = "func_0807B6AC", .linkage = .strong });
-        @export(&func_0807AF30, .{ .name = "func_0807AF30", .linkage = .strong });
-        @export(&func_0800FCFA, .{ .name = "func_0800FCFA", .linkage = .strong });
-        @export(&func_0803D4F0, .{ .name = "func_0803D4F0", .linkage = .strong });
-        @export(&func_0806D160, .{ .name = "func_0806D160", .linkage = .strong });
-        @export(&func_0806D1A8, .{ .name = "func_0806D1A8", .linkage = .strong });
-        @export(&func_0806D1F0, .{ .name = "func_0806D1F0", .linkage = .strong });
-        @export(&func_0807BBF8, .{ .name = "func_0807BBF8", .linkage = .strong });
-        @export(&func_0807BC28, .{ .name = "func_0807BC28", .linkage = .strong });
-        @export(&func_0807C190, .{ .name = "func_0807C190", .linkage = .strong });
-        @export(&func_0807C7B8, .{ .name = "func_0807C7B8", .linkage = .strong });
-        @export(&func_0807C7E4, .{ .name = "func_0807C7E4", .linkage = .strong });
-        @export(&func_0807CB4C, .{ .name = "func_0807CB4C", .linkage = .strong });
-        @export(&func_0807CE28, .{ .name = "func_0807CE28", .linkage = .strong });
-        @export(&func_080775A4, .{ .name = "func_080775A4", .linkage = .strong });
-    }
-}
 
 test "Q12 arithmetic shift preserves signed fixed-point scaling" {
     try std.testing.expectEqual(@as(u32, 1), q12Shift(q12Mul(4096, 4096) >> 12));

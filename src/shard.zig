@@ -29,6 +29,11 @@ pub extern fn cpu_undefined(insn: u32) void;
 
 pub extern fn recomp_enter(addr: u32) bool;
 pub extern fn recomp_called_slow(retaddr: u32) bool;
+pub extern fn awre_run_iwram_function(target: u32) void;
+
+pub inline fn run_iwram_function(target: u32) void {
+    awre_run_iwram_function(target);
+}
 
 // ---- Local ARM7TDMI ALU / Shift / Unwind Helpers (inlined per shard in ReleaseFast) ----
 pub fn ror32(val: u32, amount: u32) u32 {

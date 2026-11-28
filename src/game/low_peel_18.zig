@@ -1,9 +1,7 @@
 //! Low-ROM (< 0x08080000) block-peeled wave 18 (>500 reachable lines, first 45).
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const bios = @import("bios.zig");
@@ -11,6 +9,7 @@ const campaign = @import("campaign.zig");
 const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const co = @import("co.zig");
+const dispatch = @import("dispatch.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
@@ -470,7 +469,7 @@ pub fn func_0803FE00() callconv(.c) void {
                 0x0804011C => continue :blk 47,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         39 => {
             abi.fetches(4);
@@ -1809,7 +1808,7 @@ pub fn func_08040BDC() callconv(.c) void {
                 0x08040F34 => continue :blk 46,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         46 => {
             abi.fetches(12);
@@ -2574,7 +2573,7 @@ pub fn func_08040EB8() callconv(.c) void {
                 0x08040F34 => continue :blk 2,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         6 => {
             abi.fetches(3);
@@ -3291,7 +3290,7 @@ pub fn func_08040F1E() callconv(.c) void {
                 0x08040F34 => continue :blk 1,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         5 => {
             abi.fetches(3);
@@ -4078,7 +4077,7 @@ pub fn func_08043008() callconv(.c) void {
                 0x080432EE => continue :blk 21,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         15 => {
             abi.fetches(3);
@@ -10363,7 +10362,7 @@ pub fn func_0804A94C() callconv(.c) void {
                 0x0804AE80 => continue :blk 11,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         2 => {
             abi.fetches(3);
@@ -12724,7 +12723,7 @@ pub fn func_0804BD94() callconv(.c) void {
                 0x0804C0C8 => continue :blk 10,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         2 => {
             abi.fetches(3);
@@ -13374,7 +13373,7 @@ pub fn func_0804D240() callconv(.c) void {
                 0x0804D7E0 => continue :blk 19,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         6 => {
             abi.fetches(5);
@@ -15871,7 +15870,7 @@ pub fn func_08051104() callconv(.c) void {
                 0x08051698 => continue :blk 12,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         2 => {
             abi.fetches(3);
@@ -28861,7 +28860,7 @@ pub fn func_08067D70() callconv(.c) void {
                 0x08067FE8 => continue :blk 39,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         35 => {
             abi.fetches(21);
@@ -29379,7 +29378,7 @@ pub fn func_080691FC() callconv(.c) void {
                 0x08069350 => continue :blk 25,
                 else => {},
             }
-            decls.awre_cpu_bx(rt.r[0] | 1); return;
+            dispatch.awre_cpu_bx(rt.r[0] | 1); return;
         },
         20 => {
             abi.fetches(7);
@@ -33819,55 +33818,6 @@ pub fn func_0807BC60() callconv(.c) void {
     }
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_0803FE00, .{ .name = "func_0803FE00", .linkage = .strong });
-        @export(&func_08040328, .{ .name = "func_08040328", .linkage = .strong });
-        @export(&func_08040BDC, .{ .name = "func_08040BDC", .linkage = .strong });
-        @export(&func_08040EB8, .{ .name = "func_08040EB8", .linkage = .strong });
-        @export(&func_08040F1E, .{ .name = "func_08040F1E", .linkage = .strong });
-        @export(&func_08043008, .{ .name = "func_08043008", .linkage = .strong });
-        @export(&func_08043F04, .{ .name = "func_08043F04", .linkage = .strong });
-        @export(&func_08045670, .{ .name = "func_08045670", .linkage = .strong });
-        @export(&func_08045AC8, .{ .name = "func_08045AC8", .linkage = .strong });
-        @export(&func_0804625C, .{ .name = "func_0804625C", .linkage = .strong });
-        @export(&func_0804727C, .{ .name = "func_0804727C", .linkage = .strong });
-        @export(&func_08047B64, .{ .name = "func_08047B64", .linkage = .strong });
-        @export(&func_0804810C, .{ .name = "func_0804810C", .linkage = .strong });
-        @export(&func_0804A4A0, .{ .name = "func_0804A4A0", .linkage = .strong });
-        @export(&func_0804A94C, .{ .name = "func_0804A94C", .linkage = .strong });
-        @export(&func_0804AFA0, .{ .name = "func_0804AFA0", .linkage = .strong });
-        @export(&func_0804B924, .{ .name = "func_0804B924", .linkage = .strong });
-        @export(&func_0804BD94, .{ .name = "func_0804BD94", .linkage = .strong });
-        @export(&func_0804D240, .{ .name = "func_0804D240", .linkage = .strong });
-        @export(&func_0804DCA8, .{ .name = "func_0804DCA8", .linkage = .strong });
-        @export(&func_0804E8E4, .{ .name = "func_0804E8E4", .linkage = .strong });
-        @export(&func_08051104, .{ .name = "func_08051104", .linkage = .strong });
-        @export(&func_08052828, .{ .name = "func_08052828", .linkage = .strong });
-        @export(&func_08057F48, .{ .name = "func_08057F48", .linkage = .strong });
-        @export(&func_08058380, .{ .name = "func_08058380", .linkage = .strong });
-        @export(&func_0805B5E0, .{ .name = "func_0805B5E0", .linkage = .strong });
-        @export(&func_0805C284, .{ .name = "func_0805C284", .linkage = .strong });
-        @export(&func_0805C908, .{ .name = "func_0805C908", .linkage = .strong });
-        @export(&func_0805CF54, .{ .name = "func_0805CF54", .linkage = .strong });
-        @export(&func_0805D580, .{ .name = "func_0805D580", .linkage = .strong });
-        @export(&func_08060078, .{ .name = "func_08060078", .linkage = .strong });
-        @export(&func_080602D8, .{ .name = "func_080602D8", .linkage = .strong });
-        @export(&func_08060A90, .{ .name = "func_08060A90", .linkage = .strong });
-        @export(&func_08060AE6, .{ .name = "func_08060AE6", .linkage = .strong });
-        @export(&func_08060D02, .{ .name = "func_08060D02", .linkage = .strong });
-        @export(&func_080649B0, .{ .name = "func_080649B0", .linkage = .strong });
-        @export(&func_0806636C, .{ .name = "func_0806636C", .linkage = .strong });
-        @export(&func_080671E0, .{ .name = "func_080671E0", .linkage = .strong });
-        @export(&func_08067D70, .{ .name = "func_08067D70", .linkage = .strong });
-        @export(&func_080691FC, .{ .name = "func_080691FC", .linkage = .strong });
-        @export(&func_08069B58, .{ .name = "func_08069B58", .linkage = .strong });
-        @export(&func_08077C5E, .{ .name = "func_08077C5E", .linkage = .strong });
-        @export(&func_08078D70, .{ .name = "func_08078D70", .linkage = .strong });
-        @export(&func_0807B98C, .{ .name = "func_0807B98C", .linkage = .strong });
-        @export(&func_0807BC60, .{ .name = "func_0807BC60", .linkage = .strong });
-    }
-}
 
 test "low_peel_18 exports are callable" {
     try std.testing.expect(@TypeOf(func_0803FE00) == fn () callconv(.c) void);

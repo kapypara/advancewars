@@ -43,92 +43,6 @@ fn addGeneratedShards(
     }
 }
 
-fn isStandaloneGameFile(name: []const u8) bool {
-    const skip = [_][]const u8{
-        "root.zig",
-        "abi.zig",
-        "types.zig",
-        "mem.zig",
-        "decls.zig",
-        "dispatch.zig",
-        "bios.zig",
-        "dma.zig",
-        "hw.zig",
-        "math.zig",
-        "main_loop.zig",
-        "sound.zig",
-        "proc.zig",
-        "map.zig",
-        "co.zig",
-        "sprite_anim.zig",
-        "state.zig",
-        "turn.zig",
-        "menu.zig",
-        "campaign.zig",
-        "ui.zig",
-        "unit.zig",
-        "battle.zig",
-        "tail_low.zig",
-        "clusters_low.zig",
-        "clusters_low_2.zig",
-        "low_peel_1.zig",
-        "low_peel_2.zig",
-        "low_peel_3.zig",
-        "low_peel_4.zig",
-        "low_peel_5.zig",
-        "low_peel_6.zig",
-        "low_peel_7.zig",
-        "low_peel_8.zig",
-        "low_peel_9.zig",
-        "low_peel_10.zig",
-        "low_peel_11.zig",
-        "low_peel_12.zig",
-        "low_peel_13.zig",
-        "low_peel_14.zig",
-        "low_peel_15.zig",
-        "low_peel_16.zig",
-        "low_peel_17.zig",
-        "low_peel_18.zig",
-        "low_peel_19.zig",
-    };
-    for (skip) |s| {
-        if (std.mem.eql(u8, name, s)) return false;
-    }
-    return true;
-}
-
-fn addGameObjects(
-    b: *std.Build,
-    parent_mod: *std.Build.Module,
-    game_files: []const []const u8,
-    name_prefix: []const u8,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    strip: bool,
-    rt_shard_mod: *std.Build.Module,
-    decls_mod: *std.Build.Module,
-) void {
-    for (game_files) |fname| {
-        const rel_path = b.pathJoin(&.{ "src", "game", fname });
-        const mod = b.createModule(.{
-            .root_source_file = b.path(rel_path),
-            .target = target,
-            .optimize = optimize,
-            .strip = strip,
-            .unwind_tables = if (strip) .none else null,
-        });
-        mod.addImport("runtime", rt_shard_mod);
-        mod.addImport("decls", decls_mod);
-        const stem = fname[0 .. fname.len - 4];
-        const obj_name = b.fmt("{s}{s}", .{ name_prefix, stem });
-        const obj = b.addObject(.{
-            .name = obj_name,
-            .root_module = mod,
-        });
-        parent_mod.addObject(obj);
-    }
-}
-
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -259,7 +173,6 @@ pub fn build(b: *std.Build) void {
 
     // ---- Native Advance Wars executable (`awre`) ----
     var shard_files: std.ArrayList([]const u8) = .empty;
-    var game_files: std.ArrayList([]const u8) = .empty;
     var has_game = false;
     var has_decls = false;
 
@@ -300,26 +213,8 @@ pub fn build(b: *std.Build) void {
         }
 
         std.mem.sort([]const u8, shard_files.items, {}, stringLessThan);
-    } else {
-        var game_dir = b.root.openDir(b.graph.io, "src/game", .{ .iterate = true }) catch |err| {
-            std.debug.panic("failed to open src/game: {s}", .{@errorName(err)});
-        };
-        defer game_dir.close(b.graph.io);
-
-        b.dependOnDirectoryContents(b.path("src/game"));
-
-        var it = game_dir.iterate();
-        while (it.next(b.graph.io) catch null) |entry| {
-            if (entry.kind != .file) continue;
-            if (!std.mem.endsWith(u8, entry.name, ".zig")) continue;
-            if (!isStandaloneGameFile(entry.name)) continue;
-            const duped = b.graph.arena.dupe(u8, entry.name) catch @panic("OOM");
-            game_files.append(b.graph.arena, duped) catch @panic("OOM");
-        }
-        std.mem.sort([]const u8, game_files.items, {}, stringLessThan);
     }
 
-    const decls_path = if (use_gen) "gen/decls.zig" else "src/game/decls.zig";
     const dispatch_path = if (use_gen) "gen/game.zig" else "src/game/dispatch.zig";
 
     const rt_opts = b.addOptions();
@@ -346,12 +241,12 @@ pub fn build(b: *std.Build) void {
         });
     }
 
-    const decls_mod = b.createModule(.{
-        .root_source_file = b.path(decls_path),
+    const decls_mod: ?*std.Build.Module = if (use_gen) b.createModule(.{
+        .root_source_file = b.path("gen/decls.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip_exe,
-    });
+    }) else null;
 
     const decomp_test_mod = b.createModule(.{
         .root_source_file = b.path("src/game/root.zig"),
@@ -359,7 +254,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     decomp_test_mod.addImport("runtime", rt_shard_mod);
-    decomp_test_mod.addImport("decls", decls_mod);
     const decomp_tests = b.addTest(.{
         .root_module = decomp_test_mod,
     });
@@ -372,8 +266,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .strip = strip_exe,
     });
-    game_mod.addImport("runtime", awre_rt_mod);
-    game_mod.addImport("decls", decls_mod);
+    game_mod.addImport("runtime", if (use_gen) awre_rt_mod else rt_shard_mod);
+    if (decls_mod) |dm| {
+        game_mod.addImport("decls", dm);
+    }
 
     const awre_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
@@ -398,19 +294,7 @@ pub fn build(b: *std.Build) void {
             shard_optimize,
             strip_shards,
             rt_shard_mod,
-            decls_mod,
-        );
-    } else {
-        addGameObjects(
-            b,
-            awre_mod,
-            game_files.items,
-            "game_",
-            target,
-            optimize,
-            strip_exe,
-            rt_shard_mod,
-            decls_mod,
+            decls_mod.?,
         );
     }
 
@@ -468,12 +352,12 @@ pub fn build(b: *std.Build) void {
     });
     wasm_rt_shard_mod.addOptions("build_options", wasm_shard_opts);
 
-    const wasm_decls_mod = b.createModule(.{
-        .root_source_file = b.path(decls_path),
+    const wasm_decls_mod: ?*std.Build.Module = if (use_gen) b.createModule(.{
+        .root_source_file = b.path("gen/decls.zig"),
         .target = wasm_target,
         .optimize = .small,
         .strip = true,
-    });
+    }) else null;
 
     const wasm_game_mod = b.createModule(.{
         .root_source_file = b.path(dispatch_path),
@@ -481,8 +365,10 @@ pub fn build(b: *std.Build) void {
         .optimize = .small,
         .strip = true,
     });
-    wasm_game_mod.addImport("runtime", wasm_rt_mod);
-    wasm_game_mod.addImport("decls", wasm_decls_mod);
+    wasm_game_mod.addImport("runtime", if (use_gen) wasm_rt_mod else wasm_rt_shard_mod);
+    if (wasm_decls_mod) |dm| {
+        wasm_game_mod.addImport("decls", dm);
+    }
 
     const wasm_mod = b.createModule(.{
         .root_source_file = b.path("src/wasm_main.zig"),
@@ -518,19 +404,7 @@ pub fn build(b: *std.Build) void {
             .small,
             true,
             wasm_rt_shard_mod,
-            wasm_decls_mod,
-        );
-    } else {
-        addGameObjects(
-            b,
-            wasm_mod,
-            game_files.items,
-            "wasm_game_",
-            wasm_target,
-            .fast,
-            true,
-            wasm_rt_shard_mod,
-            wasm_decls_mod,
+            wasm_decls_mod.?,
         );
     }
 

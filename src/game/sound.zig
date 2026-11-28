@@ -1,7 +1,6 @@
 //! Lifted m4a (MusicPlayer2000) track parameter handlers and audio driver entry wrappers.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
@@ -778,64 +777,6 @@ pub fn func_08077A80() callconv(.c) void {
     abi.popReturn();
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
-        @export(&func_080782E4, .{ .name = "func_080782E4", .linkage = .strong });
-        @export(&func_080782F0, .{ .name = "func_080782F0", .linkage = .strong });
-        @export(&func_08078450, .{ .name = "func_08078450", .linkage = .strong });
-        @export(&func_08078488, .{ .name = "func_08078488", .linkage = .strong });
-        @export(&func_08078608, .{ .name = "func_08078608", .linkage = .strong });
-        @export(&func_0807861C, .{ .name = "func_0807861C", .linkage = .strong });
-        @export(&func_08079580, .{ .name = "func_08079580", .linkage = .strong });
-        @export(&func_080795A0, .{ .name = "func_080795A0", .linkage = .strong });
-        @export(&func_08050C5C, .{ .name = "func_08050C5C", .linkage = .strong });
-        @export(&func_08051868, .{ .name = "func_08051868", .linkage = .strong });
-        @export(&func_08038034, .{ .name = "func_08038034", .linkage = .strong });
-        @export(&func_08038040, .{ .name = "func_08038040", .linkage = .strong });
-        @export(&func_0803804C, .{ .name = "func_0803804C", .linkage = .strong });
-        @export(&func_08038058, .{ .name = "func_08038058", .linkage = .strong });
-        @export(&func_080386D8, .{ .name = "func_080386D8", .linkage = .strong });
-        @export(&func_0803D700, .{ .name = "func_0803D700", .linkage = .strong });
-        @export(&func_0803D710, .{ .name = "func_0803D710", .linkage = .strong });
-        @export(&func_0803D714, .{ .name = "func_0803D714", .linkage = .strong });
-        @export(&func_0803D720, .{ .name = "func_0803D720", .linkage = .strong });
-        @export(&func_0803D760, .{ .name = "func_0803D760", .linkage = .strong });
-        @export(&func_0803D778, .{ .name = "func_0803D778", .linkage = .strong });
-        @export(&func_0803D784, .{ .name = "func_0803D784", .linkage = .strong });
-        @export(&func_0803D790, .{ .name = "func_0803D790", .linkage = .strong });
-        @export(&func_0803D79C, .{ .name = "func_0803D79C", .linkage = .strong });
-        @export(&func_0803D7A8, .{ .name = "func_0803D7A8", .linkage = .strong });
-        @export(&func_0803D7AC, .{ .name = "func_0803D7AC", .linkage = .strong });
-        @export(&func_0803D880, .{ .name = "func_0803D880", .linkage = .strong });
-        @export(&func_0803D890, .{ .name = "func_0803D890", .linkage = .strong });
-        @export(&func_0803D920, .{ .name = "func_0803D920", .linkage = .strong });
-        @export(&func_0803D93C, .{ .name = "func_0803D93C", .linkage = .strong });
-        @export(&func_0803D954, .{ .name = "func_0803D954", .linkage = .strong });
-        @export(&func_080492A0, .{ .name = "func_080492A0", .linkage = .strong });
-        @export(&func_0804E504, .{ .name = "func_0804E504", .linkage = .strong });
-        @export(&func_080779D8, .{ .name = "func_080779D8", .linkage = .strong });
-        @export(&func_080795B4, .{ .name = "func_080795B4", .linkage = .strong });
-        @export(&func_08079610, .{ .name = "func_08079610", .linkage = .strong });
-        @export(&func_08079624, .{ .name = "func_08079624", .linkage = .strong });
-        @export(&func_08079638, .{ .name = "func_08079638", .linkage = .strong });
-        @export(&func_0807964C, .{ .name = "func_0807964C", .linkage = .strong });
-        @export(&func_08079660, .{ .name = "func_08079660", .linkage = .strong });
-        @export(&func_0807966C, .{ .name = "func_0807966C", .linkage = .strong });
-        @export(&func_08079678, .{ .name = "func_08079678", .linkage = .strong });
-        @export(&func_0807968C, .{ .name = "func_0807968C", .linkage = .strong });
-        @export(&func_0803D72C, .{ .name = "func_0803D72C", .linkage = .strong });
-        @export(&func_0803D968, .{ .name = "func_0803D968", .linkage = .strong });
-        @export(&func_0803DAA0, .{ .name = "func_0803DAA0", .linkage = .strong });
-        @export(&func_0803DAE0, .{ .name = "func_0803DAE0", .linkage = .strong });
-        @export(&func_0804E650, .{ .name = "func_0804E650", .linkage = .strong });
-        @export(&func_08051C90, .{ .name = "func_08051C90", .linkage = .strong });
-        @export(&func_080521A4, .{ .name = "func_080521A4", .linkage = .strong });
-        @export(&func_0803D7B8, .{ .name = "func_0803D7B8", .linkage = .strong });
-        @export(&func_08052200, .{ .name = "func_08052200", .linkage = .strong });
-        @export(&func_08077A80, .{ .name = "func_08077A80", .linkage = .strong });
-    }
-}
 
 test "MusicPlayerTrack offsets stay distinct and ordered" {
     try std.testing.expect(TrackOffset.mod_type < TrackOffset.mod_depth);

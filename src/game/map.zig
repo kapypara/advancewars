@@ -1,7 +1,6 @@
 //! Lifted Advance Wars tilemap buffer, cursor position & display control helpers.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
@@ -1785,65 +1784,6 @@ pub fn func_0801F7EC() callconv(.c) void {
     abi.popReturn();
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_080191E8, .{ .name = "func_080191E8", .linkage = .strong });
-        @export(&func_0801D048, .{ .name = "func_0801D048", .linkage = .strong });
-        @export(&func_0801FD98, .{ .name = "func_0801FD98", .linkage = .strong });
-        @export(&func_080201D8, .{ .name = "func_080201D8", .linkage = .strong });
-        @export(&func_080202A0, .{ .name = "func_080202A0", .linkage = .strong });
-        @export(&func_08020510, .{ .name = "func_08020510", .linkage = .strong });
-        @export(&func_08020538, .{ .name = "func_08020538", .linkage = .strong });
-        @export(&func_0802055C, .{ .name = "func_0802055C", .linkage = .strong });
-        @export(&func_08020568, .{ .name = "func_08020568", .linkage = .strong });
-        @export(&func_08021E04, .{ .name = "func_08021E04", .linkage = .strong });
-        @export(&func_08021E1C, .{ .name = "func_08021E1C", .linkage = .strong });
-        @export(&func_08021E1E, .{ .name = "func_08021E1E", .linkage = .strong });
-        @export(&func_080227EC, .{ .name = "func_080227EC", .linkage = .strong });
-        @export(&func_08022800, .{ .name = "func_08022800", .linkage = .strong });
-        @export(&func_0802C640, .{ .name = "func_0802C640", .linkage = .strong });
-        @export(&func_0802C650, .{ .name = "func_0802C650", .linkage = .strong });
-        @export(&func_08033108, .{ .name = "func_08033108", .linkage = .strong });
-        @export(&func_08033E28, .{ .name = "func_08033E28", .linkage = .strong });
-        @export(&func_0803809C, .{ .name = "func_0803809C", .linkage = .strong });
-        @export(&func_08038C70, .{ .name = "func_08038C70", .linkage = .strong });
-        @export(&func_08038F9C, .{ .name = "func_08038F9C", .linkage = .strong });
-        @export(&func_08039004, .{ .name = "func_08039004", .linkage = .strong });
-        @export(&func_0803901C, .{ .name = "func_0803901C", .linkage = .strong });
-        @export(&func_08039184, .{ .name = "func_08039184", .linkage = .strong });
-        @export(&func_08039194, .{ .name = "func_08039194", .linkage = .strong });
-        @export(&func_0803B3A8, .{ .name = "func_0803B3A8", .linkage = .strong });
-        @export(&func_0803B73C, .{ .name = "func_0803B73C", .linkage = .strong });
-        @export(&func_080193E4, .{ .name = "func_080193E4", .linkage = .strong });
-        @export(&func_080195AC, .{ .name = "func_080195AC", .linkage = .strong });
-        @export(&func_080199A0, .{ .name = "func_080199A0", .linkage = .strong });
-        @export(&func_080199D4, .{ .name = "func_080199D4", .linkage = .strong });
-        @export(&func_0801FD54, .{ .name = "func_0801FD54", .linkage = .strong });
-        @export(&func_0801FFB8, .{ .name = "func_0801FFB8", .linkage = .strong });
-        @export(&func_08018E4C, .{ .name = "func_08018E4C", .linkage = .strong });
-        @export(&func_08019168, .{ .name = "func_08019168", .linkage = .strong });
-        @export(&func_080191C4, .{ .name = "func_080191C4", .linkage = .strong });
-        @export(&func_0801F058, .{ .name = "func_0801F058", .linkage = .strong });
-        @export(&func_0801F0E4, .{ .name = "func_0801F0E4", .linkage = .strong });
-        @export(&func_0801F0FC, .{ .name = "func_0801F0FC", .linkage = .strong });
-        @export(&func_080203E8, .{ .name = "func_080203E8", .linkage = .strong });
-        @export(&func_080204B4, .{ .name = "func_080204B4", .linkage = .strong });
-        @export(&func_08020D14, .{ .name = "func_08020D14", .linkage = .strong });
-        @export(&func_08021ADC, .{ .name = "func_08021ADC", .linkage = .strong });
-        @export(&func_08021EEC, .{ .name = "func_08021EEC", .linkage = .strong });
-        @export(&func_08022074, .{ .name = "func_08022074", .linkage = .strong });
-        @export(&func_08022148, .{ .name = "func_08022148", .linkage = .strong });
-        @export(&func_08039080, .{ .name = "func_08039080", .linkage = .strong });
-        @export(&func_080390E8, .{ .name = "func_080390E8", .linkage = .strong });
-        @export(&func_08039730, .{ .name = "func_08039730", .linkage = .strong });
-        @export(&func_0803C91C, .{ .name = "func_0803C91C", .linkage = .strong });
-        @export(&func_0801CA34, .{ .name = "func_0801CA34", .linkage = .strong });
-        @export(&func_08020414, .{ .name = "func_08020414", .linkage = .strong });
-        @export(&func_08020D6C, .{ .name = "func_08020D6C", .linkage = .strong });
-        @export(&func_080226B8, .{ .name = "func_080226B8", .linkage = .strong });
-        @export(&func_0801F7EC, .{ .name = "func_0801F7EC", .linkage = .strong });
-    }
-}
 
 test "wrapped 2x2 tilemap offset wraps inside 16x16 meta-grid" {
     try std.testing.expectEqual(@as(u16, 0), tileToPx(0));

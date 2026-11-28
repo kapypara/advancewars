@@ -1,7 +1,6 @@
 //! Lifted GBA BIOS SWI wrapper functions (`0x080796A0..0x080796DC`).
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 
@@ -166,21 +165,6 @@ pub fn func_080796EC() callconv(.c) void {
     abi.retLr();
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_080796A0, .{ .name = "func_080796A0", .linkage = .strong });
-        @export(&func_080796BC, .{ .name = "func_080796BC", .linkage = .strong });
-        @export(&func_080796C0, .{ .name = "func_080796C0", .linkage = .strong });
-        @export(&func_080796C4, .{ .name = "func_080796C4", .linkage = .strong });
-        @export(&func_080796C8, .{ .name = "func_080796C8", .linkage = .strong });
-        @export(&func_080796CC, .{ .name = "func_080796CC", .linkage = .strong });
-        @export(&func_080796D4, .{ .name = "func_080796D4", .linkage = .strong });
-        @export(&func_080796D8, .{ .name = "func_080796D8", .linkage = .strong });
-        @export(&func_080796DC, .{ .name = "func_080796DC", .linkage = .strong });
-        @export(&func_080796E8, .{ .name = "func_080796E8", .linkage = .strong });
-        @export(&func_080796EC, .{ .name = "func_080796EC", .linkage = .strong });
-    }
-}
 
 test "game.bios module compiles cleanly" {
     _ = noop;

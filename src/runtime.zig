@@ -111,6 +111,7 @@ pub fn linkShardExports() void {
         &bus_write32,   &bus_write16,  &bus_write8,   &cpu_fetches,     &gba_swi,
         &cpu_get_cpsr,  &cpu_set_cpsr, &cpu_get_spsr, &cpu_set_spsr,    &cpu_undefined,
         &recomp_enter,  &recomp_called_slow, &recomp_unwind_note, &recomp_hist, &recomp_validate,
+        &awre_run_iwram_function,
     };
     inline for (syms) |s| {
         std.mem.doNotOptimizeAway(s);
@@ -1287,6 +1288,10 @@ pub fn run_iwram_function(target: u32) void {
         return;
     }
     interp_mod.runFunction(&interp_ctx, target);
+}
+
+pub export fn awre_run_iwram_function(target: u32) void {
+    run_iwram_function(target);
 }
 
 // ---- Misc Runtime API Functions ----

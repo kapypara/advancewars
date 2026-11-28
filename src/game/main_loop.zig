@@ -1,7 +1,6 @@
 //! Lifted Advance Wars main frame loop and soft-reset check (`0x080383F8`, `0x08038824`).
 
 const std = @import("std");
-const builtin = @import("builtin");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
@@ -164,14 +163,6 @@ pub fn func_0803849C() callconv(.c) void {
     abi.popReturn();
 }
 
-comptime {
-    if (!builtin.is_test) {
-        @export(&func_08038824, .{ .name = "func_08038824", .linkage = .strong });
-        @export(&func_080383F8, .{ .name = "func_080383F8", .linkage = .strong });
-        @export(&func_0803849C, .{ .name = "func_0803849C", .linkage = .strong });
-        @export(&func_0805BA34, .{ .name = "func_0805BA34", .linkage = .strong });
-    }
-}
 
 test "isSoftResetComboPressed detects active-low A+B+Select+Start" {
     try std.testing.expect(!isSoftResetComboPressed(0x03FF));
