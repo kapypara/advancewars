@@ -9,6 +9,7 @@ pub const addr = struct {
     pub const sys_state_ptr: u32 = 0x0201_00B0;
     pub const oam_attr_table: u32 = 0x0201_1924;
     pub const oam_queue: u32 = 0x0201_1D24;
+    pub const bg2_reach_tilemap_buf: u32 = 0x0201_2B40;
     pub const bg_tilemap_buffer: u32 = 0x0201_3340;
     pub const map_workspace: u32 = 0x0201_57F8;
     pub const save_flags: u32 = 0x0201_F9A8;
@@ -77,6 +78,10 @@ pub const key_mask_soft_reset: u32 = 0x0000_000F; // A | B | Select | Start
 pub const pal_ram_size: u32 = 0x0400;
 pub const dispcnt_forced_blank: u8 = 0x80;
 pub const dma_queue_cap: usize = 0x30;
+pub const reach_tile_tl: u16 = 0x8170;
+pub const reach_tile_tr: u16 = 0x8171;
+pub const reach_tile_bl: u16 = 0x8172;
+pub const reach_tile_br: u16 = 0x8173;
 
 /// Deferred VBlank DMA queue entry at `addr.dma_queue_buf` (`0x0201_0274`, stride 12 bytes).
 pub const DmaQueueEntry = extern struct {

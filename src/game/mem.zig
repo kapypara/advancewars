@@ -122,6 +122,18 @@ pub inline fn readUnitHp(unit_ptr: u32) u8 {
     return readStruct(types.UnitRecord, unit_ptr).hp();
 }
 
+pub inline fn reachabilityRowPtr(y: u32) u32 {
+    return readU32(types.addr.reachability_rows +% (y << 2));
+}
+
+pub inline fn readReachability(x: u32, y: u32) i8 {
+    return @bitCast(readU8(reachabilityRowPtr(y) +% x));
+}
+
+pub inline fn writeReachability(x: u32, y: u32, val: u8) void {
+    writeU8(reachabilityRowPtr(y) +% x, val);
+}
+
 test "typed pool slot address calculations match GBA memory strides" {
     try std.testing.expectEqual(@as(u32, 0x0300_0E10), procSlotAddr(0));
     try std.testing.expectEqual(@as(u32, 0x0300_0E70), procSlotAddr(1));

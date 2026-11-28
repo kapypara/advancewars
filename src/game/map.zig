@@ -23,6 +23,14 @@ pub inline fn wrappedTilemapByteOffset(tile_x: u16, tile_y: u16, cam_x: u16, cam
     return (local_x << 2) +% (local_y << 7);
 }
 
+/// Write a 2x2 tile block into a 32x32 halfword tilemap (`0x40` bytes per row).
+pub inline fn writeMetaTile2x2(base: u32, tl: u16, tr: u16, bl: u16, br: u16) void {
+    mem.writeU16(base, tl);
+    mem.writeU16(base +% 2, tr);
+    mem.writeU16(base +% 0x40, bl);
+    mem.writeU16(base +% 0x42, br);
+}
+
 /// Clear a 2x2 meta-tile at `(r0, r1)` in BG tilemap buffer `0x0201_3340` relative to active camera (`0x0801FD98`).
 pub fn func_0801FD98() callconv(.c) void {
     if (!abi.enter(0x0801FD98)) return;
@@ -35,11 +43,7 @@ pub fn func_0801FD98() callconv(.c) void {
     const cell_off = wrappedTilemapByteOffset(@truncate(rt.r[0]), @truncate(rt.r[1]), cam.cam_x, cam.cam_y);
     const buf_base = abi.read32(0x0801FDE4);
 
-    abi.write16(cell_off +% buf_base, blank_tile_entry);
-    abi.write16(cell_off +% (buf_base +% 2), blank_tile_entry);
-    abi.write16(cell_off +% (buf_base +% 0x40), blank_tile_entry);
-    const last_dst = cell_off +% (buf_base +% 0x42);
-    abi.write16(last_dst, blank_tile_entry);
+    writeMetaTile2x2(cell_off +% buf_base, blank_tile_entry, blank_tile_entry, blank_tile_entry, blank_tile_entry);
 
     rt.r[1] = cell_off +% (buf_base +% 0x40);
     rt.r[2] = buf_base +% 0x42;
@@ -51,6 +55,123 @@ pub fn func_0801FD98() callconv(.c) void {
     rt.r[13] +%= 4;
     rt.r[0] = lr_val;
     rt.updateNz(blank_tile_entry);
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Fill the entire map reachability grid (`addr.reachability_rows`) with `u8(r0)` (`0x0801D048`).
+pub fn func_0801D048() callconv(.c) void {
+    if (!abi.enter(0x0801D048)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const fill_val: u8 = @truncate(rt.r[0]);
+    rt.r[4] = fill_val;
+    const cam_ptr = types.addr.camera_state_ptr;
+    rt.r[6] = cam_ptr;
+    var height: u32 = mem.readU16(mem.readU32(cam_ptr) +% 2);
+    var y: u32 = 0;
+    rt.r[2] = 0;
+    rt.cpuSub(null, 0, height, true);
+    if (!(rt.CPU_N == rt.CPU_V)) {
+        abi.fetches(4);
+        rt.r[5] = cam_ptr;
+        rt.r[7] = types.addr.reachability_rows;
+        while (true) {
+            abi.fetches(8);
+            var x: u32 = 0;
+            const width: u32 = mem.readU16(mem.readU32(cam_ptr));
+            const next_y = y +% 1;
+            rt.cpuSub(null, 0, width, true);
+            if (!(rt.CPU_N == rt.CPU_V)) {
+                abi.fetches(4);
+                const row_ptr_addr = types.addr.reachability_rows +% (y << 2);
+                const row_ptr = mem.readU32(row_ptr_addr);
+                while (true) {
+                    abi.fetches(10);
+                    mem.writeU8(row_ptr +% x, fill_val);
+                    x +%= 1;
+                    rt.cpuSub(null, x, width, true);
+                    if (rt.CPU_N == rt.CPU_V) break;
+                }
+                rt.r[0] = width;
+                rt.r[1] = x;
+                rt.r[2] = row_ptr_addr;
+                rt.r[3] = next_y;
+            } else {
+                rt.r[0] = width;
+                rt.r[1] = 0;
+                rt.r[3] = next_y;
+            }
+            abi.fetches(7);
+            y = next_y;
+            height = mem.readU16(mem.readU32(cam_ptr) +% 2);
+            rt.cpuSub(null, y, height, true);
+            if (rt.CPU_N == rt.CPU_V) break;
+        }
+        rt.r[2] = y;
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Update the BG2 reachability 2x2 highlight tile at map `(u16 r0, u16 r1)` (`0x080201D8`).
+pub fn func_080201D8() callconv(.c) void {
+    if (!abi.enter(0x080201D8)) return;
+    abi.fetches(34);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const tx: u16 = @truncate(rt.r[0]);
+    const ty: u16 = @truncate(rt.r[1]);
+    const cam = mem.readCameraState();
+    const dst = wrappedTilemapByteOffset(tx, ty, cam.cam_x, cam.cam_y) +% types.addr.bg2_reach_tilemap_buf;
+    const cost: i32 = mem.readReachability(tx, ty);
+    rt.cpuSub(null, @bitCast(cost), 0, true);
+    if (rt.CPU_N != rt.CPU_V) {
+        abi.fetches(12);
+        writeMetaTile2x2(dst, blank_tile_entry, blank_tile_entry, blank_tile_entry, blank_tile_entry);
+        rt.r[2] = types.addr.reachability_rows;
+        rt.r[3] = dst;
+        rt.r[1] = dst +% 0x42;
+        rt.cpuAdd(&rt.r[0], blank_tile_entry, 0, true);
+    } else {
+        abi.fetches(16);
+        writeMetaTile2x2(dst, types.reach_tile_tl, types.reach_tile_tr, types.reach_tile_bl, types.reach_tile_br);
+        rt.r[2] = types.reach_tile_bl;
+        rt.r[3] = types.reach_tile_br;
+        rt.r[1] = dst +% 0x42;
+        rt.cpuAdd(&rt.r[0], types.reach_tile_br, 0, true);
+    }
+
+    abi.fetches(6);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
     rt.r[15] = lr_val;
     rt.recompReturn(lr_val);
 }
@@ -1627,7 +1748,9 @@ pub fn func_0801F7EC() callconv(.c) void {
 comptime {
     if (!builtin.is_test) {
         @export(&func_080191E8, .{ .name = "func_080191E8", .linkage = .strong });
+        @export(&func_0801D048, .{ .name = "func_0801D048", .linkage = .strong });
         @export(&func_0801FD98, .{ .name = "func_0801FD98", .linkage = .strong });
+        @export(&func_080201D8, .{ .name = "func_080201D8", .linkage = .strong });
         @export(&func_080202A0, .{ .name = "func_080202A0", .linkage = .strong });
         @export(&func_08020510, .{ .name = "func_08020510", .linkage = .strong });
         @export(&func_08020538, .{ .name = "func_08020538", .linkage = .strong });
