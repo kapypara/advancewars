@@ -50,18 +50,18 @@ pub fn checkInterrupts(comptime Rt: type) void {
     const saved_Z = Rt.getZ();
     const saved_C = Rt.getC();
     const saved_V = Rt.getV();
-    const saved_ret = Rt.getRet();
-    Rt.setRet(0);
+    const saved_ret = state.g_ret;
+    state.g_ret = 0;
     const saved_mode = state.bus_mode;
     state.bus_mode = .rom_code;
 
-    Rt.cpuBx(handler_addr);
+    state.cbCpuBx(handler_addr);
 
     state.bus_mode = saved_mode;
     state.in_irq = was_in_irq;
     if (state.soft_reset_pending) return;
 
-    Rt.setRet(saved_ret);
+    state.g_ret = saved_ret;
     regs.* = saved_r;
     Rt.setN(saved_N);
     Rt.setZ(saved_Z);
@@ -138,7 +138,7 @@ pub fn advanceCycles(comptime Rt: type, cycles: u32) void {
                 }
                 disp.display_pace();
 
-                diagnostics.checkHistFrame(state.frame_count, Rt.histOnPtr());
+                diagnostics.checkHistFrame(state.frame_count, &state.g_hist_on);
                 if (has_posix) {
                     save_io.writeDumpAtSnapshot(disp.display_dump_path(@intCast(state.frame_count)));
                 }
@@ -188,8 +188,7 @@ pub fn advanceCycles(comptime Rt: type, cycles: u32) void {
                 c_host.exit(0);
             } else {
                 state.wasm_stop_requested = true;
-                state.soft_reset_pending = true;
-                Rt.setRet(0xFFFF_FFFF);
+                state.triggerSoftReset();
                 return;
             }
         }
@@ -211,11 +210,11 @@ pub fn stepFrame(comptime Rt: type) void {
     }
 }
 
-pub fn runLoop(entry_func: *const fn () void, g_ret: *u32) void {
+pub fn runLoop(entry_func: *const fn () void) void {
     while (true) {
         state.soft_reset_pending = false;
         state.in_irq = false;
-        g_ret.* = 0;
+        state.g_ret = 0;
         entry_func();
         if (state.wasm_stop_requested or !state.soft_reset_pending) break;
         state.soft_reset_count +%= 1;
@@ -232,8 +231,6 @@ test "scheduler.charge accumulates negative credit before advancing cycles" {
     const TestRt = struct {
         var dummy_regs: [16]u32 = @splat(0);
         var dummy_flag: bool = false;
-        var dummy_ret: u32 = 0;
-        var dummy_hist: c_int = 0;
         const DummyDma = struct {
             pub fn ioRead16(_: *@This(), off: u32) u16 {
                 return state.ioRead16(off);
@@ -285,18 +282,8 @@ test "scheduler.charge accumulates negative credit before advancing cycles" {
         pub fn getCpsr() u32 {
             return 0x1F;
         }
-        pub fn getRet() u32 {
-            return dummy_ret;
-        }
-        pub fn setRet(val: u32) void {
-            dummy_ret = val;
-        }
-        pub fn cpuBx(_: u32) void {}
         pub fn dmaBus() *DummyDma {
             return &dummy_dma;
-        }
-        pub fn histOnPtr() *c_int {
-            return &dummy_hist;
         }
         pub fn shutdown() void {}
     };

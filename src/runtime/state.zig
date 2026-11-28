@@ -10,6 +10,51 @@ pub const Timers = core.timers.Timers;
 pub const Dma = core.dma.Dma;
 pub const BusMode = core.dma.BusMode;
 
+pub const GameCallbacks = struct {
+    bx_depth: *i32,
+    cpu_bx: *const fn (u32) callconv(.c) void,
+    recomp_lookup: *const fn (u32) u32,
+    recomp_lookup_fn: *const fn (u32) ?*const fn () callconv(.c) void,
+};
+
+pub var game_cb: ?GameCallbacks = null;
+
+pub fn registerGameCallbacks(cb: GameCallbacks) void {
+    game_cb = cb;
+}
+
+pub inline fn cbCpuBx(target: u32) void {
+    if (game_cb) |cb| cb.cpu_bx(target);
+}
+
+pub inline fn cbRecompLookup(addr: u32) u32 {
+    return if (game_cb) |cb| cb.recomp_lookup(addr) else 0;
+}
+
+pub inline fn cbRecompLookupFn(addr: u32) ?*const fn () callconv(.c) void {
+    return if (game_cb) |cb| cb.recomp_lookup_fn(addr) else null;
+}
+
+pub inline fn getBxDepth() i32 {
+    return if (game_cb) |cb| cb.bx_depth.* else 0;
+}
+
+pub inline fn setBxDepth(v: i32) void {
+    if (game_cb) |cb| cb.bx_depth.* = v;
+}
+
+pub export var g_func_ring: [4096]u32 = @splat(0);
+pub export var g_func_ring_i: u32 = 0;
+pub export var g_validate: c_int = 0;
+pub export var g_ret: u32 = 0;
+pub export var g_unwind_trace: c_int = 0;
+pub export var g_hist_on: c_int = 0;
+
+pub fn triggerSoftReset() void {
+    soft_reset_pending = true;
+    g_ret = 0xFFFF_FFFF;
+}
+
 pub var ewram_buf: [0x40000]u8 = @splat(0);
 pub var iwram_buf: [0x8000]u8 = @splat(0);
 pub var io_regs_buf: [0x400]u8 = @splat(0);
@@ -128,6 +173,9 @@ pub fn resetCommon() void {
     in_irq = false;
     soft_reset_pending = false;
     soft_reset_count = 0;
+    g_ret = 0;
+    g_func_ring_i = 0;
+    @memset(&g_func_ring, 0);
     sram_dirty_frames = 0;
     sram_last_seq = 0;
     eeprom_dirty_frames = 0;

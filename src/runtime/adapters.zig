@@ -51,7 +51,7 @@ pub fn BiosCtx(comptime Rt: type) type {
             state.cpsr = val;
         }
         pub fn triggerSoftReset(_: *@This()) void {
-            Rt.triggerSoftReset();
+            state.triggerSoftReset();
         }
         pub fn softResetPending(_: *@This()) bool {
             return state.soft_reset_pending;
@@ -138,7 +138,7 @@ pub fn InterpCtx(comptime Rt: type) type {
             state.bus_mode = m;
         }
         pub fn setRet(_: *@This(), val: u32) void {
-            Rt.setRet(val);
+            state.g_ret = val;
         }
         pub fn softResetPending(_: *@This()) bool {
             return state.soft_reset_pending;
@@ -190,7 +190,7 @@ pub fn InterpCtx(comptime Rt: type) type {
             return bus.read16Raw(addr);
         }
         pub fn busWrite32Raw(_: *@This(), addr: u32, val: u32) void {
-            Rt.busWrite32Raw(addr, val);
+            bus.write32Raw(addr, val, Rt.dmaBus(), &state.g_func_ring, state.g_func_ring_i, Rt.regs()[14]);
         }
         pub fn busRead8(_: *@This(), addr: u32) u8 {
             return Rt.busRead8(addr);
@@ -214,10 +214,10 @@ pub fn InterpCtx(comptime Rt: type) type {
             Rt.swi(number);
         }
         pub fn cpuBx(_: *@This(), addr: u32) void {
-            Rt.cpuBx(addr);
+            state.cbCpuBx(addr);
         }
         pub fn recompLookup(_: *@This(), addr: u32) u32 {
-            return Rt.recompLookup(addr);
+            return state.cbRecompLookup(addr);
         }
         pub fn warnUnmappedArmBx(_: *@This(), addr: u32, rm: u32, insn_pc: u32) void {
             diagnostics.warnUnmappedArmBx(addr, rm, insn_pc);
@@ -237,25 +237,25 @@ pub fn InterpCtx(comptime Rt: type) type {
 pub fn ValidateHost(comptime Rt: type) type {
     return struct {
         pub fn recompLookup(_: *@This(), addr: u32) u32 {
-            return Rt.recompLookup(addr);
+            return state.cbRecompLookup(addr);
         }
         pub fn recompLookupFn(_: *@This(), addr: u32) ?*const fn () callconv(.c) void {
-            return Rt.recompLookupFn(addr);
+            return state.cbRecompLookupFn(addr);
         }
         pub fn regs(_: *@This()) *[16]u32 {
             return Rt.regs();
         }
         pub fn getBxDepth(_: *@This()) i32 {
-            return Rt.getBxDepth();
+            return state.getBxDepth();
         }
         pub fn setBxDepth(_: *@This(), v: i32) void {
-            Rt.setBxDepth(v);
+            state.setBxDepth(v);
         }
         pub fn getRet(_: *@This()) u32 {
-            return Rt.getRet();
+            return state.g_ret;
         }
         pub fn setRet(_: *@This(), v: u32) void {
-            Rt.setRet(v);
+            state.g_ret = v;
         }
         pub fn getCycleCounter(_: *@This()) u32 {
             return state.cycle_counter;
