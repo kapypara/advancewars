@@ -5,6 +5,8 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const clusters_low = @import("clusters_low.zig");
+const clusters_low_2 = @import("clusters_low_2.zig");
 const hw = @import("hw.zig");
 const math = @import("math.zig");
 const menu = @import("menu.zig");
@@ -112,9 +114,9 @@ pub fn func_080385C8() callconv(.c) void {
     }
 }
 
-pub fn func_080796A4() callconv(.c) void { tailCall0(0x080796A4, decls.func_080796A8); }
-pub fn func_080796AC() callconv(.c) void { tailCall0(0x080796AC, decls.func_080796B0); }
-pub fn func_080796B4() callconv(.c) void { tailCall0(0x080796B4, decls.func_080796B8); }
+pub fn func_080796A4() callconv(.c) void { tailCall0(0x080796A4, clusters_low.func_080796A8); }
+pub fn func_080796AC() callconv(.c) void { tailCall0(0x080796AC, clusters_low.func_080796B0); }
+pub fn func_080796B4() callconv(.c) void { tailCall0(0x080796B4, clusters_low.func_080796B8); }
 
 pub fn func_080775A0() callconv(.c) void {
     if (!abi.enter(0x080775A0)) return;
@@ -471,8 +473,8 @@ pub fn func_08059DD4() callconv(.c) void {
         .{ &decls.func_0807B434, @as(u32, 0x08059DDB) },
         .{ &hw.func_08010544, @as(u32, 0x08059DDF) },
         .{ &decls.func_08010574, @as(u32, 0x08059DE3) },
-        .{ &decls.func_0800FD54, @as(u32, 0x08059DE7) },
-        .{ &decls.func_080130A0, @as(u32, 0x08059DEB) },
+        .{ &clusters_low_2.func_0800FD54, @as(u32, 0x08059DE7) },
+        .{ &clusters_low_2.func_080130A0, @as(u32, 0x08059DEB) },
     };
     inline for (init_seq) |s| {
         if (!abi.call(s[0].*, s[1])) return;

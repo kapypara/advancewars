@@ -6,6 +6,7 @@ const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
+const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
 const math = @import("math.zig");
 const mem = @import("mem.zig");
@@ -248,7 +249,7 @@ pub fn func_08015A08() callconv(.c) void {
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0);
     abi.setRegNz(&rt.r[1], 0x10);
-    if (!abi.call(decls.func_08014B14, 0x08015A13)) return;
+    if (!abi.call(clusters_low.func_08014B14, 0x08015A13)) return;
     abi.fetches(7);
     abi.write16(abi.read32(0x08015A1C), 0);
     abi.popReturn();

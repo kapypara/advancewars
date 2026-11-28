@@ -6,6 +6,7 @@ const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
+const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
@@ -1530,7 +1531,7 @@ pub fn func_08020D6C() callconv(.c) void {
     rt.r[13] -%= 4;
     abi.write32(rt.r[13], rt.r[8]);
 
-    if (!abi.call(decls.func_0800FC58, 0x08020D79)) return;
+    if (!abi.call(clusters_low_2.func_0800FC58, 0x08020D79)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_0800F1B0, 0x08020D7D)) return;
     abi.fetches(5);
@@ -1659,7 +1660,7 @@ pub fn func_08020D6C() callconv(.c) void {
     rt.r[2] = 0x800;
     if (!abi.call(dma.func_0800FDA4, 0x08020F43)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08036464, 0x08020F47)) return;
+    if (!abi.call(clusters_low_2.func_08036464, 0x08020F47)) return;
     abi.fetches(4);
     if (!abi.call(dma.func_0800F894, 0x08020F4B)) return;
     abi.fetches(4);

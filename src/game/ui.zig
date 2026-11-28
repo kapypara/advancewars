@@ -8,6 +8,7 @@ const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const bios = @import("bios.zig");
 const campaign = @import("campaign.zig");
+const clusters_low_2 = @import("clusters_low_2.zig");
 const co = @import("co.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
@@ -5533,7 +5534,7 @@ pub fn func_08075490() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     abi.setRegNz(&rt.r[0], @as(u32, 0xB0) << 4);
-    if (!abi.call(decls.func_080787CC, 0x0807549B)) return;
+    if (!abi.call(clusters_low_2.func_080787CC, 0x0807549B)) return;
 
     abi.fetches(17);
     const base = abi.read32(0x080754C4);
@@ -7126,7 +7127,7 @@ pub fn func_08074C84() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(campaign.func_08038C44, 0x08074C8B)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_0800FC58, 0x08074C8F)) return;
+    if (!abi.call(clusters_low_2.func_0800FC58, 0x08074C8F)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08074CA0);
     if (!abi.call(decls.func_0801329C, 0x08074C95)) return;

@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const clusters_low_2 = @import("clusters_low_2.zig");
 const co = @import("co.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
@@ -1306,7 +1307,7 @@ pub fn func_0803DB9C() callconv(.c) void {
     abi.fetches(4);
     if (!abi.call(decls.func_0803E3BC, 0x0803DBA7)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08042E24, 0x0803DBAB)) return;
+    if (!abi.call(clusters_low_2.func_08042E24, 0x0803DBAB)) return;
     abi.fetches(7);
     rt.r[0] = abi.read32(0x0803DBB8);
     rt.r[1] = abi.read32(0x0803DBBC);
@@ -1450,7 +1451,7 @@ pub fn func_080381C4() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(ui.func_080220F8, 0x080381CB)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_0800FC58, 0x080381CF)) return;
+    if (!abi.call(clusters_low_2.func_0800FC58, 0x080381CF)) return;
 
     const cfg_pools = [_]struct { u32, u32 }{
         .{ 0x08038214, 0x080381D5 },
@@ -1494,7 +1495,7 @@ pub fn func_08038864() callconv(.c) void {
     abi.fetches(9);
     const disp_ptr = abi.read32(0x080388E8);
     abi.write8(disp_ptr, abi.read8(disp_ptr) & 0x7F);
-    if (!abi.call(decls.func_08010A00, 0x0803887B)) return;
+    if (!abi.call(clusters_low_2.func_08010A00, 0x0803887B)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08010974, 0x0803887F)) return;
 
@@ -1521,7 +1522,7 @@ pub fn func_08038864() callconv(.c) void {
     if (!abi.call(dma.func_08011330, 0x080388C7)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_0800FC58, 0x080388CB)) return;
+    if (!abi.call(clusters_low_2.func_0800FC58, 0x080388CB)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08038910);
     if (!abi.call(decls.func_0800FC74, 0x080388D1)) return;
@@ -1658,7 +1659,7 @@ pub fn func_08039948() callconv(.c) void {
     rt.r[0] = abi.read32(0x080399A0);
     if (!abi.call(decls.func_08010D00, 0x08039951)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08010A00, 0x08039955)) return;
+    if (!abi.call(clusters_low_2.func_08010A00, 0x08039955)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08010974, 0x08039959)) return;
 
@@ -2024,7 +2025,7 @@ pub fn func_0803DA20() callconv(.c) void {
     if (!abi.call(decls.func_08010D00, 0x0803DA29)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_08010A00, 0x0803DA2D)) return;
+    if (!abi.call(clusters_low_2.func_08010A00, 0x0803DA2D)) return;
 
     abi.fetches(4);
     if (!abi.call(decls.func_08010974, 0x0803DA31)) return;

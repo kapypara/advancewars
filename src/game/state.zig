@@ -7,6 +7,8 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const campaign = @import("campaign.zig");
+const clusters_low = @import("clusters_low.zig");
+const clusters_low_2 = @import("clusters_low_2.zig");
 const co = @import("co.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
@@ -325,7 +327,7 @@ pub fn func_080386B4() callconv(.c) void {
     rt.r[0] = abi.read32(0x080386D4);
     if (!abi.call(func_08038260, 0x080386C7)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08052368, 0x080386CB)) return;
+    if (!abi.call(clusters_low.func_08052368, 0x080386CB)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -796,7 +798,7 @@ pub fn func_0803FCE0() callconv(.c) void {
     if (!abi.enter(0x0803FCE0)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0800FC58, 0x0803FCE7)) return;
+    if (!abi.call(clusters_low_2.func_0800FC58, 0x0803FCE7)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -924,7 +926,7 @@ pub fn func_08038240() callconv(.c) void {
     if (!abi.enter(0x08038240)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0800FC58, 0x08038247)) return;
+    if (!abi.call(clusters_low_2.func_0800FC58, 0x08038247)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08038258);
     if (!abi.call(decls.func_0803826C, 0x0803824D)) return;
@@ -1323,7 +1325,7 @@ pub fn func_0804F924() callconv(.c) void {
     if (!abi.enter(0x0804F924)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0800FC58, 0x0804F92B)) return;
+    if (!abi.call(clusters_low_2.func_0800FC58, 0x0804F92B)) return;
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0804F93C);

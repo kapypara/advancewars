@@ -5,6 +5,8 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const clusters_low = @import("clusters_low.zig");
+const clusters_low_2 = @import("clusters_low_2.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
@@ -272,7 +274,7 @@ pub fn func_0803D760() callconv(.c) void {
     abi.pushLr();
     const tbl = abi.read32(0x0803D774);
     rt.r[0] = abi.read32(tbl +% (rt.r[0] << 2));
-    if (!abi.call(decls.func_080787CC, 0x0803D76F)) return;
+    if (!abi.call(clusters_low_2.func_080787CC, 0x0803D76F)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -283,7 +285,7 @@ pub fn func_0803D778() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] <<= 8;
-    if (!abi.call(decls.func_080787CC, 0x0803D781)) return;
+    if (!abi.call(clusters_low_2.func_080787CC, 0x0803D781)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -291,13 +293,13 @@ pub fn func_0803D778() callconv(.c) void {
 /// Trigger `m4aSongNumStop` helper `0x08078934` (`0x0803D784`).
 pub fn func_0803D784() callconv(.c) void {
     if (!abi.enter(0x0803D784)) return;
-    callSoundVoid(decls.func_08078934, 0x0803D78B);
+    callSoundVoid(clusters_low.func_08078934, 0x0803D78B);
 }
 
 /// Update m4a sound driver frame `0x080788B8` (`0x0803D790`).
 pub fn func_0803D790() callconv(.c) void {
     if (!abi.enter(0x0803D790)) return;
-    callSoundVoid(decls.func_080788B8, 0x0803D797);
+    callSoundVoid(clusters_low.func_080788B8, 0x0803D797);
 }
 
 /// Per-frame audio engine hook (currently no-op on this path) (`0x0803D7A8`).
@@ -386,7 +388,7 @@ pub fn func_0803D920() callconv(.c) void {
     rt.r[2] = val;
     rt.cpuAdd(&rt.r[0], val, 0, true);
     abi.write16(rt.r[1], @truncate(rt.r[0]));
-    if (!abi.call(decls.func_08078424, 0x0803D92F)) return;
+    if (!abi.call(clusters_low_2.func_08078424, 0x0803D92F)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -554,7 +556,7 @@ pub fn func_0803D72C() callconv(.c) void {
     if (!abi.call(func_0803D720, 0x0803D73F)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_08078258, 0x0803D743)) return;
+    if (!abi.call(clusters_low_2.func_08078258, 0x0803D743)) return;
 
     abi.fetches(11);
     const val: u16 = @truncate(abi.read32(0x0803D758));

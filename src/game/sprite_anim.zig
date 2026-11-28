@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
 const mem = @import("mem.zig");
 const tail_low = @import("tail_low.zig");
@@ -537,7 +538,7 @@ pub fn func_08014B3C() callconv(.c) void {
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0);
     abi.setRegNz(&rt.r[1], 0x80);
-    if (!abi.call(decls.func_08014B14, 0x08014B47)) return;
+    if (!abi.call(clusters_low.func_08014B14, 0x08014B47)) return;
     abi.fetches(7);
     const dst = abi.read32(0x08014B50);
     rt.r[1] = dst;
@@ -560,7 +561,7 @@ pub fn func_08014C98() callconv(.c) void {
     abi.write16(rt.r[4], @truncate(rt.r[1]));
     abi.write16(rt.r[4] +% 2, @truncate(rt.r[2]));
     abi.write16(rt.r[4] +% 4, @truncate(rt.r[3]));
-    if (!abi.call(decls.func_08014BF8, 0x08014CAB)) return;
+    if (!abi.call(clusters_low.func_08014BF8, 0x08014CAB)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -582,7 +583,7 @@ pub fn func_08014CB4() callconv(.c) void {
     const entry = (rt.r[0] << 4) +% rt.r[4];
     abi.write16(entry, @truncate(rt.r[1]));
     abi.write16(entry +% 2, @truncate(rt.r[2]));
-    if (!abi.call(decls.func_08014BF8, 0x08014CC5)) return;
+    if (!abi.call(clusters_low.func_08014BF8, 0x08014CC5)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -597,7 +598,7 @@ pub fn func_08014CD0() callconv(.c) void {
     abi.pushLr();
     const entry = (rt.r[0] << 4) +% abi.read32(0x08014CE4);
     abi.write16(entry +% 4, @truncate(rt.r[1]));
-    if (!abi.call(decls.func_08014BF8, 0x08014CDF)) return;
+    if (!abi.call(clusters_low.func_08014BF8, 0x08014CDF)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -678,7 +679,7 @@ pub fn func_080159CC() callconv(.c) void {
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0);
     abi.setRegNz(&rt.r[1], 0x80);
-    if (!abi.call(decls.func_08014B14, 0x080159D7)) return;
+    if (!abi.call(clusters_low.func_08014B14, 0x080159D7)) return;
     abi.fetches(10);
     abi.write16(abi.read32(0x080159E8), 0x10);
     const cnt_addr = abi.read32(0x080159EC);
@@ -694,7 +695,7 @@ pub fn func_080159F0() callconv(.c) void {
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0x10);
     abi.setRegNz(&rt.r[1], 0x70);
-    if (!abi.call(decls.func_08014B14, 0x080159FB)) return;
+    if (!abi.call(clusters_low.func_08014B14, 0x080159FB)) return;
     abi.fetches(7);
     const lim_addr = abi.read32(0x08015A04);
     rt.r[1] = lim_addr;
@@ -1117,7 +1118,7 @@ pub fn func_080153BC() callconv(.c) void {
     abi.fetches(6);
     rt.r[1] = rt.r[0];
     rt.r[0] = rt.r[4];
-    if (!abi.call(decls.func_08014B14, 0x080153CF)) return;
+    if (!abi.call(clusters_low.func_08014B14, 0x080153CF)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);

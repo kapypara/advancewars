@@ -19,6 +19,8 @@ pub const menu = @import("menu.zig");
 pub const campaign = @import("campaign.zig");
 pub const ui = @import("ui.zig");
 pub const tail_low = @import("tail_low.zig");
+pub const clusters_low = @import("clusters_low.zig");
+pub const clusters_low_2 = @import("clusters_low_2.zig");
 
 comptime {
     _ = bios;
@@ -39,4 +41,6 @@ comptime {
     _ = campaign;
     _ = ui;
     _ = tail_low;
+    _ = clusters_low;
+    _ = clusters_low_2;
 }
