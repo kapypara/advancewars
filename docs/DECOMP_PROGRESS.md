@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 39 — Final Hi-ROM Tail-Call Wave 4 (`30.43%`)
+- **Stage:** Stage 40 — Closed Hi-ROM Shared-Body Clusters (`31.87%`)
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 2,306 / 7,577 (30.43%)
+- **Lifted to Clean Zig (`src/game/`):** 2,415 / 7,577 (31.87%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
@@ -33,6 +33,7 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/tail_hi_2.zig` (99): `0x08088140..0x083D9338` (hi-ROM tail-call wave 3: fragment dispatchers, LDM/STM & SWI stubs)
 - `src/game/tail_hi_3.zig` (96): `0x08083180..0x083EB53C` (final hi-ROM tail-call wave 4: overlay/init `0x083D2288` & hi-ROM code/data fragments; 3 giant linear data blobs deferred)
 - `src/game/clusters_low.zig` (81): `0x080000C0..0x08078970` (self-contained low-ROM shared-body `enter_*` clusters, reset/palette-fade/sound/unit/map helpers)
+- `src/game/clusters_hi.zig` (109): `0x0808F5F2..0x083D8BCC` (46 closed hi-ROM shared-body `enter_*` clusters; 3 large ASCII/data clusters `COMP[28..30]` / 6 funcs deferred alongside 3 non-`enter` data blobs)
 
 ## Subsystem Roadmap
 - [x] **Stage 0:** Weak-linkage generator, `src/game/` scaffold, native + WASM + test wiring, baseline verified (`bd32afd`).
@@ -74,7 +75,8 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 36:** Hi-ROM tail-call wave 2 (`34b1252`, `2,030 total`).
 - [x] **Stage 37:** Small low-ROM shared-body `enter_*` clusters (`6b0f60e`, `2,111 total`).
 - [x] **Stage 38:** Hi-ROM tail-call wave 3 (`69d3585`, `2,210 total`).
-- [x] **Stage 39:** Final hi-ROM tail-call wave 4 (`2,306 total`, 3 giant linear data blobs deferred).
+- [x] **Stage 39:** Final hi-ROM tail-call wave 4 (`64f193c`, `2,306 total`, 3 giant linear data blobs deferred).
+- [x] **Stage 40:** Closed hi-ROM shared-body `enter_*` clusters (`2,415 total`, 46 clusters lifted; 3 giant data clusters `COMP[28..30]` deferred).
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`
