@@ -7,6 +7,7 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const hw = @import("hw.zig");
+const low_peel_6 = @import("low_peel_6.zig");
 const mem = @import("mem.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
@@ -57,9 +58,9 @@ fn func_080383F8() callconv(.c) void {
             .{ .func = hw.func_0801122C, .ret = 0x0803840B },
             .{ .func = func_0805BA34, .ret = 0x0803840F },
             .{ .func = decls.func_08018530, .ret = 0x08038413 },
-            .{ .func = decls.func_080138F8, .ret = 0x08038417 },
+            .{ .func = low_peel_6.func_080138F8, .ret = 0x08038417 },
             .{ .func = hw.func_080134E0, .ret = 0x0803841B },
-            .{ .func = decls.func_08015874, .ret = 0x0803841F },
+            .{ .func = low_peel_6.func_08015874, .ret = 0x0803841F },
             .{ .func = sound.func_0803D7A8, .ret = 0x08038423 },
         };
         inline for (frame_steps) |step| {
@@ -138,11 +139,11 @@ fn func_0803849C() callconv(.c) void {
             }
 
             const post_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
-                .{ .func = decls.func_080138F8, .ret = 0x080384D9 },
+                .{ .func = low_peel_6.func_080138F8, .ret = 0x080384D9 },
                 .{ .func = decls.func_0802196C, .ret = 0x080384DD },
                 .{ .func = battle.func_080224C8, .ret = 0x080384E1 },
                 .{ .func = hw.func_080134E0, .ret = 0x080384E5 },
-                .{ .func = decls.func_08015874, .ret = 0x080384E9 },
+                .{ .func = low_peel_6.func_08015874, .ret = 0x080384E9 },
                 .{ .func = sound.func_0803D7A8, .ret = 0x080384ED },
             };
             inline for (post_steps) |step| {

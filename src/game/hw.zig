@@ -11,6 +11,8 @@ const dma = @import("dma.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_5 = @import("low_peel_5.zig");
+const low_peel_6 = @import("low_peel_6.zig");
 const math = @import("math.zig");
 const mem = @import("mem.zig");
 const sound = @import("sound.zig");
@@ -69,7 +71,7 @@ pub fn func_0801122C() callconv(.c) void {
     rt.r[0] = types.addr.key_state;
     const keys_s16: i16 = @bitCast(@as(u16, @truncate(rt.r[4])));
     abi.setRegNz(&rt.r[1], @bitCast(@as(i32, keys_s16)));
-    if (!abi.call(decls.func_080111A8, 0x0801126F)) return;
+    if (!abi.call(low_peel_6.func_080111A8, 0x0801126F)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.popReg();
@@ -230,7 +232,7 @@ pub fn func_080134E0() callconv(.c) void {
     if (!abi.enter(0x080134E0)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_0801A61C, 0x080134E7)) return;
+    if (!abi.call(low_peel_6.func_0801A61C, 0x080134E7)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -930,7 +932,7 @@ pub fn func_08059E14() callconv(.c) void {
     rt.r[2] = abi.read8(r_b +% 1);
     rt.r[0] = 0x80 | rt.r[2];
     abi.write8(r_b +% 1, @truncate(rt.r[0]));
-    if (!abi.call(decls.func_08010574, 0x08059E37)) return;
+    if (!abi.call(low_peel_6.func_08010574, 0x08059E37)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1148,7 +1150,7 @@ pub fn func_0807ACE8() callconv(.c) void {
     rt.r[0] = abi.read32(0x0807ACF8);
     rt.r[1] = abi.read32(0x0807ACFC);
     abi.setRegNz(&rt.r[2], 0x10);
-    if (!abi.call(decls.func_0807AFF4, 0x0807ACF5)) return;
+    if (!abi.call(low_peel_5.func_0807AFF4, 0x0807ACF5)) return;
     abi.fetches(3);
     popPcReturn();
 }
@@ -1347,7 +1349,7 @@ pub fn func_0807AD74() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(0x0807AD84);
-    if (!abi.call(decls.func_0807B13C, 0x0807AD7D)) return;
+    if (!abi.call(low_peel_5.func_0807B13C, 0x0807AD7D)) return;
     abi.fetches(4);
     if (!abi.call(func_0807AD64, 0x0807AD81)) return;
     abi.fetches(3);

@@ -8,6 +8,7 @@ const abi = @import("abi.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_6 = @import("low_peel_6.zig");
 const sprite_anim = @import("sprite_anim.zig");
 
 fn pushRegs(comptime regs: []const u5) void {
@@ -533,7 +534,7 @@ pub fn func_0800F1B0() callconv(.c) void {
             rt.r[1] = abi.read32(0x0800F1D4);
             abi.setRegNz(&rt.r[0], 0x1F);
             abi.write16(rt.r[1] +% 0x0, @truncate(rt.r[0]));
-            if (!abi.call(decls.func_08010974, 0x0800F1CB)) return;
+            if (!abi.call(low_peel_6.func_08010974, 0x0800F1CB)) return;
             continue :blk 2;
         },
         2 => {
@@ -673,7 +674,7 @@ pub fn func_0800F802() callconv(.c) void {
             rt.r[0] = abi.read32(0x0800F814);
             abi.setRegNz(&rt.r[1], 0x0);
             rt.r[0] = rt.sext16(abi.read16(rt.r[0] +% rt.r[1]));
-            if (!abi.call(decls.func_08013248, 0x0800F80D)) return;
+            if (!abi.call(low_peel_6.func_08013248, 0x0800F80D)) return;
             continue :blk 1;
         },
         1 => {
@@ -1231,7 +1232,7 @@ pub fn func_080157E4() callconv(.c) void {
     if (!abi.enter(0x080157E4)) return;
     abi.fetches(3);
     rt.r[13] -%= 0x4;
-    decls.func_080157E6(); return;
+    low_peel_6.func_080157E6(); return;
 }
 
 pub fn func_08015A6C() callconv(.c) void {

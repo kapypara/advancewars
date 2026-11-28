@@ -11,6 +11,10 @@ const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_5 = @import("low_peel_5.zig");
+const low_peel_6 = @import("low_peel_6.zig");
+const low_peel_7 = @import("low_peel_7.zig");
+const low_peel_8 = @import("low_peel_8.zig");
 const math = @import("math.zig");
 const menu = @import("menu.zig");
 const sprite_anim = @import("sprite_anim.zig");
@@ -132,7 +136,7 @@ pub fn func_0800F2C2() callconv(.c) void {
     if (!abi.enter(0x0800F2C2)) return;
     abi.fetches(3);
     rt.updateNz(rt.r[0]);
-    decls.func_0800F2C4();
+    low_peel_6.func_0800F2C4();
 }
 
 pub fn func_0800F7F6() callconv(.c) void {
@@ -153,7 +157,7 @@ pub fn func_0803E9EE() callconv(.c) void {
     if (!abi.enter(0x0803E9EE)) return;
     abi.fetches(3);
     rt.updateNz(rt.r[0]);
-    decls.func_0803E9F0();
+    low_peel_8.func_0803E9F0();
 }
 
 pub fn func_0804F7FE() callconv(.c) void {
@@ -207,7 +211,7 @@ pub fn func_0800FC10() callconv(.c) void {
     rt.r[0] <<= 12;
     rt.cpuAdd(&rt.r[2], rt.r[2], 0x90, true);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
-    decls.func_0800FC18();
+    low_peel_6.func_0800FC18();
 }
 
 pub fn func_08011636() callconv(.c) void {
@@ -318,7 +322,7 @@ pub fn func_0802FDF8() callconv(.c) void {
     abi.setRegNz(&rt.r[4], rt.r[7] >> 22);
     rt.cpuAdd(&rt.r[0], rt.r[3], 4, true);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
-    decls.func_0802FE08();
+    low_peel_7.func_0802FE08();
 }
 
 pub fn func_08061114() callconv(.c) void {
@@ -473,9 +477,9 @@ pub fn func_08059DD4() callconv(.c) void {
     abi.fetches(5);
     abi.pushLr();
     const init_seq = .{
-        .{ &decls.func_0807B434, @as(u32, 0x08059DDB) },
+        .{ &low_peel_5.func_0807B434, @as(u32, 0x08059DDB) },
         .{ &hw.func_08010544, @as(u32, 0x08059DDF) },
-        .{ &decls.func_08010574, @as(u32, 0x08059DE3) },
+        .{ &low_peel_6.func_08010574, @as(u32, 0x08059DE3) },
         .{ &clusters_low_2.func_0800FD54, @as(u32, 0x08059DE7) },
         .{ &clusters_low_2.func_080130A0, @as(u32, 0x08059DEB) },
     };
@@ -491,11 +495,11 @@ pub fn func_08059DD4() callconv(.c) void {
     while (true) {
         const frame_seq = .{
             .{ &sprite_anim.func_08014B3C, @as(u32, 0x08059DF7) },
-            .{ &decls.func_080138F8, @as(u32, 0x08059DFB) },
-            .{ &decls.func_0801A0A8, @as(u32, 0x08059DFF) },
+            .{ &low_peel_6.func_080138F8, @as(u32, 0x08059DFB) },
+            .{ &low_peel_6.func_0801A0A8, @as(u32, 0x08059DFF) },
             .{ &decls.func_0807AD88, @as(u32, 0x08059E03) },
             .{ &decls.func_08010144, @as(u32, 0x08059E07) },
-            .{ &decls.func_08010574, @as(u32, 0x08059E0B) },
+            .{ &low_peel_6.func_08010574, @as(u32, 0x08059E0B) },
             .{ &low_peel_3.func_0801A06C, @as(u32, 0x08059E0F) },
         };
         inline for (frame_seq) |s| {
@@ -522,7 +526,7 @@ pub fn func_0800020C() callconv(.c) void {
         switch (target & ~@as(u32, 1)) {
             0x08000254 => {
                 abi.fetches(4);
-                if (!abi.call(decls.func_0800028C, 0x08000259)) return;
+                if (!abi.call(low_peel_6.func_0800028C, 0x08000259)) return;
                 abi.fetches(3);
             },
             0x0800025A => {
@@ -552,7 +556,7 @@ pub fn func_0800020C() callconv(.c) void {
             },
             0x08000278 => {
                 abi.fetches(4);
-                if (!abi.call(decls.func_080002F4, 0x0800027D)) return;
+                if (!abi.call(low_peel_6.func_080002F4, 0x0800027D)) return;
             },
             0x0800027C => {},
             else => {

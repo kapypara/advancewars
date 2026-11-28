@@ -10,6 +10,7 @@ const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_6 = @import("low_peel_6.zig");
 const proc = @import("proc.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
@@ -475,7 +476,7 @@ fn enter_0800FBC4(start_block: u32) void {
         7 => {
             abi.fetches(5);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
-            if (!abi.call(decls.func_0801B6B8, 0x0801B73B)) return;
+            if (!abi.call(low_peel_6.func_0801B6B8, 0x0801B73B)) return;
             continue :blk 8;
         },
         8 => {

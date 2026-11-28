@@ -72,6 +72,7 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
     - [x] **4H.1 — Consolidate `tail_low.zig` (`66` funcs, `904` lines) into `core.zig`:** Promoted `tail_low.zig` (including the #1 hottest `__call_via_r0` trampoline `func_0807B44C`) into `core.zig` and rewired all `28` `core -> tail_low` and `9` `tail_low -> core` `decls.*` calls to direct Zig calls.
     - [x] **4H.2 — Consolidate `clusters_low.zig` (`81` funcs) & `clusters_low_2.zig` (`31` funcs) into `core.zig`:** Promoted both shared-body cluster shards (`112` funcs, `4,669` lines, including `func_080000C0` entry) into `core.zig` and rewired all `56` `core -> clusters` and `82` `clusters -> core` `decls.*` calls to direct Zig calls.
     - [x] **4H.3 — Consolidate `low_peel_1..4.zig` (`703` funcs, `27,200` lines) into `core.zig`:** Promoted `low_peel_1..4.zig` into `core.zig` (`24` modules total) and rewired all `601` cross-module `decls.*` calls (`375` incoming + `226` outgoing) to direct Zig calls.
+    - [x] **4H.4 — Consolidate `low_peel_5..8.zig` (`798` funcs, `59,630` lines) into `core.zig`:** Promoted `low_peel_5..8.zig` (including hot `low_peel_6` & `low_peel_8`) into `core.zig` (`28` modules, `3,118` funcs) and rewired all `1,633` cross-module `decls.*` calls to direct Zig calls.
   - [ ] **4I — Retire `rt.r[]` Register ABI Inside `core.zig`:** Convert the remaining `844` `rt.r[]`-using functions across the `17` domain modules into typed Zig signatures and remove internal `rt.r[0..14]` shuffling before Phase 5.
 
 ## Phase 5 — Hardware Decoupling

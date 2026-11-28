@@ -7,6 +7,8 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
+const low_peel_5 = @import("low_peel_5.zig");
+const low_peel_7 = @import("low_peel_7.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
@@ -4195,7 +4197,7 @@ pub fn func_0806F9F6() callconv(.c) void {
         },
         1 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08031488, 0x0806F9FD)) return;
+            if (!abi.call(low_peel_7.func_08031488, 0x0806F9FD)) return;
             continue :blk 2;
         },
         2 => {
@@ -4213,7 +4215,7 @@ pub fn func_0806F9F8() callconv(.c) void {
     blk: switch (@as(u32, 0)) {
         0 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08031488, 0x0806F9FD)) return;
+            if (!abi.call(low_peel_7.func_08031488, 0x0806F9FD)) return;
             continue :blk 1;
         },
         1 => {
@@ -4279,7 +4281,7 @@ pub fn func_08071B24() callconv(.c) void {
         1 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x08071B50);
-            if (!abi.call(decls.func_0806CD78, 0x08071B3D)) return;
+            if (!abi.call(low_peel_5.func_0806CD78, 0x08071B3D)) return;
             continue :blk 2;
         },
         2 => {
@@ -4404,7 +4406,7 @@ pub fn func_08077AA0() callconv(.c) void {
         },
         1 => {
             abi.fetches(3);
-            decls.func_08077A10(); return;
+            low_peel_5.func_08077A10(); return;
         },
         2 => {
             abi.fetches(11);

@@ -3,12 +3,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_3 = @import("low_peel_3.zig");
+const low_peel_6 = @import("low_peel_6.zig");
 const mem = @import("mem.zig");
 const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
@@ -441,7 +441,7 @@ pub fn func_080134F8() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     rt.r[0] = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
-    if (!abi.call(decls.func_08019FD8, 0x08013503)) return;
+    if (!abi.call(low_peel_6.func_08019FD8, 0x08013503)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -619,7 +619,7 @@ pub fn func_0801539C() callconv(.c) void {
     abi.write32(rt.r[13], 0);
     abi.write32(rt.r[13] +% 4, 0);
     abi.write32(rt.r[13] +% 8, @bitCast(@as(i32, -1)));
-    if (!abi.call(decls.func_08014DA4, 0x080153B3)) return;
+    if (!abi.call(low_peel_6.func_08014DA4, 0x080153B3)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 0xC;
@@ -940,7 +940,7 @@ pub fn func_080124D4() callconv(.c) void {
     }) |step| {
         if (step.ref != 0x080124EC) abi.fetches(5);
         rt.r[0] = abi.read32(step.ref);
-        if (!abi.call(decls.func_0801329C, step.ret)) return;
+        if (!abi.call(low_peel_6.func_0801329C, step.ret)) return;
     }
     abi.fetches(4);
     abi.popReturn();
@@ -1179,7 +1179,7 @@ fn spawnAnimOverlayWindow(
     abi.fetches(6);
     rt.r[0] = abi.read32(proc_ref);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_0801320C, ret3)) return;
+    if (!abi.call(low_peel_6.func_0801320C, ret3)) return;
 
     abi.fetches(9);
     rt.r[13] +%= 0xC;
@@ -1297,7 +1297,7 @@ pub fn func_080123A8() callconv(.c) void {
     abi.write32(rt.r[13] +% 0xC, s1);
     rt.r[0] = abi.read32(0x08012418);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_0801320C, 0x080123E1)) return;
+    if (!abi.call(low_peel_6.func_0801320C, 0x080123E1)) return;
 
     abi.fetches(18);
     const proc_ptr = rt.r[0];
