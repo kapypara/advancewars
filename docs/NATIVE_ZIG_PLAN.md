@@ -52,7 +52,7 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
   - [x] **3C.1 — Proc & Script Scheduler Helpers (`proc.zig`, `mem.zig`, `types.zig`):** Lift core proc/script slot allocation, lookup, and timer helpers and wire `mem.scriptSlotAddr`.
   - [x] **3C.2 — Sprite Animator & OAM Queue Helpers (`sprite_anim.zig`, `mem.zig`):** Lift core animator/OAM queue builders and wire `mem.animSlotAddr`, `mem.oamAttrAddr`, `mem.oamQueueAddr`.
   - [x] **3C.3 — Hardware Input, Display & IRQ Helpers (`hw.zig`, `main_loop.zig`):** Lift key polling (`func_0801122C`) and hardware register sync helpers into `hw.zig`.
-  - [ ] **3C.4 — Audio Triggers & Game State Helpers (`sound.zig`, `state.zig`):** Lift core SFX/BGM trigger wrappers and top-level game state transition helpers.
+  - [x] **3C.4 — Audio Triggers & Game State Helpers (`sound.zig`, `state.zig`):** Lift core SFX/BGM trigger wrappers and top-level game state transition helpers.
 - **3D — Gameplay, UI, Turns & AI (`turn.zig`, `menu.zig`, `ui.zig`, `campaign.zig`, `overlay*.zig`, hot `low_peel_*` / `clusters_low*`):**
   - Turn phase machine, command menus, CO power logic, campaign flow, AI evaluation.
 

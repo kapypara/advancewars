@@ -2798,15 +2798,6 @@ fn func_08038290() callconv(.c) void {
     }
 }
 
-fn func_080385B0() callconv(.c) void {
-    if (!abi.enter(0x080385B0)) return;
-    abi.fetches(6);
-    rt.r[1] = abi.read32(0x080385B8);
-    abi.setRegNz(&rt.r[0], 0x0);
-    abi.write16(rt.r[1] +% 0x0, @truncate(rt.r[0]));
-    rt.recompReturn(rt.r[14]); return;
-}
-
 fn func_080395A8() callconv(.c) void {
     if (!abi.enter(0x080395A8)) return;
     abi.fetches(5);
@@ -2923,43 +2914,6 @@ fn func_0803D598() callconv(.c) void {
             rt.r[1] = abi.read32(0x0803D5AC);
             abi.setRegNz(&rt.r[0], 0x1);
             abi.write16(rt.r[1] +% 0x0, @truncate(rt.r[0]));
-            continue :blk 1;
-        },
-        else => unreachable,
-    }
-}
-
-fn func_0803D7A8() callconv(.c) void {
-    if (!abi.enter(0x0803D7A8)) return;
-    abi.fetches(3);
-    rt.recompReturn(rt.r[14]); return;
-}
-
-fn func_0803D93C() callconv(.c) void {
-    if (!abi.enter(0x0803D93C)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(10);
-            rt.cpuAdd(&rt.r[2], rt.r[0], 0x0, true);
-            rt.r[0] = abi.read16(rt.r[2] +% 0x1E);
-            rt.cpuAdd(&rt.r[1], rt.r[0], 0x1, true);
-            abi.write16(rt.r[2] +% 0x1E, @truncate(rt.r[1]));
-            abi.setRegNz(&rt.r[0], rt.r[0] << 16);
-            abi.setRegNz(&rt.r[0], rt.asrConst(rt.r[0], 16));
-            rt.cpuSub(null, rt.r[0], 0x1E, true);
-            if ((rt.CPU_Z or rt.CPU_N != rt.CPU_V)) {
-                continue :blk 1;
-            }
-            continue :blk 2;
-        },
-        1 => {
-            abi.fetches(3);
-            rt.recompReturn(rt.r[14]); return;
-        },
-        2 => {
-            abi.fetches(4);
-            abi.setRegNz(&rt.r[0], 0x0);
-            abi.write32(rt.r[2] +% 0x8, rt.r[0]);
             continue :blk 1;
         },
         else => unreachable,
@@ -5084,7 +5038,6 @@ comptime {
         @export(&func_0803826C, .{ .name = "func_0803826C", .linkage = .strong });
         @export(&func_08038278, .{ .name = "func_08038278", .linkage = .strong });
         @export(&func_08038290, .{ .name = "func_08038290", .linkage = .strong });
-        @export(&func_080385B0, .{ .name = "func_080385B0", .linkage = .strong });
         @export(&func_080395A8, .{ .name = "func_080395A8", .linkage = .strong });
         @export(&func_080399E0, .{ .name = "func_080399E0", .linkage = .strong });
         @export(&func_08039CAC, .{ .name = "func_08039CAC", .linkage = .strong });
@@ -5092,8 +5045,6 @@ comptime {
         @export(&func_0803A6B8, .{ .name = "func_0803A6B8", .linkage = .strong });
         @export(&func_0803CF1C, .{ .name = "func_0803CF1C", .linkage = .strong });
         @export(&func_0803D598, .{ .name = "func_0803D598", .linkage = .strong });
-        @export(&func_0803D7A8, .{ .name = "func_0803D7A8", .linkage = .strong });
-        @export(&func_0803D93C, .{ .name = "func_0803D93C", .linkage = .strong });
         @export(&func_0803DFA0, .{ .name = "func_0803DFA0", .linkage = .strong });
         @export(&func_0803E008, .{ .name = "func_0803E008", .linkage = .strong });
         @export(&func_0803E024, .{ .name = "func_0803E024", .linkage = .strong });

@@ -5,6 +5,8 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
+const types = @import("types.zig");
 
 /// Byte offset of the current bytecode sequence cursor inside `MusicPlayerTrack`.
 pub const track_cmd_cursor_off: u32 = 0x40;
@@ -292,6 +294,65 @@ pub fn func_0803D784() callconv(.c) void {
 pub fn func_0803D790() callconv(.c) void {
     if (!abi.enter(0x0803D790)) return;
     callSoundVoid(decls.func_080788B8, 0x0803D797);
+}
+
+/// Per-frame audio engine hook (currently no-op on this path) (`0x0803D7A8`).
+pub fn func_0803D7A8() callconv(.c) void {
+    if (!abi.enter(0x0803D7A8)) return;
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Trigger BGM track `u16(r0)` or defer to `pending_bgm_id` when BGM is paused (`0x0803D890`).
+pub fn func_0803D890() callconv(.c) void {
+    if (!abi.enter(0x0803D890)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    const track_id: u16 = @truncate(rt.r[0]);
+    abi.setRegNz(&rt.r[0], rt.r[0] << 16);
+    abi.setRegNz(&rt.r[1], track_id);
+
+    const bgm_enabled = mem.readU8(types.addr.battle_ui_state +% 0xC);
+    rt.r[0] = bgm_enabled;
+    rt.cpuSub(null, bgm_enabled, 0, true);
+    if (bgm_enabled == 0) {
+        abi.fetches(8);
+        mem.writeU16(types.addr.pending_bgm_id, track_id);
+        mem.writeU16(types.addr.active_bgm_id, types.bgm_none);
+        rt.r[1] = types.addr.active_bgm_id;
+        rt.r[2] = types.bgm_none;
+        rt.cpuAdd(&rt.r[0], types.bgm_none, 0, true);
+    } else {
+        abi.fetches(6);
+        const signed_id: i16 = @bitCast(track_id);
+        abi.setRegNz(&rt.r[0], @bitCast(@as(i32, signed_id)));
+        if (!abi.call(decls.func_0803D8C8, 0x0803D8A7)) return;
+        abi.fetches(3);
+    }
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Advance audio wait timer at `[r0 + 0x1E]` and clear `[r0 + 0x08]` once > 30 frames (`0x0803D93C`).
+pub fn func_0803D93C() callconv(.c) void {
+    if (!abi.enter(0x0803D93C)) return;
+    abi.fetches(10);
+    const slot = rt.r[0];
+    rt.cpuAdd(&rt.r[2], slot, 0, true);
+    const prev: u16 = abi.read16(slot +% 0x1E);
+    rt.cpuAdd(&rt.r[1], prev, 1, true);
+    abi.write16(slot +% 0x1E, @truncate(rt.r[1]));
+    const prev_s16: i16 = @bitCast(prev);
+    abi.setRegNz(&rt.r[0], @bitCast(@as(i32, prev_s16)));
+    rt.cpuSub(null, rt.r[0], 0x1E, true);
+    if (prev_s16 > 0x1E) {
+        abi.fetches(4);
+        abi.setRegNz(&rt.r[0], 0);
+        abi.write32(slot +% 0x8, 0);
+    }
+    abi.fetches(3);
+    abi.retLr();
 }
 
 /// Play signed sound effect `i16(r0)` via `0x0803D830` (`0x0803D880`).
@@ -726,9 +787,12 @@ comptime {
         @export(&func_0803D784, .{ .name = "func_0803D784", .linkage = .strong });
         @export(&func_0803D790, .{ .name = "func_0803D790", .linkage = .strong });
         @export(&func_0803D79C, .{ .name = "func_0803D79C", .linkage = .strong });
+        @export(&func_0803D7A8, .{ .name = "func_0803D7A8", .linkage = .strong });
         @export(&func_0803D7AC, .{ .name = "func_0803D7AC", .linkage = .strong });
         @export(&func_0803D880, .{ .name = "func_0803D880", .linkage = .strong });
+        @export(&func_0803D890, .{ .name = "func_0803D890", .linkage = .strong });
         @export(&func_0803D920, .{ .name = "func_0803D920", .linkage = .strong });
+        @export(&func_0803D93C, .{ .name = "func_0803D93C", .linkage = .strong });
         @export(&func_0803D954, .{ .name = "func_0803D954", .linkage = .strong });
         @export(&func_080492A0, .{ .name = "func_080492A0", .linkage = .strong });
         @export(&func_0804E504, .{ .name = "func_0804E504", .linkage = .strong });
@@ -761,4 +825,7 @@ test "MusicPlayerTrack offsets stay distinct and ordered" {
     try std.testing.expect(TrackOffset.mod_speed < TrackOffset.mod_delay);
     try std.testing.expect(TrackOffset.mod_delay < TrackOffset.param_2c);
     try std.testing.expectEqual(@as(u32, 0x40), track_cmd_cursor_off);
+    try std.testing.expectEqual(@as(u32, 0x0300_00E4), types.addr.pending_bgm_id);
+    try std.testing.expectEqual(@as(u32, 0x0300_00E6), types.addr.active_bgm_id);
+    try std.testing.expectEqual(@as(u16, 0xFFFF), types.bgm_none);
 }

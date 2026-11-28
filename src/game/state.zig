@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
 const types = @import("types.zig");
 
 /// Byte offset stride for entries in the battle entity/unit info table at `*[0x0828_2CBC]`.
@@ -288,6 +289,34 @@ pub fn func_08037C98() callconv(.c) void {
 pub fn func_08038000() callconv(.c) void {
     if (!abi.enter(0x08038000)) return;
     writeByteAtPoolPtr(7, 0x0803800C, 0x2D, 0x02);
+}
+
+/// Clear `[0x0300_47E4] = 0` (`u16` frame gate flags) (`0x080385B0`).
+pub fn func_080385B0() callconv(.c) void {
+    if (!abi.enter(0x080385B0)) return;
+    abi.fetches(6);
+    mem.writeU16(types.addr.frame_gate_flags, 0);
+    rt.r[1] = types.addr.frame_gate_flags;
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Install main loop & VBlank callbacks (`0x080383A1`, `0x080383F9`) and initialize frame state (`0x080386B4`).
+pub fn func_080386B4() callconv(.c) void {
+    if (!abi.enter(0x080386B4)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_080385CC, 0x080386BB)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x080386D0);
+    if (!abi.call(decls.func_0803826C, 0x080386C1)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x080386D4);
+    if (!abi.call(func_08038260, 0x080386C7)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_08052368, 0x080386CB)) return;
+    abi.fetches(4);
+    abi.popReturn();
 }
 
 /// Snapshot `[0x0300_36AC]` (`u16`) into `[r0 + 0x1E]` and set `[r0 + 0x20] = 1` (`0x0803FD78`).
@@ -1459,7 +1488,9 @@ comptime {
         @export(&func_08038010, .{ .name = "func_08038010", .linkage = .strong });
         @export(&func_0803801C, .{ .name = "func_0803801C", .linkage = .strong });
         @export(&func_08038260, .{ .name = "func_08038260", .linkage = .strong });
+        @export(&func_080385B0, .{ .name = "func_080385B0", .linkage = .strong });
         @export(&func_080385BC, .{ .name = "func_080385BC", .linkage = .strong });
+        @export(&func_080386B4, .{ .name = "func_080386B4", .linkage = .strong });
         @export(&func_0803A2E0, .{ .name = "func_0803A2E0", .linkage = .strong });
         @export(&func_0803FD78, .{ .name = "func_0803FD78", .linkage = .strong });
         @export(&func_08037ED0, .{ .name = "func_08037ED0", .linkage = .strong });
