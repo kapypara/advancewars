@@ -9268,7 +9268,7 @@ fn func_080138F8() callconv(.c) void {
         },
         5 => {
             abi.fetches(4);
-            if (!abi.call(func_08013B34, 0x08013927)) return;
+            if (!abi.call(decls.func_08013B34, 0x08013927)) return;
             continue :blk 6;
         },
         6 => {
@@ -9351,7 +9351,7 @@ fn func_08013938() callconv(.c) void {
         },
         6 => {
             abi.fetches(4);
-            if (!abi.call(func_08013B34, 0x08013973)) return;
+            if (!abi.call(decls.func_08013B34, 0x08013973)) return;
             continue :blk 7;
         },
         7 => {
@@ -9368,72 +9368,6 @@ fn func_08013938() callconv(.c) void {
             popRegsSeq(&.{ 4, 5 });
             popRegsSeq(&.{ 0 });
             rt.r[15] = rt.r[0]; rt.recompReturn(rt.r[0]); return;
-        },
-        else => unreachable,
-    }
-}
-
-fn func_08013B34() callconv(.c) void {
-    if (!abi.enter(0x08013B34)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(6);
-            pushRegs(&.{ 4, 14 });
-            abi.setRegNz(&rt.r[2], 0x0);
-            rt.r[3] = abi.read32(0x08013B58);
-            abi.setRegNz(&rt.r[4], 0x1);
-            continue :blk 1;
-        },
-        1 => {
-            abi.fetches(9);
-            abi.setRegNz(&rt.r[0], rt.r[2] << 1);
-            rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[2], true);
-            abi.setRegNz(&rt.r[0], rt.r[0] << 5);
-            rt.cpuAdd(&rt.r[1], rt.r[0], rt.r[3], true);
-            rt.r[0] = abi.read32(rt.r[1] +% 0x0);
-            rt.cpuSub(null, rt.r[0], 0x0, true);
-            if (rt.CPU_Z) {
-                continue :blk 3;
-            }
-            continue :blk 2;
-        },
-        2 => {
-            abi.fetches(7);
-            rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
-            rt.r[1] = abi.read16(rt.r[1] +% 0x12);
-            abi.setRegNz(&rt.r[0], rt.r[0] & rt.r[1]);
-            rt.cpuSub(null, rt.r[0], 0x0, true);
-            if (rt.CPU_Z) {
-                continue :blk 3;
-            }
-            continue :blk 4;
-        },
-        3 => {
-            abi.fetches(7);
-            rt.cpuAdd(&rt.r[0], rt.r[2], 0x1, true);
-            abi.setRegNz(&rt.r[0], rt.r[0] << 24);
-            abi.setRegNz(&rt.r[2], rt.r[0] >> 24);
-            rt.cpuSub(null, rt.r[2], 0x27, true);
-            if ((!rt.CPU_C or rt.CPU_Z)) {
-                continue :blk 1;
-            }
-            continue :blk 5;
-        },
-        4 => {
-            abi.fetches(4);
-            abi.setRegNz(&rt.r[0], 0x1);
-            continue :blk 6;
-        },
-        5 => {
-            abi.fetches(3);
-            abi.setRegNz(&rt.r[0], 0x0);
-            continue :blk 6;
-        },
-        6 => {
-            abi.fetches(5);
-            popRegsSeq(&.{ 4 });
-            popRegsSeq(&.{ 1 });
-            rt.r[15] = rt.r[1]; rt.recompReturn(rt.r[1]); return;
         },
         else => unreachable,
     }
@@ -16827,7 +16761,6 @@ comptime {
         @export(&func_080132D8, .{ .name = "func_080132D8", .linkage = .strong });
         @export(&func_080138F8, .{ .name = "func_080138F8", .linkage = .strong });
         @export(&func_08013938, .{ .name = "func_08013938", .linkage = .strong });
-        @export(&func_08013B34, .{ .name = "func_08013B34", .linkage = .strong });
         @export(&func_08013CC4, .{ .name = "func_08013CC4", .linkage = .strong });
         @export(&func_08013D64, .{ .name = "func_08013D64", .linkage = .strong });
         @export(&func_08013F04, .{ .name = "func_08013F04", .linkage = .strong });

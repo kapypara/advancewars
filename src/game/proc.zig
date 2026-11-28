@@ -87,9 +87,12 @@ pub inline fn procSlotAddr(slot_idx: u8) u32 {
 
 /// Compute address of `+0x04` cursor word in secondary script slot `idx` (`i16`, stride `0x18`).
 pub inline fn scriptCursorFieldAddr(slot_idx: i16) u32 {
+    if (slot_idx >= 0) {
+        return mem.scriptSlotAddr(@intCast(slot_idx)) +% @offsetOf(types.ScriptSlot, "script_cursor");
+    }
     const signed: i32 = slot_idx;
     const off: u32 = @bitCast(signed *% @as(i32, types.script_slot_stride));
-    return off +% (types.addr.script_pool + 4);
+    return off +% (types.addr.script_pool +% @offsetOf(types.ScriptSlot, "script_cursor"));
 }
 
 /// Proc command: copy `*cursor` into `proc + 0x08`, advance cursor by 8, return `0` (`0x08013D14`).
@@ -1561,6 +1564,93 @@ pub fn func_080147B8() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Scan the 40-slot proc table for a slot whose `script_start` equals `script_start`.
+fn scanProcSlotByScript(script_start: u32) ?u8 {
+    rt.r[2] = script_start;
+    rt.r[3] = types.addr.proc_table;
+    var idx: u8 = 0;
+    while (idx < types.proc_slot_count) : (idx += 1) {
+        abi.fetches(9);
+        const slot_addr = mem.procSlotAddr(idx);
+        const cur_script = abi.read32(slot_addr +% @offsetOf(types.ProcSlot, "script_start"));
+        rt.cpuSub(null, cur_script, script_start, true);
+        if (rt.CPU_Z) {
+            rt.r[1] = idx;
+            return idx;
+        }
+        abi.fetches(7);
+    }
+    rt.r[1] = types.proc_slot_count;
+    rt.cpuSub(null, @as(u32, types.proc_slot_count), @as(u32, types.proc_slot_count - 1), true);
+    return null;
+}
+
+/// Return `1` if any active proc slot has `flags & 1` set, else `0` (`0x08013B34`).
+pub fn func_08013B34() callconv(.c) void {
+    if (!abi.enter(0x08013B34)) return;
+    abi.fetches(6);
+    rt.r[3] = types.addr.proc_table;
+    var idx: u8 = 0;
+    while (idx < types.proc_slot_count) : (idx += 1) {
+        abi.fetches(9);
+        const slot_addr = mem.procSlotAddr(idx);
+        const script_start = abi.read32(slot_addr +% @offsetOf(types.ProcSlot, "script_start"));
+        rt.cpuSub(null, script_start, 0, true);
+        if (script_start != 0) {
+            abi.fetches(7);
+            const flags = abi.read16(slot_addr +% @offsetOf(types.ProcSlot, "flags"));
+            rt.cpuSub(null, flags & 1, 0, true);
+            if ((flags & 1) != 0) {
+                abi.fetches(9);
+                rt.r[1] = rt.r[14];
+                rt.r[2] = idx;
+                abi.setRegNz(&rt.r[0], 1);
+                abi.retLr();
+                return;
+            }
+        }
+        abi.fetches(7);
+    }
+    abi.fetches(8);
+    rt.r[1] = rt.r[14];
+    rt.r[2] = types.proc_slot_count;
+    rt.cpuSub(null, @as(u32, types.proc_slot_count - 1), @as(u32, types.proc_slot_count - 1), true);
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
+/// Return sign-extended `i8` slot index of proc with `script_start == r0`, or `-1` (`0x08013B70`).
+pub fn func_08013B70() callconv(.c) void {
+    if (!abi.enter(0x08013B70)) return;
+    abi.fetches(5);
+    if (scanProcSlotByScript(rt.r[0])) |idx| {
+        abi.fetches(8);
+        const s: i8 = @bitCast(idx);
+        abi.setRegNz(&rt.r[0], @bitCast(@as(i32, s)));
+        abi.retLr();
+        return;
+    }
+    abi.fetches(7);
+    abi.setRegNz(&rt.r[0], 1);
+    rt.cpuSub(&rt.r[0], 0, rt.r[0], true);
+    abi.retLr();
+}
+
+/// Return `1` if any proc has `script_start == r0`, else `0` (`0x08013BA0`).
+pub fn func_08013BA0() callconv(.c) void {
+    if (!abi.enter(0x08013BA0)) return;
+    abi.fetches(5);
+    if (scanProcSlotByScript(rt.r[0]) != null) {
+        abi.fetches(7);
+        abi.setRegNz(&rt.r[0], 1);
+        abi.retLr();
+        return;
+    }
+    abi.fetches(6);
+    abi.setRegNz(&rt.r[0], 0);
+    abi.retLr();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010F04, .{ .name = "func_08010F04", .linkage = .strong });
@@ -1643,12 +1733,17 @@ comptime {
         @export(&func_080147B8, .{ .name = "func_080147B8", .linkage = .strong });
         @export(&func_08013984, .{ .name = "func_08013984", .linkage = .strong });
         @export(&func_0801A6D8, .{ .name = "func_0801A6D8", .linkage = .strong });
+        @export(&func_08013B34, .{ .name = "func_08013B34", .linkage = .strong });
+        @export(&func_08013B70, .{ .name = "func_08013B70", .linkage = .strong });
+        @export(&func_08013BA0, .{ .name = "func_08013BA0", .linkage = .strong });
     }
 }
 
 test "proc and script slot address helpers match GBA strides" {
     try std.testing.expectEqual(@as(u32, 0x0300_0E10), procSlotAddr(0));
     try std.testing.expectEqual(@as(u32, 0x0300_0E70), procSlotAddr(1));
+    try std.testing.expectEqual(@as(u32, 0x0300_1D50), mem.scriptSlotAddr(0));
+    try std.testing.expectEqual(@as(u32, 0x0300_1D68), mem.scriptSlotAddr(1));
     try std.testing.expectEqual(@as(u32, 0x0300_1D54), scriptCursorFieldAddr(0));
     try std.testing.expectEqual(@as(u32, 0x0300_1D6C), scriptCursorFieldAddr(1));
 }

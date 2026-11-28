@@ -5760,7 +5760,7 @@ fn func_080131E0() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 24);
             abi.setRegNz(&rt.r[5], rt.r[1] >> 24);
             abi.setRegNz(&rt.r[0], 0x0);
-            if (!abi.call(func_08013B70, 0x080131EF)) return;
+            if (!abi.call(decls.func_08013B70, 0x080131EF)) return;
             continue :blk 1;
         },
         1 => {
@@ -5863,112 +5863,6 @@ fn func_080136A4() callconv(.c) void {
     abi.write32(rt.r[2] +% 0x4, rt.r[0]);
     abi.write32(rt.r[2] +% 0x8, rt.r[0]);
     rt.recompReturn(rt.r[14]); return;
-}
-
-fn func_08013B70() callconv(.c) void {
-    if (!abi.enter(0x08013B70)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(5);
-            rt.cpuAdd(&rt.r[2], rt.r[0], 0x0, true);
-            abi.setRegNz(&rt.r[1], 0x0);
-            rt.r[3] = abi.read32(0x08013B8C);
-            continue :blk 1;
-        },
-        1 => {
-            abi.fetches(9);
-            abi.setRegNz(&rt.r[0], rt.r[1] << 1);
-            rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
-            abi.setRegNz(&rt.r[0], rt.r[0] << 5);
-            rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[3], true);
-            rt.r[0] = abi.read32(rt.r[0] +% 0x0);
-            rt.cpuSub(null, rt.r[0], rt.r[2], true);
-            if (!rt.CPU_Z) {
-                continue :blk 3;
-            }
-            continue :blk 2;
-        },
-        2 => {
-            abi.fetches(5);
-            abi.setRegNz(&rt.r[0], rt.r[1] << 24);
-            abi.setRegNz(&rt.r[0], rt.asrConst(rt.r[0], 24));
-            continue :blk 4;
-        },
-        3 => {
-            abi.fetches(7);
-            rt.cpuAdd(&rt.r[0], rt.r[1], 0x1, true);
-            abi.setRegNz(&rt.r[0], rt.r[0] << 24);
-            abi.setRegNz(&rt.r[1], rt.r[0] >> 24);
-            rt.cpuSub(null, rt.r[1], 0x27, true);
-            if ((!rt.CPU_C or rt.CPU_Z)) {
-                continue :blk 1;
-            }
-            continue :blk 5;
-        },
-        4 => {
-            abi.fetches(3);
-            rt.recompReturn(rt.r[14]); return;
-        },
-        5 => {
-            abi.fetches(4);
-            abi.setRegNz(&rt.r[0], 0x1);
-            rt.cpuSub(&rt.r[0], 0, rt.r[0], true);
-            continue :blk 4;
-        },
-        else => unreachable,
-    }
-}
-
-fn func_08013BA0() callconv(.c) void {
-    if (!abi.enter(0x08013BA0)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(5);
-            rt.cpuAdd(&rt.r[2], rt.r[0], 0x0, true);
-            abi.setRegNz(&rt.r[1], 0x0);
-            rt.r[3] = abi.read32(0x08013BB8);
-            continue :blk 1;
-        },
-        1 => {
-            abi.fetches(9);
-            abi.setRegNz(&rt.r[0], rt.r[1] << 1);
-            rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[1], true);
-            abi.setRegNz(&rt.r[0], rt.r[0] << 5);
-            rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[3], true);
-            rt.r[0] = abi.read32(rt.r[0] +% 0x0);
-            rt.cpuSub(null, rt.r[0], rt.r[2], true);
-            if (!rt.CPU_Z) {
-                continue :blk 3;
-            }
-            continue :blk 2;
-        },
-        2 => {
-            abi.fetches(4);
-            abi.setRegNz(&rt.r[0], 0x1);
-            continue :blk 4;
-        },
-        3 => {
-            abi.fetches(7);
-            rt.cpuAdd(&rt.r[0], rt.r[1], 0x1, true);
-            abi.setRegNz(&rt.r[0], rt.r[0] << 24);
-            abi.setRegNz(&rt.r[1], rt.r[0] >> 24);
-            rt.cpuSub(null, rt.r[1], 0x27, true);
-            if ((!rt.CPU_C or rt.CPU_Z)) {
-                continue :blk 1;
-            }
-            continue :blk 5;
-        },
-        4 => {
-            abi.fetches(3);
-            rt.recompReturn(rt.r[14]); return;
-        },
-        5 => {
-            abi.fetches(3);
-            abi.setRegNz(&rt.r[0], 0x0);
-            continue :blk 4;
-        },
-        else => unreachable,
-    }
 }
 
 fn func_08013E48() callconv(.c) void {
@@ -6751,7 +6645,7 @@ fn func_080171F0() callconv(.c) void {
             pushRegs(&.{ 4, 14 });
             rt.cpuAdd(&rt.r[4], rt.r[0], 0x0, true);
             rt.r[0] = abi.read32(0x08017210);
-            if (!abi.call(func_08013B70, 0x080171FB)) return;
+            if (!abi.call(decls.func_08013B70, 0x080171FB)) return;
             continue :blk 1;
         },
         1 => {
@@ -9976,8 +9870,6 @@ comptime {
         @export(&func_080131E0, .{ .name = "func_080131E0", .linkage = .strong });
         @export(&func_08013508, .{ .name = "func_08013508", .linkage = .strong });
         @export(&func_080136A4, .{ .name = "func_080136A4", .linkage = .strong });
-        @export(&func_08013B70, .{ .name = "func_08013B70", .linkage = .strong });
-        @export(&func_08013BA0, .{ .name = "func_08013BA0", .linkage = .strong });
         @export(&func_08013E48, .{ .name = "func_08013E48", .linkage = .strong });
         @export(&func_08013F44, .{ .name = "func_08013F44", .linkage = .strong });
         @export(&func_08014030, .{ .name = "func_08014030", .linkage = .strong });
