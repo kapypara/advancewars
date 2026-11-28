@@ -53,7 +53,12 @@ pub const addr = struct {
     pub const ui_panel_mgr_ptr: u32 = 0x083B_918C;
     pub const save_flags_shadow: u32 = 0x0201_F9CC;
     pub const result_summary_buf: u32 = 0x0201_226C;
+    pub const reg_keyinput: u32 = 0x0400_0130;
+    pub const frame_tick_done: u32 = 0x0300_4434;
 };
+
+pub const key_mask_all: u32 = 0x0000_03FF;
+pub const key_mask_soft_reset: u32 = 0x0000_000F; // A | B | Select | Start
 
 /// Map workspace header at `addr.map_workspace` (`0x0201_57F8`).
 pub const MapWorkspace = extern struct {

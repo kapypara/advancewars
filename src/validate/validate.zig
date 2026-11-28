@@ -91,6 +91,13 @@ pub inline fn checkDeadline(cycle_counter: u32) void {
 
 pub fn printSummary(enabled: bool) void {
     if (!has_host_validate or !enabled) return;
+    if (host_jmp.getenv("GBA_VALIDATE_PROFILE") != null) {
+        for (v_seen) |entry| {
+            if (entry.addr != 0) {
+                core.gba.logPrint("PROFILE {X:0>8} {d}\n", .{ entry.addr, entry.seen });
+            }
+        }
+    }
     core.gba.logPrint("validate: {d}/{d} functions agree (native vs interpreter)\n", .{
         v_funcs - v_fail,
         v_funcs,
@@ -131,6 +138,9 @@ pub fn runValidate(
         v_seen[h].addr = addr;
         v_funcs += 1;
     }
+    const seen_now = v_seen[h].seen;
+    v_seen[h].seen +%= 1;
+
     const max_calls: u16 = if (g_validate_val <= 0) 0 else @intCast(@min(g_validate_val, 0xFFFF));
     if (v_seen[h].calls >= max_calls or v_seen[h].failed) return 0;
 
@@ -141,8 +151,6 @@ pub fn runValidate(
             validate_every = if (parsed > 0) @intCast(parsed) else 1;
         }
     }
-    const seen_now = v_seen[h].seen;
-    v_seen[h].seen +%= 1;
     if (seen_now % validate_every != 0) return 0;
 
     v_seen[h].calls += 1;

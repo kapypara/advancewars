@@ -75,6 +75,14 @@ inline fn q12Shift(val: u32) u32 {
     return @bitCast(@as(i32, @bitCast(val)) >> 12);
 }
 
+/// Multiply column-major 3x3 fixed-point Q12 matrix `m` by 3D vector `v` (`(M * v) >> 12`).
+pub fn mulMat3Vec3Q12(v: [3]u32, m: [9]u32) [3]u32 {
+    const x = q12Shift(q12Mul(m[0], v[0]) +% q12Mul(m[3], v[1]) +% q12Mul(m[6], v[2]));
+    const y = q12Shift(q12Mul(m[1], v[0]) +% q12Mul(m[4], v[1]) +% q12Mul(m[7], v[2]));
+    const z = q12Shift(q12Mul(m[2], v[0]) +% q12Mul(m[5], v[1]) +% q12Mul(m[8], v[2]));
+    return .{ x, y, z };
+}
+
 /// 3x3 fixed-point Q12 matrix * 3D vector (`out = M * v >> 12`) (`0x0806CF50`).
 pub fn func_0806CF50() callconv(.c) void {
     if (!abi.enter(0x0806CF50)) return;
@@ -87,27 +95,36 @@ pub fn func_0806CF50() callconv(.c) void {
     rt.r[13] -%= 4;
     abi.write32(rt.r[13], rt.r[4]);
 
-    const v0 = abi.read32(rt.r[0]);
-    const v1 = abi.read32(rt.r[0] +% 4);
-    const v2 = abi.read32(rt.r[0] +% 8);
-    const m = rt.r[1];
-    const out = rt.r[2];
+    const v: [3]u32 = .{
+        abi.read32(rt.r[0]),
+        abi.read32(rt.r[0] +% 4),
+        abi.read32(rt.r[0] +% 8),
+    };
+    const m_addr = rt.r[1];
+    const m: [9]u32 = .{
+        abi.read32(m_addr),
+        abi.read32(m_addr +% 0x04),
+        abi.read32(m_addr +% 0x08),
+        abi.read32(m_addr +% 0x0C),
+        abi.read32(m_addr +% 0x10),
+        abi.read32(m_addr +% 0x14),
+        abi.read32(m_addr +% 0x18),
+        abi.read32(m_addr +% 0x1C),
+        abi.read32(m_addr +% 0x20),
+    };
+    const out_addr = rt.r[2];
 
-    const x = q12Shift(q12Mul(abi.read32(m), v0) +% q12Mul(abi.read32(m +% 0xC), v1) +% q12Mul(abi.read32(m +% 0x18), v2));
-    abi.write32(out, x);
+    const res = mulMat3Vec3Q12(v, m);
+    abi.write32(out_addr, res[0]);
+    abi.write32(out_addr +% 4, res[1]);
+    abi.write32(out_addr +% 8, res[2]);
 
-    const y = q12Shift(q12Mul(abi.read32(m +% 4), v0) +% q12Mul(abi.read32(m +% 0x10), v1) +% q12Mul(abi.read32(m +% 0x1C), v2));
-    abi.write32(out +% 4, y);
-
-    const z1 = q12Mul(abi.read32(m +% 0x14), v1);
-    const z2 = q12Mul(abi.read32(m +% 0x20), v2);
-    const z = q12Shift(q12Mul(abi.read32(m +% 8), v0) +% z1 +% z2);
-    abi.write32(out +% 8, z);
-
+    const z1 = q12Mul(m[5], v[1]);
+    const z2 = q12Mul(m[8], v[2]);
     rt.r[1] = z2;
-    rt.r[2] = out;
+    rt.r[2] = out_addr;
     rt.r[3] = z1;
-    rt.updateNz(z);
+    rt.updateNz(res[2]);
 
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -581,4 +598,25 @@ test "nextRngSeed matches Advance Wars (4*s+2)*(4*s+3)>>2 arithmetic across wrap
     try std.testing.expectEqual(@as(u32, 1), nextRngSeed(0x4000_0000));
     // 0xFFFF_FFFF << 2 == 0xFFFF_FFFC (-4 mod 2^32): (-2) * (-1) >> 2 == 0
     try std.testing.expectEqual(@as(u32, 0), nextRngSeed(0xFFFF_FFFF));
+}
+
+test "mulMat3Vec3Q12 handles identity and signed Q12 scaling" {
+    const id_mat = [9]u32{
+        4096, 0,    0,
+        0,    4096, 0,
+        0,    0,    4096,
+    };
+    const v = [3]u32{ 123, @bitCast(@as(i32, -456)), 789 };
+    const id_res = mulMat3Vec3Q12(v, id_mat);
+    try std.testing.expectEqualSlices(u32, &v, &id_res);
+
+    const scale_mat = [9]u32{
+        8192, 0,                             0,
+        0,    @bitCast(@as(i32, -4096)),     0,
+        0,    0,                             2048,
+    };
+    const res = mulMat3Vec3Q12(.{ 10, 20, @bitCast(@as(i32, -8)) }, scale_mat);
+    try std.testing.expectEqual(@as(u32, 20), res[0]);
+    try std.testing.expectEqual(@as(i32, -20), @as(i32, @bitCast(res[1])));
+    try std.testing.expectEqual(@as(i32, -4), @as(i32, @bitCast(res[2])));
 }

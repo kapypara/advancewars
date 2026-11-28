@@ -4,6 +4,8 @@
 
 pub const abi = @import("abi.zig");
 pub const types = @import("types.zig");
+pub const mem = @import("mem.zig");
+pub const main_loop = @import("main_loop.zig");
 pub const bios = @import("bios.zig");
 pub const math = @import("math.zig");
 pub const dma = @import("dma.zig");
@@ -73,6 +75,8 @@ pub const hi_blobs = @import("hi_blobs.zig");
 comptime {
     _ = abi;
     _ = types;
+    _ = mem;
+    _ = main_loop;
     _ = bios;
     _ = math;
     _ = dma;
@@ -143,6 +147,8 @@ comptime {
 test {
     _ = abi;
     _ = types;
+    _ = mem;
+    _ = main_loop;
     _ = bios;
     _ = math;
     _ = dma;

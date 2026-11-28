@@ -88,6 +88,7 @@ fn func_0803FD1A() callconv(.c) void { bxReg(0x0803FD1A, 0); }
 fn func_0804FA04() callconv(.c) void { bxReg(0x0804FA04, 0); }
 fn func_080779D2() callconv(.c) void { bxReg(0x080779D2, 3); }
 fn func_08077EA0() callconv(.c) void { bxReg(0x08077EA0, 3); }
+/// GCC `__call_via_r0`..`__call_via_ip` indirect branch trampolines (`func_0807B44C` accounts for ~32.6% of dynamic calls).
 fn func_0807B44C() callconv(.c) void { bxReg(0x0807B44C, 0); }
 fn func_0807B450() callconv(.c) void { bxReg(0x0807B450, 1); }
 fn func_0807B454() callconv(.c) void { bxReg(0x0807B454, 2); }

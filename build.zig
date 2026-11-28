@@ -48,6 +48,7 @@ fn isStandaloneGameFile(name: []const u8) bool {
         "root.zig",
         "abi.zig",
         "types.zig",
+        "mem.zig",
         "decls.zig",
         "dispatch.zig",
         "bios.zig",

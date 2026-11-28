@@ -12,12 +12,22 @@ Incrementally transform the lifted ARM register/bus Zig code (`rt.r[0..14]`, raw
 ---
 
 ## Phase 1 — Hot-Path Profiling & Reachability Map
-- **Status:** Pending
-- **Objective:** Trace all executed functions across gameplay replays (`replays/title.txt`, `replays/field_training.txt`) using `GBA_VALIDATE=3` and map every active address to its owning module and line count in `src/game/`.
-- **Why:** Separate the ~400–1,500 hot engine and gameplay functions from cold/rare hi-ROM code so refactoring focuses on live code first.
+- **Status:** Complete (`GBA_VALIDATE_PROFILE=1` added to [validate.zig](../src/validate/validate.zig))
+- **Field Training Profile (2,500 frames):** `436` unique executed functions (`153` in domain modules, `283` in peel/cluster/tail modules, `0` hi-ROM `>= 0x08080000`), `12,987,168` total calls.
+- **Top Modules by Call Volume:**
+  - `tail_low.zig`: `6` funcs, `4,267,460` calls (`32.9%`)
+  - `low_peel_8.zig`: `27` funcs, `4,239,057` calls (`32.6%`)
+  - `low_peel_4.zig`: `6` funcs, `4,236,350` calls (`32.6%`)
+  - `low_peel_6.zig`: `47` funcs, `80,732` calls (`0.6%`)
+  - `dma.zig`: `6` funcs, `36,149` calls (`0.3%`)
+  - `low_peel_13.zig`: `17` funcs, `22,272` calls (`0.2%`)
+  - `clusters_low_2.zig`: `17` funcs, `20,673` calls (`0.2%`)
+  - `hw.zig`: `18` funcs, `20,009` calls (`0.2%`)
+  - `bios.zig`: `5` funcs, `19,798` calls (`0.2%`)
+- **Top Hot Functions (`97.7%` of all calls):** `func_0807B44C` (`tail_low.zig`, `4,236,312` calls), `func_08038824` (`low_peel_4.zig`, `4,236,280` calls), `func_080383F8` (`low_peel_8.zig`, `4,219,200` calls), followed by `func_08018B68` (`24,530`), `func_080112C0` (`18,121`), `func_0800FD94` (`dma.zig`, `18,043`), `func_080796C4` (`bios.zig`, `18,042`), `func_08011374` (`dma.zig`, `17,972`), `func_0807B45C` (`17,197`), `func_0801B888` (`hw.zig`, `17,168`).
 
 ## Phase 2 — Typed Memory & Core Game Structs (`types.zig`, `mem.zig`)
-- **Status:** In Progress
+- **Status:** In Progress ([mem.zig](../src/game/mem.zig) added with typed RAM readers/writers, pool address helpers, `readMapWorkspace`, `readCursorTile`, and stride unit tests)
 - **Objective:** Replace raw hex EWRAM/IWRAM/MMIO reads (`abi.read16(0x0202...)`) with verified `extern struct` definitions in [types.zig](../src/game/types.zig) and zero-overhead typed accessors in [mem.zig](../src/game/mem.zig):
   - `MapWorkspace`, `ProcSlot`, `ScriptSlot`, `AnimSlot`, `OamEntry`
   - `CursorState`, `Tile`, `Unit`, `Army`, `CO`, `BattleState`
@@ -26,8 +36,10 @@ Incrementally transform the lifted ARM register/bus Zig code (`rt.r[0..14]`, raw
 ## Phase 3 — Bottom-Up Idiomatic Zig Subsystems (Thin ABI Bridge Pattern)
 Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 line `func_08XXXXXX` ABI bridges until all callers become native Zig:
 
-- **3A — Low-Level Utilities (`math.zig`, `bios.zig`, `dma.zig`):**
-  - Pure Zig PRNG, fixed-point Q12 math, `CpuSet`/`CpuFastSet`/`LZ77`/`HuffUnComp` wrappers, DMA helpers.
+- **3A — Low-Level Utilities & Top Hot Loops (`math.zig`, `main_loop.zig`, `tail_low.zig`, `bios.zig`, `dma.zig`):**
+  - Pure Zig PRNG (`nextRngSeed`), fixed-point Q12 3x3 matrix*vector (`mulMat3Vec3Q12` in [math.zig](../src/game/math.zig)).
+  - Top 3 dynamic hot functions (`97.7%` of Field Training calls) refactored/documented: `func_08038824` (soft-reset key combo) and `func_080383F8` (per-frame 8-step tick dispatcher) lifted to [main_loop.zig](../src/game/main_loop.zig); `func_0807B44C` documented as GCC `__call_via_r0` trampoline in [tail_low.zig](../src/game/tail_low.zig).
+  - Remaining: `CpuSet`/`CpuFastSet`/`LZ77`/`HuffUnComp` callers & DMA helpers (`dma.zig`).
 - **3B — Core Game Data & Simulation (`map.zig`, `unit.zig`, `co.zig`, `battle.zig`):**
   - Typed tile/unit lookups, movement cost, BFS reachability, damage calculation, capture/supply/vision rules.
 - **3C — Engine, Task Scheduler & Hardware (`proc.zig`, `hw.zig`, `sprite_anim.zig`, `sound.zig`, `state.zig`):**

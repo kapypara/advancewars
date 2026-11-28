@@ -5542,39 +5542,6 @@ fn func_080386B4() callconv(.c) void {
     }
 }
 
-fn func_08038824() callconv(.c) void {
-    if (!abi.enter(0x08038824)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(12);
-            abi.pushLr();
-            rt.r[0] = abi.read32(0x08038840);
-            rt.r[1] = abi.read16(rt.r[0] +% 0x0);
-            rt.r[2] = abi.read32(0x08038844);
-            rt.cpuAdd(&rt.r[0], rt.r[2], 0x0, true);
-            abi.setRegNz(&rt.r[0], rt.r[0] & ~rt.r[1]);
-            abi.setRegNz(&rt.r[1], 0xF);
-            abi.setRegNz(&rt.r[0], rt.r[0] & rt.r[1]);
-            rt.cpuSub(null, rt.r[0], 0xF, true);
-            if (!rt.CPU_Z) {
-                continue :blk 1;
-            }
-            continue :blk 2;
-        },
-        1 => {
-            abi.fetches(4);
-            popRegsSeq(&.{ 0 });
-            rt.r[15] = rt.r[0]; rt.recompReturn(rt.r[0]); return;
-        },
-        2 => {
-            abi.fetches(4);
-            if (!abi.call(decls.func_080386D8, 0x0803883D)) return;
-            continue :blk 1;
-        },
-        else => unreachable,
-    }
-}
-
 fn func_08038BF4() callconv(.c) void {
     if (!abi.enter(0x08038BF4)) return;
     blk: switch (@as(u32, 0)) {
@@ -8782,7 +8749,6 @@ comptime {
         @export(&func_08037A8C, .{ .name = "func_08037A8C", .linkage = .strong });
         @export(&func_08037B0C, .{ .name = "func_08037B0C", .linkage = .strong });
         @export(&func_080386B4, .{ .name = "func_080386B4", .linkage = .strong });
-        @export(&func_08038824, .{ .name = "func_08038824", .linkage = .strong });
         @export(&func_08038BF4, .{ .name = "func_08038BF4", .linkage = .strong });
         @export(&func_08038EBC, .{ .name = "func_08038EBC", .linkage = .strong });
         @export(&func_08038EF4, .{ .name = "func_08038EF4", .linkage = .strong });
