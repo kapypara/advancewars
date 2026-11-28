@@ -83,7 +83,8 @@ pub const ProcSlot = extern struct {
     on_idle: u32,
     on_cycle: u32,
     sleep_timer: u16,
-    _pad12: [0x14]u8,
+    flags: u16,
+    _pad14: [0x12]u8,
     anim_slot: u16,
     card_x: i16,
     card_y: i16,
@@ -95,17 +96,126 @@ pub const ProcSlot = extern struct {
 /// Secondary cutscene/script pool at `addr.script_pool` (`0x0300_1D50`, stride `0x18` bytes).
 pub const script_slot_stride: usize = 0x18;
 
+pub const ScriptSlot = extern struct {
+    script_start: u32,
+    script_cursor: u32,
+    _raw08: [0x10]u8,
+};
+
 /// Sprite/animator entry pool at `addr.anim_pool` (`0x0300_2320`, stride `0x4C` bytes).
 pub const anim_slot_stride: usize = 0x4C;
+
+pub const AnimSlot = extern struct {
+    head: u32,
+    script_start: u32,
+    script_cursor: u32,
+    _pad0c: [0x10]u8,
+    timer: u16,
+    _pad1e: u16,
+    param0: u32,
+    _pad24: [0x0C]u8,
+    x_vec: u32,
+    y_vec: u32,
+    _pad38: [0x10]u8,
+    script_table: u32,
+};
+
+/// Hardware-format OAM attribute entry at `addr.oam_attr_table` (`0x0201_1924`, stride 8 bytes).
+pub const oam_attr_stride: usize = 8;
+
+pub const OamAttr = extern struct {
+    attr0: u16,
+    attr1: u16,
+    attr2: u16,
+    affine_pad: u16,
+};
 
 /// OAM queue entry stride at `addr.oam_queue` (`0x0201_1D24`, stride `0x10` bytes).
 pub const oam_queue_stride: usize = 0x10;
 
+pub const OamQueueEntry = extern struct {
+    raw: [0x10]u8,
+};
+
+/// Pixel and tile map cursor state at `addr.cursor_x_px` (`0x0300_36A0`).
+pub const CursorState = extern struct {
+    x_px: u16,
+    y_px: u16,
+    tile_x: u16,
+    tile_y: u16,
+};
+
+/// Camera state pointed to by `addr.camera_state_ptr` (`0x0828_2CB4`).
+pub const CameraState = extern struct {
+    _pad00: [0x0C]u8,
+    cam_x: u16,
+    cam_y: u16,
+};
+
+/// Map entity table slot pointed to by `addr.entity_table_ptr` (`0x0828_2CBC`, stride `0x68`).
+pub const entity_stride: usize = 0x68;
+
+pub const UnitEntity = extern struct {
+    _pad00: [0x1A]u8,
+    army_id: u8,
+    _pad1b: [3]u8,
+    active_flag: u8,
+    _pad1f: [0x49]u8,
+};
+
+/// Compact unit status header addressed by `BattleSideCtx.unit_ptr`.
+pub const UnitRecord = extern struct {
+    _pad00: [4]u8,
+    hp_flags: u8,
+
+    pub inline fn hp(self: UnitRecord) u8 {
+        return self.hp_flags & 0x7F;
+    }
+};
+
+/// Battle combatant context used by scaled damage helpers (`0x0802_34A0`).
+pub const BattleSideCtx = extern struct {
+    unit_ptr: u32,
+    _pad04: u32,
+    remaining_hp: i16,
+    _pad0a: u16,
+    attack_power: i16,
+    defense_pct: i16,
+    _pad10: u16,
+    dealt_damage: i16,
+};
+
+/// 8-byte menu guard table entry at `addr.menu_guard` (`0x0300_4280`).
+pub const MenuGuardEntry = extern struct {
+    value: u8,
+    key: u8,
+    _pad02: [6]u8,
+};
+
 test "Advance Wars core extern struct sizes match GBA memory layout" {
     try std.testing.expectEqual(@as(usize, 8), @sizeOf(MapWorkspace));
     try std.testing.expectEqual(@as(usize, proc_slot_stride), @sizeOf(ProcSlot));
+    try std.testing.expectEqual(@as(usize, 0x12), @offsetOf(ProcSlot, "flags"));
     try std.testing.expectEqual(@as(usize, 0x26), @offsetOf(ProcSlot, "anim_slot"));
     try std.testing.expectEqual(@as(usize, 0x38), @offsetOf(ProcSlot, "state38"));
+    try std.testing.expectEqual(@as(usize, script_slot_stride), @sizeOf(ScriptSlot));
+    try std.testing.expectEqual(@as(usize, anim_slot_stride), @sizeOf(AnimSlot));
+    try std.testing.expectEqual(@as(usize, 0x1C), @offsetOf(AnimSlot, "timer"));
+    try std.testing.expectEqual(@as(usize, 0x30), @offsetOf(AnimSlot, "x_vec"));
+    try std.testing.expectEqual(@as(usize, 0x48), @offsetOf(AnimSlot, "script_table"));
+    try std.testing.expectEqual(@as(usize, oam_attr_stride), @sizeOf(OamAttr));
+    try std.testing.expectEqual(@as(usize, oam_queue_stride), @sizeOf(OamQueueEntry));
+    try std.testing.expectEqual(@as(usize, 8), @sizeOf(CursorState));
+    try std.testing.expectEqual(@as(usize, 0x10), @sizeOf(CameraState));
+    try std.testing.expectEqual(@as(usize, 0x0C), @offsetOf(CameraState, "cam_x"));
+    try std.testing.expectEqual(@as(usize, entity_stride), @sizeOf(UnitEntity));
+    try std.testing.expectEqual(@as(usize, 0x1A), @offsetOf(UnitEntity, "army_id"));
+    try std.testing.expectEqual(@as(usize, 0x1E), @offsetOf(UnitEntity, "active_flag"));
+    try std.testing.expectEqual(@as(usize, 5), @sizeOf(UnitRecord));
+    try std.testing.expectEqual(@as(usize, 0x14), @sizeOf(BattleSideCtx));
+    try std.testing.expectEqual(@as(usize, 0x0E), @offsetOf(BattleSideCtx, "defense_pct"));
+    try std.testing.expectEqual(@as(usize, 0x12), @offsetOf(BattleSideCtx, "dealt_damage"));
+    try std.testing.expectEqual(@as(usize, 8), @sizeOf(MenuGuardEntry));
     try std.testing.expectEqual(@as(usize, 0x0201_57F8), addr.map_workspace);
     try std.testing.expectEqual(@as(usize, 0x0300_0E10), addr.proc_table);
 }

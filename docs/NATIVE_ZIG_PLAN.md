@@ -27,11 +27,10 @@ Incrementally transform the lifted ARM register/bus Zig code (`rt.r[0..14]`, raw
 - **Top Hot Functions (`97.7%` of all calls):** `func_0807B44C` (`tail_low.zig`, `4,236,312` calls), `func_08038824` (`low_peel_4.zig`, `4,236,280` calls), `func_080383F8` (`low_peel_8.zig`, `4,219,200` calls), followed by `func_08018B68` (`24,530`), `func_080112C0` (`18,121`), `func_0800FD94` (`dma.zig`, `18,043`), `func_080796C4` (`bios.zig`, `18,042`), `func_08011374` (`dma.zig`, `17,972`), `func_0807B45C` (`17,197`), `func_0801B888` (`hw.zig`, `17,168`).
 
 ## Phase 2 — Typed Memory & Core Game Structs (`types.zig`, `mem.zig`)
-- **Status:** In Progress ([mem.zig](../src/game/mem.zig) added with typed RAM readers/writers, pool address helpers, `readMapWorkspace`, `readCursorTile`, and stride unit tests)
-- **Objective:** Replace raw hex EWRAM/IWRAM/MMIO reads (`abi.read16(0x0202...)`) with verified `extern struct` definitions in [types.zig](../src/game/types.zig) and zero-overhead typed accessors in [mem.zig](../src/game/mem.zig):
-  - `MapWorkspace`, `ProcSlot`, `ScriptSlot`, `AnimSlot`, `OamEntry`
-  - `CursorState`, `Tile`, `Unit`, `Army`, `CO`, `BattleState`
-- **Verification:** Comptime `@sizeOf` / `@offsetOf` layout assertions in `zig build test`.
+- **Status:** Complete (`extern struct` layouts + comptime size/offset tests in [types.zig](../src/game/types.zig); typed struct/RAM readers & writers in [mem.zig](../src/game/mem.zig))
+- **Verified Structs (`types.zig`):** `MapWorkspace`, `ProcSlot` (`flags` at `0x12`), `ScriptSlot`, `AnimSlot`, `OamAttr`, `OamQueueEntry`, `CursorState`, `CameraState`, `UnitEntity`, `UnitRecord`, `BattleSideCtx`, `MenuGuardEntry`.
+- **Typed Accessors (`mem.zig`):** `readU8/U16/I16/U32`, `writeU8/U16/I16/U32`, `readStruct`/`writeStruct`, `procSlotAddr`/`readProcSlot`/`writeProcSlot`, `scriptSlotAddr`/`readScriptSlot`, `animSlotAddr`/`readAnimSlot`, `oamAttrAddr`/`readOamAttr`, `oamQueueAddr`, `entitySlotAddr`/`entityTableBase`, `readMapWorkspace`, `readCursorTile`/`readCursorState`/`writeCursorState`, `cameraStateAddr`/`readCameraState`, `readBattleSideCtx`, `readUnitHp`.
+- **Verification:** `@sizeOf` / `@offsetOf` layout assertions + stride unit tests in `zig build test`.
 
 ## Phase 3 — Bottom-Up Idiomatic Zig Subsystems (Thin ABI Bridge Pattern)
 Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 line `func_08XXXXXX` ABI bridges until all callers become native Zig:
