@@ -260,6 +260,12 @@ pub fn build(b: *std.Build) void {
     const run_decomp_tests = b.addRunArtifact(decomp_tests);
     test_step.dependOn(&run_decomp_tests.step);
 
+    const rt_tests = b.addTest(.{
+        .root_module = awre_rt_mod,
+    });
+    const run_rt_tests = b.addRunArtifact(rt_tests);
+    test_step.dependOn(&run_rt_tests.step);
+
     const game_mod = b.createModule(.{
         .root_source_file = b.path(dispatch_path),
         .target = target,

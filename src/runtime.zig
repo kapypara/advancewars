@@ -2,6 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const core = @import("awre_core");
 const disp = @import("platform/display.zig");
+const save_io = @import("runtime/save_io.zig");
+const timing = @import("runtime/timing.zig");
 const validate_mod = @import("validate/validate.zig");
 const rt_options = @import("rt_options");
 
@@ -149,7 +151,7 @@ var sram_path_len: usize = 0;
 var eeprom_path_buf: [512]u8 = @splat(0);
 var eeprom_path_len: usize = 0;
 
-const save_debounce_frames: u32 = 30;
+const save_debounce_frames = save_io.save_debounce_frames;
 var sram_dirty_frames: u32 = 0;
 var sram_last_seq: u32 = 0;
 var eeprom_dirty_frames: u32 = 0;
@@ -178,12 +180,12 @@ var in_irq: bool = false;
 var soft_reset_pending: bool = false;
 var soft_reset_count: u32 = 0;
 
-const cycles_per_scanline: u32 = 1232;
-const visible_scanlines: u32 = 160;
-const scanlines_per_frame: u32 = 228;
-const cycles_per_frame: u32 = cycles_per_scanline * scanlines_per_frame;
-const hblank_start_cycle: u32 = 960;
-const poll_interval: u32 = 10000;
+const cycles_per_scanline = timing.cycles_per_scanline;
+const visible_scanlines = timing.visible_scanlines;
+const scanlines_per_frame = timing.scanlines_per_frame;
+const cycles_per_frame = timing.cycles_per_frame;
+const hblank_start_cycle = timing.hblank_start_cycle;
+const poll_interval = timing.poll_interval;
 
 // ---- Diagnostics State ----
 var watch_addr: u32 = 1; // sentinel 1 = not read from env yet
@@ -246,107 +248,12 @@ inline fn raiseIrqBits(mask: u16) void {
 }
 
 // ---- Timing & Waitstates ----
-const nwait_table = [4]u8{ 4, 3, 2, 8 };
-
-fn accessCycles(addr: u32, wide: bool) u32 {
-    return switch (addr >> 24) {
-        0x02 => if (wide) 6 else 3,
-        0x05, 0x06 => if (wide) 2 else 1,
-        0x08...0x0D => blk: {
-            const w = ioRead16(0x204);
-            const n: u32 = 1 + @as(u32, nwait_table[(w >> 2) & 3]);
-            const s: u32 = if ((w & 0x10) != 0) 2 else 3;
-            break :blk if (wide) n + s else n;
-        },
-        0x0E, 0x0F => 1 + @as(u32, nwait_table[ioRead16(0x204) & 3]),
-        else => 1,
-    };
+inline fn accessCycles(addr: u32, wide: bool) u32 {
+    return timing.accessCycles(addr, wide, ioRead16(0x204));
 }
 
-const vs_a2: u16 = 0x100;
-const vs_a3: u16 = 0x200;
-const vs_b: u16 = 0x400;
-inline fn vsT4(comptime x: u4) u16 {
-    return @as(u16, 0x011) << x;
-}
-inline fn vsT8(comptime x: u4) u16 {
-    return @as(u16, 0x010) << x;
-}
-
-const vram_stall_lut = [32]u16{
-    vsT4(0) | vs_a3, vsT4(1) | vs_a3, vsT4(2) | vs_a2, vsT4(3) | vs_a2 | vs_b,
-    vsT4(0) | vs_a3, vsT4(1) | vs_a3, vsT4(2) | vs_a2, vsT4(3) | vs_a2 | vs_b,
-    vs_a3,           vs_a3,           vs_a2,           vs_a2 | vs_b,
-    vsT8(0) | vs_a3, vsT8(1) | vs_a3, vsT8(2) | vs_a2, vsT8(3) | vs_a2 | vs_b,
-    vs_a3,           vs_a3,           vs_a2,           vs_a2 | vs_b,
-    vsT4(0) | vs_a3, vsT4(1) | vs_a3, vsT4(2) | vs_a2, vsT4(3) | vs_a2 | vs_b,
-    vs_a3,           vs_a3,           vs_a2,           vs_a2 | vs_b,
-    vsT8(0) | vs_a3, vsT8(1) | vs_a3, vsT8(2) | vs_a2, vsT8(3) | vs_a2 | vs_b,
-};
-
-fn vramStall(addr: u32, wide: bool) u32 {
-    const hdraw: u32 = 1008;
-    if ((addr >> 24) != 0x06 or vram_burst or scanline >= visible_scanlines or scanline_cycles >= hdraw) {
-        return 0;
-    }
-    const dispcnt = ioRead16(0x000);
-    const mode = dispcnt & 7;
-    if ((dispcnt & 0x80) != 0 or (addr & 0x1FFFF) >= (if (mode >= 3) @as(u32, 0x14000) else 0x10000)) {
-        return 0;
-    }
-
-    var mask: u16 = 0;
-    if (mode <= 1) {
-        const bg_lim: u32 = if (mode != 0) 2 else 4;
-        var i: u32 = 0;
-        while (i < bg_lim) : (i += 1) {
-            if ((dispcnt & (@as(u16, 0x100) << @intCast(i))) != 0) {
-                const is_8bpp = (ioRead16(0x008 + 2 * i) & 0x80) != 0;
-                const sh: u4 = @intCast(i);
-                mask |= if (is_8bpp) (@as(u16, 0x010) << sh) else (@as(u16, 0x011) << sh);
-            }
-        }
-    }
-    if (mode == 1 and (dispcnt & 0x400) != 0) mask |= vs_a2;
-    if (mode == 2) {
-        if ((dispcnt & 0x400) != 0) mask |= vs_a2;
-        if ((dispcnt & 0x800) != 0) mask |= vs_a3;
-    }
-    if (mode >= 3 and mode <= 5 and (dispcnt & 0x400) != 0) mask |= vs_b;
-    if (mask == 0) return 0;
-
-    const until: i32 = @as(i32, @intCast(hdraw)) - @as(i32, @intCast(scanline_cycles));
-    var stall: i32 = until;
-    var extra: i32 = if (wide) 1 else 0;
-    var i: i32 = 0;
-    while (i < 16) : (i += 1) {
-        const lut_idx: usize = @intCast(@as(u32, @bitCast(-until + i)) & 31);
-        if ((vram_stall_lut[lut_idx] & mask) == 0) {
-            if (extra == 0) {
-                stall = i;
-                break;
-            }
-            extra -= 1;
-        }
-    }
-    stall -= if (wide) @as(i32, 1) else 0;
-    return if (stall > 0) @intCast(stall) else 0;
-}
-
-fn dataCycles(addr: u32, wide: bool, load: bool) i32 {
-    const cart = addr >= 0x0800_0000;
-    const load_c: i32 = if (load) 1 else 0;
-    return switch (bus_mode) {
-        .rom_code => blk: {
-            if ((io_regs_buf[0x205] & 0x40) == 0) {
-                break :blk @as(i32, @intCast(accessCycles(addr, wide))) + load_c + 2 + @as(i32, @intCast(vramStall(addr, wide)));
-            }
-            break :blk if (cart) @as(i32, @intCast(accessCycles(addr, wide))) + load_c + 2 else 0;
-        },
-        .bios_hle => if (cart) @as(i32, @intCast(accessCycles(addr, wide))) + load_c else -2,
-        .ram_code => @as(i32, @intCast(accessCycles(addr, wide))) + load_c + @as(i32, @intCast(vramStall(addr, wide))),
-        .dma => @intCast(accessCycles(addr, wide)),
-    };
+inline fn dataCycles(addr: u32, wide: bool, load: bool) i32 {
+    return timing.dataCycles(addr, wide, load, bus_mode, &io_regs_buf, scanline, scanline_cycles, vram_burst);
 }
 
 fn charge(c_delta: i32) void {
@@ -1354,62 +1261,6 @@ pub fn gba_run(entry_func: *const fn () void) void {
 }
 
 // ---- Save / Dump / Tracing / Validation ----
-fn buildSidecarPath(base_slice: []const u8, ext: []const u8, dst: *[512]u8) usize {
-    const max_base = 507;
-    const truncated = if (base_slice.len > max_base) base_slice[0..max_base] else base_slice;
-    const last_fwd = std.mem.lastIndexOfScalar(u8, truncated, '/');
-    const last_back = std.mem.lastIndexOfScalar(u8, truncated, '\\');
-    const sep_end: usize = blk: {
-        if (last_fwd != null and last_back != null) break :blk @max(last_fwd.?, last_back.?) + 1;
-        if (last_fwd) |i| break :blk i + 1;
-        if (last_back) |i| break :blk i + 1;
-        break :blk 0;
-    };
-    const stem = if (std.mem.lastIndexOfScalar(u8, truncated, '.')) |dot_idx|
-        if (dot_idx > sep_end) truncated[0..dot_idx] else truncated
-    else
-        truncated;
-    const formatted = std.mem.printSentinel(dst, "{s}{s}", .{ stem, ext }, 0) catch return 0;
-    return formatted.len;
-}
-
-fn resolveSelfExePath(exe_arg0: ?[*:0]const u8, dst: *[512]u8) []const u8 {
-    if (has_posix) {
-        const n = c_host.readlink("/proc/self/exe", dst, dst.len - 1);
-        if (n > 0) {
-            const len: usize = @intCast(n);
-            dst[len] = 0;
-            return dst[0..len];
-        }
-        if (exe_arg0) |arg0| {
-            const span = std.mem.span(arg0);
-            const copy_len = @min(span.len, dst.len - 1);
-            @memcpy(dst[0..copy_len], span[0..copy_len]);
-            dst[copy_len] = 0;
-            return dst[0..copy_len];
-        }
-    }
-    return "awre";
-}
-
-fn writeAtomicFile(final_path_c: [*:0]const u8, final_slice: []const u8, data: []const u8) bool {
-    if (!has_posix) return false;
-    var tmp_buf: [520]u8 = undefined;
-    const tmp_slice = std.mem.printSentinel(&tmp_buf, "{s}.tmp", .{final_slice}, 0) catch return false;
-    const f = c_host.fopen(tmp_slice.ptr, "wb") orelse return false;
-    const written = c_host.fwrite(data.ptr, 1, data.len, f);
-    const close_rc = c_host.fclose(f);
-    if (written != data.len or close_rc != 0) {
-        _ = c_host.remove(tmp_slice.ptr);
-        return false;
-    }
-    if (c_host.rename(tmp_slice.ptr, final_path_c) != 0) {
-        _ = c_host.remove(tmp_slice.ptr);
-        return false;
-    }
-    return true;
-}
-
 fn pollBackupFlush() void {
     if (flash_state.dirty) {
         if (flash_state.write_seq != sram_last_seq) {
@@ -1434,9 +1285,7 @@ fn pollBackupFlush() void {
 fn sramLoad() void {
     if (!has_posix or !sram_active or sram_path_len == 0) return;
     const path: [*:0]const u8 = @ptrCast(&sram_path_buf);
-    const f = c_host.fopen(path, "rb") orelse return;
-    defer _ = c_host.fclose(f);
-    _ = c_host.fread(&sram_buf, 1, flash_state.backup_size, f);
+    if (!save_io.readFileInto(path, sram_buf[0..flash_state.backup_size])) return;
     core.gba.logPrint("[runtime] Loaded SRAM from {s}\n", .{sram_path_buf[0..sram_path_len]});
 }
 
@@ -1451,7 +1300,7 @@ fn sramSave() void {
     if (sram_path_len == 0) return;
     const path_slice = sram_path_buf[0..sram_path_len];
     const path: [*:0]const u8 = @ptrCast(&sram_path_buf);
-    if (writeAtomicFile(path, path_slice, sram_buf[0..flash_state.backup_size])) {
+    if (save_io.writeAtomicFile(path, path_slice, sram_buf[0..flash_state.backup_size])) {
         flash_state.dirty = false;
         sram_dirty_frames = 0;
         core.gba.logPrint("[runtime] Saved Flash to {s}\n", .{path_slice});
@@ -1461,9 +1310,7 @@ fn sramSave() void {
 fn eepromLoad() void {
     if (!has_posix or !eeprom_state.present or eeprom_path_len == 0) return;
     const path: [*:0]const u8 = @ptrCast(&eeprom_path_buf);
-    const f = c_host.fopen(path, "rb") orelse return;
-    defer _ = c_host.fclose(f);
-    _ = c_host.fread(&eeprom_state.storage, 1, eeprom_state.storage.len, f);
+    if (!save_io.readFileInto(path, &eeprom_state.storage)) return;
     core.gba.logPrint("[runtime] Loaded EEPROM from {s}\n", .{eeprom_path_buf[0..eeprom_path_len]});
 }
 
@@ -1471,7 +1318,7 @@ fn eepromSave() void {
     if (!has_posix or !eeprom_state.present or eeprom_path_len == 0 or !eeprom_state.dirty) return;
     const path_slice = eeprom_path_buf[0..eeprom_path_len];
     const path: [*:0]const u8 = @ptrCast(&eeprom_path_buf);
-    if (writeAtomicFile(path, path_slice, &eeprom_state.storage)) {
+    if (save_io.writeAtomicFile(path, path_slice, &eeprom_state.storage)) {
         eeprom_state.dirty = false;
         eeprom_dirty_frames = 0;
         core.gba.logPrint("[runtime] Saved EEPROM to {s}\n", .{path_slice});
@@ -1862,7 +1709,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
         rom_size = @intCast(embedded_rom_bytes.len);
         rom_owned = false;
         rom_slice = embedded_rom_bytes;
-        default_base = resolveSelfExePath(exe_arg0, &exe_path_buf);
+        default_base = save_io.resolveSelfExePath(exe_arg0, &exe_path_buf);
         rom_label = "embedded";
     } else {
         core.gba.logPrint("[runtime] No ROM embedded and no ROM path given. Usage: awre <rom.gba> [options]\n", .{});
@@ -1874,7 +1721,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
         const formatted = std.mem.printSentinel(&sram_path_buf, "{s}", .{sp_slice}, 0) catch "";
         sram_path_len = formatted.len;
     } else {
-        sram_path_len = buildSidecarPath(default_base, ".sav", &sram_path_buf);
+        sram_path_len = save_io.buildSidecarPath(default_base, ".sav", &sram_path_buf);
     }
     if (flash_state.detect(rom_slice)) |tag| {
         const size_label: []const u8 = if (flash_state.large) "128KB" else "64KB";
@@ -1889,7 +1736,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
     if (eeprom_state.detect(rom_slice)) |ee_addr| {
         core.gba.logPrint("[runtime] EEPROM detected at ROM 0x{X:0>8} (assuming 8KB)\n", .{ee_addr});
         const ee_base = if (save_path_opt) |sp| std.mem.span(sp) else default_base;
-        eeprom_path_len = buildSidecarPath(ee_base, ".eep", &eeprom_path_buf);
+        eeprom_path_len = save_io.buildSidecarPath(ee_base, ".eep", &eeprom_path_buf);
         eepromLoad();
         eeprom_state.dirty = false;
         eeprom_state.write_seq = 0;
@@ -1939,4 +1786,9 @@ pub fn gba_shutdown() void {
     }
     rom_size = 0;
     core.gba.logPrint("[runtime] Shutdown\n", .{});
+}
+
+test {
+    _ = timing;
+    _ = save_io;
 }
