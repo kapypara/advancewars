@@ -22,6 +22,7 @@ pub const turn = @import("turn.zig");
 pub const menu = @import("menu.zig");
 pub const overlay = @import("overlay.zig");
 pub const overlay_ext = @import("overlay_ext.zig");
+pub const overlay_mid = @import("overlay_mid.zig");
 
 comptime {
     _ = abi;
@@ -44,6 +45,7 @@ comptime {
     _ = menu;
     _ = overlay;
     _ = overlay_ext;
+    _ = overlay_mid;
 }
 
 test {
@@ -67,4 +69,5 @@ test {
     _ = menu;
     _ = overlay;
     _ = overlay_ext;
+    _ = overlay_mid;
 }
