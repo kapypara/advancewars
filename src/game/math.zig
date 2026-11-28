@@ -18,6 +18,31 @@ pub fn nextRngSeed(seed: u32) u32 {
     return ((scaled +% 2) *% (scaled +% 3)) >> 2;
 }
 
+/// Typed cross-module bridge calling PRNG helper `func_08003918` with exact ABI state.
+pub inline fn nextRngCall(comptime ret_addr: u32) bool {
+    return abi.call(func_08003918, ret_addr);
+}
+
+/// Typed cross-module bridge calling Q12 sine helper `func_0807AED4` with exact ABI state.
+pub inline fn sinDegCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0807AED4, ret_addr);
+}
+
+/// Typed cross-module bridge calling Q12 cosine helper `func_0807AF30` with exact ABI state.
+pub inline fn cosDegCall(comptime ret_addr: u32) bool {
+    return abi.call(func_0807AF30, ret_addr);
+}
+
+/// Typed cross-module bridge calling signed 32-bit division helper `func_0807B488` with exact ABI state.
+pub inline fn divSigned32Call(comptime ret_addr: u32) bool {
+    return abi.call(func_0807B488, ret_addr);
+}
+
+/// Typed cross-module bridge calling unsigned 32-bit modulo helper `func_0807B6AC` with exact ABI state.
+pub inline fn modUnsigned32Call(comptime ret_addr: u32) bool {
+    return abi.call(func_0807B6AC, ret_addr);
+}
+
 /// Advance global PRNG seed stored at `[0x08010A98]` and return new value (`0x08010A84`).
 pub fn advanceRng() u32 {
     const seed_ptr = abi.read32(0x08010A98);
@@ -1003,4 +1028,13 @@ test "modUnsigned32 and modSigned32 match libgcc modulo semantics" {
     try std.testing.expectEqual(@as(i32, -1), modSigned32(-22, -3));
     try std.testing.expectEqual(@as(i32, 0), modSigned32(123, 0));
     try std.testing.expectEqual(@as(i32, 0), modSigned32(std.math.minInt(i32), -1));
+}
+
+test "math typed call bridges preserve fn pointers" {
+    inline for (.{ nextRngCall, sinDegCall, cosDegCall, divSigned32Call, modUnsigned32Call }) |bridge| {
+        const info = @typeInfo(@TypeOf(bridge)).@"fn";
+        try std.testing.expectEqual(@as(usize, 1), info.param_types.len);
+        try std.testing.expect(info.param_types[0].? == u32);
+        try std.testing.expect(info.return_type.? == bool);
+    }
 }

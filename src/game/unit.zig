@@ -233,7 +233,7 @@ pub fn func_08019970() callconv(.c) void {
     rt.r[0] = ((@as(u32, army) +% 4) << 5) +% pal_base;
     rt.r[1] = 0x160;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x08019995)) return;
+    if (!dma.copyPaletteCall(0x08019995)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -986,7 +986,7 @@ pub fn func_08017B20() callconv(.c) void {
     rt.r[1] = @as(u32, 0xF) << 5;
     abi.setRegNz(&rt.r[2], 0x20);
     rt.r[4] = slot_id;
-    if (!abi.call(dma.func_08011330, 0x08017B4F)) return;
+    if (!dma.copyPaletteCall(0x08017B4F)) return;
 
     abi.fetches(17);
     const s_slot: i32 = abi.signExtend16(@truncate(slot_id));
@@ -1322,7 +1322,7 @@ pub fn func_08028D64() callconv(.c) void {
     rt.r[0] = abi.read32(0x08028E20);
     rt.r[1] = 0x2A0;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x08028DED)) return;
+    if (!dma.copyPaletteCall(0x08028DED)) return;
 
     abi.fetches(5);
     rt.r[0] = 0x10;

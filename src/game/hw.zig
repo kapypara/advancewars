@@ -989,7 +989,7 @@ pub fn func_0806CB34() callconv(.c) void {
     rt.r[1] = (((rt.r[0] & 0xF) +% 0x10) << 5);
     rt.r[0] = abi.read32(0x0806CB4C);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0806CB47)) return;
+    if (!dma.copyPaletteCall(0x0806CB47)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1045,7 +1045,7 @@ pub fn func_0806CEA4() callconv(.c) void {
     rt.r[1] = (rt.r[0] << 21) >> 16;
     rt.r[0] = abi.read32(0x0806CEB8);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0806CEB5)) return;
+    if (!dma.copyPaletteCall(0x0806CEB5)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1598,7 +1598,7 @@ pub fn func_08074430() callconv(.c) void {
     rt.r[0] = r *% 3 +% g *% 6 +% b;
     rt.r[1] = 0xA;
     rt.updateNz(0xA);
-    if (!abi.call(math.func_0807B488, 0x08074455)) return;
+    if (!math.divSigned32Call(0x08074455)) return;
 
     abi.fetches(14);
     const luma = rt.r[0] & 0xFFFF;

@@ -1179,7 +1179,7 @@ pub fn func_08039154() callconv(.c) void {
     rt.r[0] = abi.read32(0x0803917C);
     rt.r[1] = (slot << 21) >> 16;
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x08039169)) return;
+    if (!dma.copyPaletteCall(0x08039169)) return;
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08039180);

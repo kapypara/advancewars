@@ -1066,7 +1066,7 @@ pub fn func_080204B4() callconv(.c) void {
     rt.r[0] = abi.read32(0x080204F8);
     abi.setRegNz(&rt.r[1], @as(u32, 0x88) << 2);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x080204CB)) return;
+    if (!dma.copyPaletteCall(0x080204CB)) return;
 
     abi.fetches(6);
     rt.r[0] = abi.read32(0x080204FC);
@@ -1077,7 +1077,7 @@ pub fn func_080204B4() callconv(.c) void {
     rt.r[0] = abi.read32(0x08020504);
     abi.setRegNz(&rt.r[1], @as(u32, 0x80) << 2);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x080204DF)) return;
+    if (!dma.copyPaletteCall(0x080204DF)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x08020508);
@@ -1440,7 +1440,7 @@ pub fn func_0801CA34() callconv(.c) void {
     rt.r[0] = abi.read32(0x0801CB70);
     rt.r[1] = 0x240;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x0801CB33)) return;
+    if (!dma.copyPaletteCall(0x0801CB33)) return;
 
     if (!refreshMapViewAndCursor(0x0801CB74, 0x0801CB78, .{
         0x0801CB3D, 0x0801CB41, 0x0801CB49, 0x0801CB4F,
@@ -1630,7 +1630,7 @@ pub fn func_08020D6C() callconv(.c) void {
     rt.r[0] = abi.read32(0x08020FD8);
     rt.r[1] = 0x140;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x08020EF1)) return;
+    if (!dma.copyPaletteCall(0x08020EF1)) return;
 
     const obj_dmas: [3][4]u32 = .{
         .{ 0x08020FDC, 0x08020FE0, 0x800, 0x08020EFB },
@@ -1649,13 +1649,13 @@ pub fn func_08020D6C() callconv(.c) void {
     rt.r[0] = abi.read32(0x08020FF4);
     rt.r[1] = 0x240;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x08020F1F)) return;
+    if (!dma.copyPaletteCall(0x08020F1F)) return;
 
     abi.fetches(8);
     rt.r[0] = abi.read32(0x08020FF8);
     rt.r[1] = 0x2A0;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x08020F2B)) return;
+    if (!dma.copyPaletteCall(0x08020F2B)) return;
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08020FFC);
@@ -1721,7 +1721,7 @@ pub fn func_080226B8() callconv(.c) void {
     rt.r[0] = abi.read32(0x080227E0);
     rt.r[1] = 0x240;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x080227AB)) return;
+    if (!dma.copyPaletteCall(0x080227AB)) return;
 
     if (!refreshMapViewAndCursor(0x080227E4, 0x080227E8, .{
         0x080227B5, 0x080227B9, 0x080227C1, 0x080227C7,

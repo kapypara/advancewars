@@ -4129,8 +4129,7 @@ pub fn func_0806F1F4() callconv(.c) void {
     blk: switch (@as(u32, 0)) {
         0 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x66);
-            if (!abi.call(sound.func_0803D880, 0x0806F1FB)) return;
+            if (!sound.playSfxCall(0x66, 0x0806F1FB)) return;
             continue :blk 1;
         },
         1 => {
@@ -4171,8 +4170,7 @@ pub fn func_0806F900() callconv(.c) void {
         },
         1 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x66);
-            if (!abi.call(sound.func_0803D880, 0x0806F90B)) return;
+            if (!sound.playSfxCall(0x66, 0x0806F90B)) return;
             continue :blk 2;
         },
         2 => {

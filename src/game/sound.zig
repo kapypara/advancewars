@@ -602,7 +602,7 @@ pub fn func_0803DAA0() callconv(.c) void {
     rt.r[0] = abi.read32(0x0803DAD4);
     abi.setRegNz(&rt.r[1], @as(u32, 0x80) << 1);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0803DAB1)) return;
+    if (!dma.copyPaletteCall(0x0803DAB1)) return;
 
     abi.fetches(13);
     abi.write32(rt.r[13], @as(u32, 0x80) << 8);

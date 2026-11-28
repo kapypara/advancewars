@@ -1001,7 +1001,7 @@ pub fn func_08040328() callconv(.c) void {
             rt.r[0] = abi.read32(0x08040594);
             rt.r[0] = abi.read32(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[1], 0x78);
-            if (!abi.call(math.func_0807B6AC, 0x080404C5)) return;
+            if (!math.modUnsigned32Call(0x080404C5)) return;
             continue :blk 33;
         },
         32 => {
@@ -1019,7 +1019,7 @@ pub fn func_08040328() callconv(.c) void {
             abi.fetches(6);
             abi.setRegNz(&rt.r[0], rt.r[0] >> 2);
             abi.setRegNz(&rt.r[1], 0xF);
-            if (!abi.call(math.func_0807B6AC, 0x080404CD)) return;
+            if (!math.modUnsigned32Call(0x080404CD)) return;
             continue :blk 34;
         },
         34 => {
@@ -1239,8 +1239,7 @@ pub fn func_08040328() callconv(.c) void {
         },
         55 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x72);
-            if (!abi.call(sound.func_0803D880, 0x080405CB)) return;
+            if (!sound.playSfxCall(0x72, 0x080405CB)) return;
             continue :blk 57;
         },
         56 => {
@@ -1408,7 +1407,7 @@ pub fn func_08040BDC() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xA0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08040C95)) return;
+            if (!dma.copyPaletteCall(0x08040C95)) return;
             continue :blk 13;
         },
         13 => {
@@ -1421,7 +1420,7 @@ pub fn func_08040BDC() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xA8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08040CA9)) return;
+            if (!dma.copyPaletteCall(0x08040CA9)) return;
             continue :blk 14;
         },
         14 => {
@@ -1433,7 +1432,7 @@ pub fn func_08040BDC() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xB0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08040CBB)) return;
+            if (!dma.copyPaletteCall(0x08040CBB)) return;
             continue :blk 15;
         },
         15 => {
@@ -1497,7 +1496,7 @@ pub fn func_08040BDC() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0x98);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08040E11)) return;
+            if (!dma.copyPaletteCall(0x08040E11)) return;
             continue :blk 27;
         },
         24 => {
@@ -5135,7 +5134,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xA8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804410B)) return;
+            if (!dma.copyPaletteCall(0x0804410B)) return;
             continue :blk 43;
         },
         43 => {
@@ -5149,7 +5148,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0x90);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08044121)) return;
+            if (!dma.copyPaletteCall(0x08044121)) return;
             continue :blk 44;
         },
         44 => {
@@ -5158,7 +5157,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xF0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804412D)) return;
+            if (!dma.copyPaletteCall(0x0804412D)) return;
             continue :blk 45;
         },
         45 => {
@@ -5189,7 +5188,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xF8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08044153)) return;
+            if (!dma.copyPaletteCall(0x08044153)) return;
             continue :blk 49;
         },
         48 => {
@@ -5224,7 +5223,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xF8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804419D)) return;
+            if (!dma.copyPaletteCall(0x0804419D)) return;
             continue :blk 51;
         },
         53 => {
@@ -5234,7 +5233,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[7], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080441B5)) return;
+            if (!dma.copyPaletteCall(0x080441B5)) return;
             continue :blk 54;
         },
         54 => {
@@ -5242,7 +5241,7 @@ pub fn func_08043F04() callconv(.c) void {
             rt.r[0] = abi.read32(0x0804428C);
             abi.setRegNz(&rt.r[1], 0x60);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080441BF)) return;
+            if (!dma.copyPaletteCall(0x080441BF)) return;
             continue :blk 55;
         },
         55 => {
@@ -5260,7 +5259,7 @@ pub fn func_08043F04() callconv(.c) void {
             rt.r[0] = abi.read32(0x08044298);
             abi.setRegNz(&rt.r[1], 0xA0);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080441D7)) return;
+            if (!dma.copyPaletteCall(0x080441D7)) return;
             continue :blk 57;
         },
         57 => {
@@ -5296,7 +5295,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xB0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08044207)) return;
+            if (!dma.copyPaletteCall(0x08044207)) return;
             continue :blk 61;
         },
         61 => {
@@ -5305,7 +5304,7 @@ pub fn func_08043F04() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x80);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08044213)) return;
+            if (!dma.copyPaletteCall(0x08044213)) return;
             continue :blk 62;
         },
         62 => {
@@ -5314,7 +5313,7 @@ pub fn func_08043F04() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804421F)) return;
+            if (!dma.copyPaletteCall(0x0804421F)) return;
             continue :blk 63;
         },
         63 => {
@@ -5399,7 +5398,7 @@ pub fn func_08043F04() callconv(.c) void {
             rt.cpuSub(&rt.r[0], rt.r[0], 0x40, true);
             rt.cpuAdd(&rt.r[1], rt.r[6], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08044271)) return;
+            if (!dma.copyPaletteCall(0x08044271)) return;
             continue :blk 73;
         },
         72 => {
@@ -5691,7 +5690,7 @@ pub fn func_08045670() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[4], true);
             rt.cpuSub(&rt.r[1], rt.r[1], 0x24, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804584B)) return;
+            if (!dma.copyPaletteCall(0x0804584B)) return;
             continue :blk 23;
         },
         22 => {
@@ -5714,7 +5713,7 @@ pub fn func_08045670() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xF0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08045861)) return;
+            if (!dma.copyPaletteCall(0x08045861)) return;
             continue :blk 25;
         },
         24 => {
@@ -5723,7 +5722,7 @@ pub fn func_08045670() callconv(.c) void {
             abi.setRegNz(&rt.r[6], rt.r[0] >> 16);
             rt.cpuAdd(&rt.r[0], rt.r[5], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[4], 0x0, true);
-            if (!abi.call(math.func_0807B6AC, 0x080457AD)) return;
+            if (!math.modUnsigned32Call(0x080457AD)) return;
             continue :blk 26;
         },
         25 => {
@@ -5737,7 +5736,7 @@ pub fn func_08045670() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xF8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08045877)) return;
+            if (!dma.copyPaletteCall(0x08045877)) return;
             continue :blk 27;
         },
         26 => {
@@ -5746,7 +5745,7 @@ pub fn func_08045670() callconv(.c) void {
             abi.setRegNz(&rt.r[0], rt.r[0] >> 16);
             rt.cpuAdd(&rt.r[4], rt.r[0], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B6AC, 0x080457B9)) return;
+            if (!math.modUnsigned32Call(0x080457B9)) return;
             continue :blk 28;
         },
         27 => {
@@ -5781,7 +5780,7 @@ pub fn func_08045670() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0x98);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x60);
-            if (!abi.call(dma.func_08011330, 0x08045895)) return;
+            if (!dma.copyPaletteCall(0x08045895)) return;
             continue :blk 33;
         },
         30 => {
@@ -5798,7 +5797,7 @@ pub fn func_08045670() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0x98);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x60);
-            if (!abi.call(dma.func_08011330, 0x08045921)) return;
+            if (!dma.copyPaletteCall(0x08045921)) return;
             continue :blk 34;
         },
         31 => {
@@ -5965,7 +5964,7 @@ pub fn func_08045670() callconv(.c) void {
             rt.r[4] = abi.read32(0x080458DC);
             rt.cpuAdd(&rt.r[0], rt.r[7], 0x0, true);
             abi.setRegNz(&rt.r[1], 0xA);
-            if (!abi.call(math.func_0807B6AC, 0x08045825)) return;
+            if (!math.modUnsigned32Call(0x08045825)) return;
             continue :blk 51;
         },
         50 => {
@@ -5985,8 +5984,7 @@ pub fn func_08045670() callconv(.c) void {
         },
         52 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x65);
-            if (!abi.call(sound.func_0803D880, 0x08045979)) return;
+            if (!sound.playSfxCall(0x65, 0x08045979)) return;
             continue :blk 53;
         },
         53 => {
@@ -7720,7 +7718,7 @@ pub fn func_0804727C() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xA0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 1);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080472B5)) return;
+            if (!dma.copyPaletteCall(0x080472B5)) return;
             continue :blk 9;
         },
         9 => {
@@ -7944,7 +7942,7 @@ pub fn func_0804727C() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[4], true);
             rt.cpuAdd(&rt.r[1], rt.r[1], 0x24, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080473E3)) return;
+            if (!dma.copyPaletteCall(0x080473E3)) return;
             continue :blk 30;
         },
         30 => {
@@ -7962,7 +7960,7 @@ pub fn func_0804727C() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080473FB)) return;
+            if (!dma.copyPaletteCall(0x080473FB)) return;
             continue :blk 32;
         },
         32 => {
@@ -7979,7 +7977,7 @@ pub fn func_0804727C() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x60);
             abi.setRegNz(&rt.r[2], 0x40);
-            if (!abi.call(dma.func_08011330, 0x08047411)) return;
+            if (!dma.copyPaletteCall(0x08047411)) return;
             continue :blk 34;
         },
         34 => {
@@ -7988,7 +7986,7 @@ pub fn func_0804727C() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804741D)) return;
+            if (!dma.copyPaletteCall(0x0804741D)) return;
             continue :blk 35;
         },
         35 => {
@@ -8053,7 +8051,7 @@ pub fn func_0804727C() callconv(.c) void {
             rt.r[0] = abi.read32(0x0804754C);
             abi.setRegNz(&rt.r[1], 0xA0);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047475)) return;
+            if (!dma.copyPaletteCall(0x08047475)) return;
             continue :blk 42;
         },
         42 => {
@@ -8112,7 +8110,7 @@ pub fn func_0804727C() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xA8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080474B9)) return;
+            if (!dma.copyPaletteCall(0x080474B9)) return;
             continue :blk 48;
         },
         48 => {
@@ -8139,7 +8137,7 @@ pub fn func_0804727C() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xB8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080474D7)) return;
+            if (!dma.copyPaletteCall(0x080474D7)) return;
             continue :blk 52;
         },
         52 => {
@@ -8278,7 +8276,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xA0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 1);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047BD9)) return;
+            if (!dma.copyPaletteCall(0x08047BD9)) return;
             continue :blk 7;
         },
         7 => {
@@ -8615,7 +8613,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047DC5)) return;
+            if (!dma.copyPaletteCall(0x08047DC5)) return;
             continue :blk 37;
         },
         37 => {
@@ -8624,7 +8622,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047DD1)) return;
+            if (!dma.copyPaletteCall(0x08047DD1)) return;
             continue :blk 38;
         },
         38 => {
@@ -8634,7 +8632,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047DDF)) return;
+            if (!dma.copyPaletteCall(0x08047DDF)) return;
             continue :blk 39;
         },
         39 => {
@@ -8643,7 +8641,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047DEB)) return;
+            if (!dma.copyPaletteCall(0x08047DEB)) return;
             continue :blk 40;
         },
         40 => {
@@ -8652,7 +8650,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047DF7)) return;
+            if (!dma.copyPaletteCall(0x08047DF7)) return;
             continue :blk 41;
         },
         41 => {
@@ -8661,7 +8659,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047E03)) return;
+            if (!dma.copyPaletteCall(0x08047E03)) return;
             continue :blk 42;
         },
         42 => {
@@ -8670,7 +8668,7 @@ pub fn func_08047B64() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08047E0F)) return;
+            if (!dma.copyPaletteCall(0x08047E0F)) return;
             continue :blk 43;
         },
         43 => {
@@ -9155,8 +9153,7 @@ pub fn func_0804810C() callconv(.c) void {
         },
         33 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x65);
-            if (!abi.call(sound.func_0803D880, 0x08048273)) return;
+            if (!sound.playSfxCall(0x65, 0x08048273)) return;
             continue :blk 40;
         },
         34 => {
@@ -9166,8 +9163,7 @@ pub fn func_0804810C() callconv(.c) void {
         },
         35 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x66);
-            if (!abi.call(sound.func_0803D880, 0x080482CD)) return;
+            if (!sound.playSfxCall(0x66, 0x080482CD)) return;
             continue :blk 42;
         },
         36 => {
@@ -9353,8 +9349,7 @@ pub fn func_0804810C() callconv(.c) void {
         },
         54 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x68);
-            if (!abi.call(sound.func_0803D880, 0x080482A1)) return;
+            if (!sound.playSfxCall(0x68, 0x080482A1)) return;
             continue :blk 62;
         },
         55 => {
@@ -9495,8 +9490,7 @@ pub fn func_0804810C() callconv(.c) void {
         },
         71 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x65);
-            if (!abi.call(sound.func_0803D880, 0x08048229)) return;
+            if (!sound.playSfxCall(0x65, 0x08048229)) return;
             continue :blk 78;
         },
         72 => {
@@ -9602,7 +9596,7 @@ pub fn func_0804810C() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 21);
             abi.setRegNz(&rt.r[1], rt.r[1] >> 16);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x08048481)) return;
+            if (!dma.copyPaletteCall(0x08048481)) return;
             continue :blk 90;
         },
         86 => {
@@ -9652,8 +9646,7 @@ pub fn func_0804810C() callconv(.c) void {
             abi.write16(rt.r[1] +% 0x22, @truncate(rt.r[0]));
             abi.setRegNz(&rt.r[0], 0x7);
             abi.write16(rt.r[1] +% 0x24, @truncate(rt.r[0]));
-            abi.setRegNz(&rt.r[0], 0x67);
-            if (!abi.call(sound.func_0803D880, 0x08048493)) return;
+            if (!sound.playSfxCall(0x67, 0x08048493)) return;
             continue :blk 29;
         },
         91 => {
@@ -10010,7 +10003,7 @@ pub fn func_0804A4A0() callconv(.c) void {
             rt.cpuAdd(&rt.r[6], rt.r[6], 0x2D, true);
             rt.r[1] = abi.read8(rt.r[6] +% 0x0);
             abi.setRegNz(&rt.r[0], 0xD8);
-            if (!abi.call(math.func_0807B488, 0x0804A675)) return;
+            if (!math.divSigned32Call(0x0804A675)) return;
             continue :blk 22;
         },
         16 => {
@@ -10200,7 +10193,7 @@ pub fn func_0804A4A0() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 21);
             abi.setRegNz(&rt.r[1], rt.r[1] >> 16);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804A6C9)) return;
+            if (!dma.copyPaletteCall(0x0804A6C9)) return;
             continue :blk 30;
         },
         30 => {
@@ -11715,8 +11708,7 @@ pub fn func_0804AFA0() callconv(.c) void {
         },
         13 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x66);
-            if (!abi.call(sound.func_0803D880, 0x0804B06D)) return;
+            if (!sound.playSfxCall(0x66, 0x0804B06D)) return;
             continue :blk 18;
         },
         14 => {
@@ -11747,8 +11739,7 @@ pub fn func_0804AFA0() callconv(.c) void {
         },
         17 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x71);
-            if (!abi.call(sound.func_0803D880, 0x0804B01D)) return;
+            if (!sound.playSfxCall(0x71, 0x0804B01D)) return;
             continue :blk 21;
         },
         18 => {
@@ -12091,8 +12082,7 @@ pub fn func_0804AFA0() callconv(.c) void {
         },
         49 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x67);
-            if (!abi.call(sound.func_0803D880, 0x0804B227)) return;
+            if (!sound.playSfxCall(0x67, 0x0804B227)) return;
             continue :blk 51;
         },
         50 => {
@@ -12461,7 +12451,7 @@ pub fn func_0804B924() callconv(.c) void {
             rt.r[0] = abi.read32(0x0804BC64);
             abi.setRegNz(&rt.r[1], 0x80);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804BB31)) return;
+            if (!dma.copyPaletteCall(0x0804BB31)) return;
             continue :blk 35;
         },
         35 => {
@@ -13447,8 +13437,7 @@ pub fn func_0804D240() callconv(.c) void {
         },
         12 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x6B);
-            if (!abi.call(sound.func_0803D880, 0x0804D53F)) return;
+            if (!sound.playSfxCall(0x6B, 0x0804D53F)) return;
             continue :blk 30;
         },
         13 => {
@@ -14211,8 +14200,7 @@ pub fn func_0804D240() callconv(.c) void {
         },
         97 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x6C);
-            if (!abi.call(sound.func_0803D880, 0x0804D5C5)) return;
+            if (!sound.playSfxCall(0x6C, 0x0804D5C5)) return;
             continue :blk 106;
         },
         98 => {
@@ -14665,7 +14653,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             rt.r[0] = abi.read32(0x0804DEEC);
             abi.setRegNz(&rt.r[1], 0x40);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DE1D)) return;
+            if (!dma.copyPaletteCall(0x0804DE1D)) return;
             continue :blk 30;
         },
         30 => {
@@ -14715,7 +14703,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xD8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DE9F)) return;
+            if (!dma.copyPaletteCall(0x0804DE9F)) return;
             continue :blk 36;
         },
         35 => {
@@ -14725,7 +14713,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[2], rt.r[2] << 2);
             rt.cpuAdd(&rt.r[1], rt.r[1], rt.r[2], true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DE49)) return;
+            if (!dma.copyPaletteCall(0x0804DE49)) return;
             continue :blk 37;
         },
         36 => {
@@ -14821,7 +14809,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xC0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DF37)) return;
+            if (!dma.copyPaletteCall(0x0804DF37)) return;
             continue :blk 45;
         },
         44 => {
@@ -14854,7 +14842,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0x90);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DF53)) return;
+            if (!dma.copyPaletteCall(0x0804DF53)) return;
             continue :blk 48;
         },
         48 => {
@@ -14863,7 +14851,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xC8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DF5F)) return;
+            if (!dma.copyPaletteCall(0x0804DF5F)) return;
             continue :blk 49;
         },
         49 => {
@@ -14885,7 +14873,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xD0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DF7F)) return;
+            if (!dma.copyPaletteCall(0x0804DF7F)) return;
             continue :blk 51;
         },
         51 => {
@@ -14922,7 +14910,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DFB1)) return;
+            if (!dma.copyPaletteCall(0x0804DFB1)) return;
             continue :blk 55;
         },
         55 => {
@@ -14931,7 +14919,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DFBD)) return;
+            if (!dma.copyPaletteCall(0x0804DFBD)) return;
             continue :blk 56;
         },
         56 => {
@@ -14958,7 +14946,7 @@ pub fn func_0804DCA8() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xE8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0804DFE1)) return;
+            if (!dma.copyPaletteCall(0x0804DFE1)) return;
             continue :blk 59;
         },
         59 => {
@@ -15475,7 +15463,7 @@ pub fn func_0804E8E4() callconv(.c) void {
             rt.r[0] = abi.read32(0x0804ED7C);
             rt.r[0] = abi.read32(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[1], 0x78);
-            if (!abi.call(math.func_0807B6AC, 0x0804EC97)) return;
+            if (!math.modUnsigned32Call(0x0804EC97)) return;
             continue :blk 42;
         },
         34 => {
@@ -15540,7 +15528,7 @@ pub fn func_0804E8E4() callconv(.c) void {
             abi.fetches(6);
             abi.setRegNz(&rt.r[0], rt.r[0] >> 2);
             abi.setRegNz(&rt.r[1], 0xF);
-            if (!abi.call(math.func_0807B6AC, 0x0804EC9F)) return;
+            if (!math.modUnsigned32Call(0x0804EC9F)) return;
             continue :blk 47;
         },
         43 => {
@@ -15689,7 +15677,7 @@ pub fn func_0804E8E4() callconv(.c) void {
             rt.r[0] = abi.read32(0x0804ED7C);
             rt.r[0] = abi.read32(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[1], 0x78);
-            if (!abi.call(math.func_0807B6AC, 0x0804ED03)) return;
+            if (!math.modUnsigned32Call(0x0804ED03)) return;
             continue :blk 56;
         },
         52 => {
@@ -16051,8 +16039,7 @@ pub fn func_08051104() callconv(.c) void {
         },
         15 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x72);
-            if (!abi.call(sound.func_0803D880, 0x08051273)) return;
+            if (!sound.playSfxCall(0x72, 0x08051273)) return;
             continue :blk 36;
         },
         16 => {
@@ -16189,8 +16176,7 @@ pub fn func_08051104() callconv(.c) void {
         },
         29 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x73);
-            if (!abi.call(sound.func_0803D880, 0x0805166B)) return;
+            if (!sound.playSfxCall(0x73, 0x0805166B)) return;
             continue :blk 51;
         },
         30 => {
@@ -16247,7 +16233,7 @@ pub fn func_08051104() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xC0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080511B9)) return;
+            if (!dma.copyPaletteCall(0x080511B9)) return;
             continue :blk 58;
         },
         36 => {
@@ -16489,7 +16475,7 @@ pub fn func_08051104() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xC8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080511C9)) return;
+            if (!dma.copyPaletteCall(0x080511C9)) return;
             continue :blk 78;
         },
         59 => {
@@ -16684,7 +16670,7 @@ pub fn func_08051104() callconv(.c) void {
             rt.r[0] = abi.read32(0x08051250);
             abi.setRegNz(&rt.r[1], 0x80);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x080511D3)) return;
+            if (!dma.copyPaletteCall(0x080511D3)) return;
             continue :blk 96;
         },
         79 => {
@@ -16889,14 +16875,12 @@ pub fn func_08051104() callconv(.c) void {
         },
         100 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x6F);
-            if (!abi.call(sound.func_0803D880, 0x0805145F)) return;
+            if (!sound.playSfxCall(0x6F, 0x0805145F)) return;
             continue :blk 114;
         },
         101 => {
             abi.fetches(5);
-            abi.setRegNz(&rt.r[0], 0x80);
-            if (!abi.call(sound.func_0803D880, 0x08051473)) return;
+            if (!sound.playSfxCall(0x80, 0x08051473)) return;
             continue :blk 115;
         },
         102 => {
@@ -17100,7 +17084,7 @@ pub fn func_08051104() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xF8);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0805122F)) return;
+            if (!dma.copyPaletteCall(0x0805122F)) return;
             continue :blk 123;
         },
         121 => {
@@ -17131,7 +17115,7 @@ pub fn func_08051104() callconv(.c) void {
             abi.setRegNz(&rt.r[1], 0xA0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x80);
-            if (!abi.call(dma.func_08011330, 0x0805123B)) return;
+            if (!dma.copyPaletteCall(0x0805123B)) return;
             continue :blk 126;
         },
         124 => {
@@ -17197,7 +17181,7 @@ pub fn func_08051104() callconv(.c) void {
             rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[7], true);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[1], 0xA);
-            if (!abi.call(math.func_0807B6AC, 0x080517E3)) return;
+            if (!math.modUnsigned32Call(0x080517E3)) return;
             continue :blk 129;
         },
         129 => {
@@ -23027,7 +23011,7 @@ pub fn func_08060078() callconv(.c) void {
             rt.r[0] = abi.read32(rt.r[5] +% 0x0);
             rt.r[0] = abi.read8(rt.r[0] +% 0xA);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B6AC, 0x080600BF)) return;
+            if (!math.modUnsigned32Call(0x080600BF)) return;
             continue :blk 3;
         },
         3 => {
@@ -23581,7 +23565,7 @@ pub fn func_080602D8() callconv(.c) void {
             rt.r[0] = abi.read32(rt.r[5] +% 0x0);
             rt.r[0] = abi.read8(rt.r[0] +% 0xA);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B6AC, 0x080602F9)) return;
+            if (!math.modUnsigned32Call(0x080602F9)) return;
             continue :blk 1;
         },
         1 => {
@@ -24433,7 +24417,7 @@ pub fn func_08060A90() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] *% rt.r[2]);
             rt.cpuAdd(&rt.r[0], rt.r[1], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060BF1)) return;
+            if (!math.divSigned32Call(0x08060BF1)) return;
             continue :blk 34;
         },
         32 => {
@@ -24569,7 +24553,7 @@ pub fn func_08060A90() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] *% rt.r[2]);
             rt.cpuAdd(&rt.r[0], rt.r[1], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060CB9)) return;
+            if (!math.divSigned32Call(0x08060CB9)) return;
             continue :blk 47;
         },
         42 => {
@@ -24628,7 +24612,7 @@ pub fn func_08060A90() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060C39)) return;
+            if (!math.divSigned32Call(0x08060C39)) return;
             continue :blk 53;
         },
         47 => {
@@ -24728,7 +24712,7 @@ pub fn func_08060A90() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x5);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[6]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060D81)) return;
+            if (!math.divSigned32Call(0x08060D81)) return;
             continue :blk 60;
         },
         57 => {
@@ -24741,7 +24725,7 @@ pub fn func_08060A90() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x5);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[6]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060E1D)) return;
+            if (!math.divSigned32Call(0x08060E1D)) return;
             continue :blk 61;
         },
         58 => {
@@ -24773,7 +24757,7 @@ pub fn func_08060A90() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060D01)) return;
+            if (!math.divSigned32Call(0x08060D01)) return;
             continue :blk 62;
         },
         60 => {
@@ -24853,7 +24837,7 @@ pub fn func_08060A90() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060E65)) return;
+            if (!math.divSigned32Call(0x08060E65)) return;
             continue :blk 69;
         },
         68 => {
@@ -25164,7 +25148,7 @@ pub fn func_08060AE6() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] *% rt.r[2]);
             rt.cpuAdd(&rt.r[0], rt.r[1], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060BF1)) return;
+            if (!math.divSigned32Call(0x08060BF1)) return;
             continue :blk 31;
         },
         29 => {
@@ -25300,7 +25284,7 @@ pub fn func_08060AE6() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] *% rt.r[2]);
             rt.cpuAdd(&rt.r[0], rt.r[1], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060CB9)) return;
+            if (!math.divSigned32Call(0x08060CB9)) return;
             continue :blk 44;
         },
         39 => {
@@ -25359,7 +25343,7 @@ pub fn func_08060AE6() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060C39)) return;
+            if (!math.divSigned32Call(0x08060C39)) return;
             continue :blk 50;
         },
         44 => {
@@ -25459,7 +25443,7 @@ pub fn func_08060AE6() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x5);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[6]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060D81)) return;
+            if (!math.divSigned32Call(0x08060D81)) return;
             continue :blk 57;
         },
         54 => {
@@ -25472,7 +25456,7 @@ pub fn func_08060AE6() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x5);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[6]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060E1D)) return;
+            if (!math.divSigned32Call(0x08060E1D)) return;
             continue :blk 58;
         },
         55 => {
@@ -25504,7 +25488,7 @@ pub fn func_08060AE6() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060D01)) return;
+            if (!math.divSigned32Call(0x08060D01)) return;
             continue :blk 59;
         },
         57 => {
@@ -25584,7 +25568,7 @@ pub fn func_08060AE6() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060E65)) return;
+            if (!math.divSigned32Call(0x08060E65)) return;
             continue :blk 66;
         },
         65 => {
@@ -25761,7 +25745,7 @@ pub fn func_08060D02() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x5);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[6]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060D81)) return;
+            if (!math.divSigned32Call(0x08060D81)) return;
             continue :blk 17;
         },
         14 => {
@@ -25774,7 +25758,7 @@ pub fn func_08060D02() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x5);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[6]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060E1D)) return;
+            if (!math.divSigned32Call(0x08060E1D)) return;
             continue :blk 18;
         },
         15 => {
@@ -25923,7 +25907,7 @@ pub fn func_08060D02() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060E65)) return;
+            if (!math.divSigned32Call(0x08060E65)) return;
             continue :blk 31;
         },
         28 => {
@@ -26163,7 +26147,7 @@ pub fn func_08060D02() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] *% rt.r[2]);
             rt.cpuAdd(&rt.r[0], rt.r[1], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060BF1)) return;
+            if (!math.divSigned32Call(0x08060BF1)) return;
             continue :blk 54;
         },
         52 => {
@@ -26259,7 +26243,7 @@ pub fn func_08060D02() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.r[1] *% rt.r[2]);
             rt.cpuAdd(&rt.r[0], rt.r[1], 0x0, true);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060CB9)) return;
+            if (!math.divSigned32Call(0x08060CB9)) return;
             continue :blk 61;
         },
         60 => {
@@ -26269,7 +26253,7 @@ pub fn func_08060D02() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060C39)) return;
+            if (!math.divSigned32Call(0x08060C39)) return;
             continue :blk 62;
         },
         61 => {
@@ -26320,7 +26304,7 @@ pub fn func_08060D02() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08060D01)) return;
+            if (!math.divSigned32Call(0x08060D01)) return;
             continue :blk 66;
         },
         66 => {
@@ -29542,7 +29526,7 @@ pub fn func_080691FC() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x5);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[4]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x080693D9)) return;
+            if (!math.divSigned32Call(0x080693D9)) return;
             continue :blk 36;
         },
         34 => {
@@ -29738,7 +29722,7 @@ pub fn func_080691FC() callconv(.c) void {
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
             abi.setRegNz(&rt.r[0], rt.r[0] *% rt.r[3]);
             abi.setRegNz(&rt.r[1], 0x64);
-            if (!abi.call(math.func_0807B488, 0x08069425)) return;
+            if (!math.divSigned32Call(0x08069425)) return;
             continue :blk 52;
         },
         48 => {

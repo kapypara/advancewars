@@ -899,8 +899,7 @@ pub fn func_0803FD04() callconv(.c) void {
     if (!abi.enter(0x0803FD04)) return;
     abi.fetches(6);
     abi.pushLr();
-    abi.setRegNz(&rt.r[0], 0x85);
-    if (!abi.call(sound.func_0803D880, 0x0803FD0D)) return;
+    if (!sound.playSfxCall(0x85, 0x0803FD0D)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -910,8 +909,7 @@ pub fn func_0803FD10() callconv(.c) void {
     if (!abi.enter(0x0803FD10)) return;
     abi.fetches(6);
     abi.pushLr();
-    abi.setRegNz(&rt.r[0], 0x86);
-    if (!abi.call(sound.func_0803D880, 0x0803FD19)) return;
+    if (!sound.playSfxCall(0x86, 0x0803FD19)) return;
     abi.fetches(6);
     abi.popReturn();
 }
@@ -1155,7 +1153,7 @@ pub fn func_0803C6CC() callconv(.c) void {
     rt.r[0] = abi.read32(0x0803C6EC);
     abi.setRegNz(&rt.r[1], 0x3E0);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0803C6DF)) return;
+    if (!dma.copyPaletteCall(0x0803C6DF)) return;
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
@@ -1286,7 +1284,7 @@ pub fn func_0803D5B0() callconv(.c) void {
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[1], 0xA);
-    if (!abi.call(math.func_0807B6AC, 0x0803D5C5)) return;
+    if (!math.modUnsigned32Call(0x0803D5C5)) return;
 
     abi.fetches(13);
     const dy: u16 = abi.read16(y_tbl +% (rt.r[0] << 1)) +% 0x6C;
@@ -1530,7 +1528,7 @@ pub fn func_08038864() callconv(.c) void {
     rt.r[0] = abi.read32(0x0803890C);
     rt.r[1] = 0x140;
     rt.r[2] = 0x20;
-    if (!abi.call(dma.func_08011330, 0x080388C7)) return;
+    if (!dma.copyPaletteCall(0x080388C7)) return;
 
     abi.fetches(4);
     if (!abi.call(clusters_low_2.func_0800FC58, 0x080388CB)) return;

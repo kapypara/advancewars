@@ -2572,7 +2572,7 @@ fn enter_0806EC18(start_block: u32) void {
         34 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[2], 0x80);
-            if (!abi.call(dma.func_08011330, 0x0806EE11)) return;
+            if (!dma.copyPaletteCall(0x0806EE11)) return;
             continue :blk 35;
         },
         35 => {
@@ -2583,7 +2583,7 @@ fn enter_0806EC18(start_block: u32) void {
             abi.setRegNz(&rt.r[1], 0xC0);
             abi.setRegNz(&rt.r[1], rt.r[1] << 2);
             abi.setRegNz(&rt.r[2], 0x20);
-            if (!abi.call(dma.func_08011330, 0x0806EE21)) return;
+            if (!dma.copyPaletteCall(0x0806EE21)) return;
             continue :blk 36;
         },
         36 => {

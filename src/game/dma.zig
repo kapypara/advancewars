@@ -69,6 +69,11 @@ pub inline fn enqueueOrCopyCall(src: u32, dst: u32, size_bytes: u32, comptime re
     return abi.call(func_0800FFA8, ret_addr);
 }
 
+/// Typed cross-module bridge calling masked palette copy & commit helper `func_08011330` with exact ABI state.
+pub inline fn copyPaletteCall(comptime ret_addr: u32) bool {
+    return abi.call(func_08011330, ret_addr);
+}
+
 /// Copy `u16(r2)` bytes from `r0` to `r1` using `CpuFastSet` if 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
 pub fn func_0800FDA4() callconv(.c) void {
     if (!abi.enter(0x0800FDA4)) return;

@@ -384,7 +384,7 @@ pub fn func_0801BF2C() callconv(.c) void {
     rt.r[4] = (((pal_idx +% 0x10) << 21) >> 16);
     rt.r[1] = rt.r[4];
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0801BF4B)) return;
+    if (!dma.copyPaletteCall(0x0801BF4B)) return;
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -396,8 +396,7 @@ pub fn func_0801C19C() callconv(.c) void {
     if (!abi.enter(0x0801C19C)) return;
     abi.fetches(6);
     abi.pushLr();
-    abi.setRegNz(&rt.r[0], 0x23);
-    if (!abi.call(sound.func_0803D880, 0x0801C1A5)) return;
+    if (!sound.playSfxCall(0x23, 0x0801C1A5)) return;
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 1);
     if (!abi.call(turn.func_080353A8, 0x0801C1AB)) return;
@@ -468,7 +467,7 @@ pub fn func_0806C9A0() callconv(.c) void {
     rt.r[4] = dst;
     rt.r[1] = dst;
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0806C9BB)) return;
+    if (!dma.copyPaletteCall(0x0806C9BB)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -563,7 +562,7 @@ pub fn func_0806CD10() callconv(.c) void {
     rt.updateNz(pal_off);
     abi.copyRegFlags(&rt.r[1], pal_off);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0806CD45)) return;
+    if (!dma.copyPaletteCall(0x0806CD45)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -624,7 +623,7 @@ pub fn func_0801C55C() callconv(.c) void {
     rt.r[0] = abi.read32(0x0801C5B8);
     abi.setRegNz(&rt.r[1], @as(u32, 0x80) << 1);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0801C595)) return;
+    if (!dma.copyPaletteCall(0x0801C595)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_1.func_08011804, 0x0801C599)) return;
@@ -663,7 +662,7 @@ pub fn func_0803BC48() callconv(.c) void {
     rt.r[0] = (pal_idx << 5) +% abi.read32(0x0803BCB8);
     abi.setRegNz(&rt.r[1], ((pal_slot +% 0x10) << 21) >> 16);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(dma.func_08011330, 0x0803BC93)) return;
+    if (!dma.copyPaletteCall(0x0803BC93)) return;
 
     abi.fetches(9);
     rt.r[0] = abi.read32(0x0803BCBC);

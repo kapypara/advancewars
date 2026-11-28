@@ -743,7 +743,7 @@ pub fn func_08033574() callconv(.c) void {
     rt.r[5] = mgr1;
     rt.r[0] = abi.read8(info_ptr +% 2) -% 0xA4;
     abi.setRegNz(&rt.r[1], 3);
-    if (!abi.call(math.func_0807B488, 0x080335A5)) return;
+    if (!math.divSigned32Call(0x080335A5)) return;
 
     abi.fetches(6);
     abi.write8(mgr1 +% 9, @truncate(rt.r[0]));
@@ -1171,7 +1171,7 @@ pub fn func_0803323C() callconv(.c) void {
     const icon_tbl = abi.read32(0x08033290);
     abi.setRegNz(&rt.r[0], abi.read32(abi.read32(0x08033294)) >> 3);
     abi.setRegNz(&rt.r[1], 3);
-    if (!abi.call(math.func_0807B6AC, 0x08033273)) return;
+    if (!math.modUnsigned32Call(0x08033273)) return;
 
     abi.fetches(10);
     const idx = (rt.r[0] << 2);
