@@ -1291,7 +1291,7 @@ pub fn func_0804F924() callconv(.c) void {
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0804F940);
-    if (!abi.call(decls.func_08038260, 0x0804F937)) return;
+    if (!abi.call(func_08038260, 0x0804F937)) return;
 
     abi.fetches(4);
     abi.popReturn();

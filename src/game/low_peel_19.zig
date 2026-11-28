@@ -327,7 +327,7 @@ fn func_080004BC() callconv(.c) void {
             rt.r[0] = rt.sext16(abi.read16(rt.r[1] +% rt.r[3]));
             abi.setRegNz(&rt.r[4], 0xA);
             rt.r[1] = rt.sext16(abi.read16(rt.r[1] +% rt.r[4]));
-            if (!abi.call(decls.func_0800B12C, 0x0800058D)) return;
+            if (!abi.call(func_0800B12C, 0x0800058D)) return;
             continue :blk 37;
         },
         32 => {
@@ -1125,7 +1125,7 @@ fn func_080004E6() callconv(.c) void {
             rt.r[0] = rt.sext16(abi.read16(rt.r[1] +% rt.r[3]));
             abi.setRegNz(&rt.r[4], 0xA);
             rt.r[1] = rt.sext16(abi.read16(rt.r[1] +% rt.r[4]));
-            if (!abi.call(decls.func_0800B12C, 0x0800058D)) return;
+            if (!abi.call(func_0800B12C, 0x0800058D)) return;
             continue :blk 34;
         },
         29 => {
@@ -1878,7 +1878,7 @@ fn func_0800050C() callconv(.c) void {
             rt.r[0] = rt.sext16(abi.read16(rt.r[1] +% rt.r[3]));
             abi.setRegNz(&rt.r[4], 0xA);
             rt.r[1] = rt.sext16(abi.read16(rt.r[1] +% rt.r[4]));
-            if (!abi.call(decls.func_0800B12C, 0x0800058D)) return;
+            if (!abi.call(func_0800B12C, 0x0800058D)) return;
             continue :blk 26;
         },
         21 => {
@@ -3259,7 +3259,7 @@ fn func_080019AC() callconv(.c) void {
             rt.r[1] = rt.sext16(abi.read16(rt.r[0] +% rt.r[4]));
             rt.cpuSub(&rt.r[1], rt.r[1], 0xA, true);
             rt.cpuAdd(&rt.r[0], rt.r[5], 0x0, true);
-            if (!abi.call(decls.func_08001E68, 0x08001DFB)) return;
+            if (!abi.call(func_08001E68, 0x08001DFB)) return;
             continue :blk 85;
         },
         81 => {
@@ -43004,7 +43004,7 @@ fn func_08011D00() callconv(.c) void {
             abi.fetches(6);
             rt.cpuAdd(&rt.r[0], rt.r[5], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[6], 0x0, true);
-            if (!abi.call(decls.func_08011D00, 0x08011DBB)) return;
+            if (!abi.call(func_08011D00, 0x08011DBB)) return;
             continue :blk 32;
         },
         22 => {

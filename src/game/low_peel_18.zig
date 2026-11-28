@@ -5252,7 +5252,7 @@ fn func_08043F04() callconv(.c) void {
             rt.r[0] = abi.read16(rt.r[1] +% 0x26);
             rt.r[1] = abi.read16(rt.r[1] +% 0x20);
             abi.setRegNz(&rt.r[2], 0x3);
-            if (!abi.call(decls.func_08043008, 0x080441FB)) return;
+            if (!abi.call(func_08043008, 0x080441FB)) return;
             continue :blk 60;
         },
         60 => {
@@ -10552,7 +10552,7 @@ fn func_0804A94C() callconv(.c) void {
         18 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[0], 0x1);
-            if (!abi.call(decls.func_0804A4A0, 0x0804AC8F)) return;
+            if (!abi.call(func_0804A4A0, 0x0804AC8F)) return;
             continue :blk 33;
         },
         19 => {
@@ -10955,7 +10955,7 @@ fn func_0804A94C() callconv(.c) void {
         53 => {
             abi.fetches(5);
             abi.setRegNz(&rt.r[0], 0x2);
-            if (!abi.call(decls.func_0804A4A0, 0x0804AE5B)) return;
+            if (!abi.call(func_0804A4A0, 0x0804AE5B)) return;
             continue :blk 69;
         },
         54 => {
@@ -11645,7 +11645,7 @@ fn func_0804AFA0() callconv(.c) void {
         },
         10 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_0804A94C, 0x0804B241)) return;
+            if (!abi.call(func_0804A94C, 0x0804B241)) return;
             continue :blk 11;
         },
         11 => {
@@ -23422,7 +23422,7 @@ fn func_08060078() callconv(.c) void {
         38 => {
             abi.fetches(4);
             rt.r[14] = 0x08060295;
-            rt.g_ret = 0; decls.func_0806636C();
+            rt.g_ret = 0; func_0806636C();
             if (((rt.g_ret ^ 0x080643CF) & ~@as(u32, 1)) == 0) { rt.g_ret = 0; continue :blk 7; }
             if (!rt.recompCalled(0x08060295)) return;
             continue :blk 39;
@@ -23976,7 +23976,7 @@ fn func_080602D8() callconv(.c) void {
         37 => {
             abi.fetches(4);
             rt.r[14] = 0x08060489;
-            rt.g_ret = 0; decls.func_0806636C();
+            rt.g_ret = 0; func_0806636C();
             if (((rt.g_ret ^ 0x080643CF) & ~@as(u32, 1)) == 0) { rt.g_ret = 0; continue :blk 8; }
             if (!rt.recompCalled(0x08060489)) return;
             continue :blk 38;

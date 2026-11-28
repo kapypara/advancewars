@@ -893,7 +893,7 @@ pub fn func_08017254() callconv(.c) void {
 /// Cutscene script opcode: dispatch `0x080172F0(slot)` and advance cursor `+0x10` (`0x080172FC`).
 pub fn func_080172FC() callconv(.c) void {
     if (!abi.enter(0x080172FC)) return;
-    runCutsceneStep10(.pass_slot_u16, 0, 0, decls.func_080172F0, 0x08017328, 1, 0x08017309);
+    runCutsceneStep10(.pass_slot_u16, 0, 0, func_080172F0, 0x08017328, 1, 0x08017309);
 }
 
 /// Cutscene script opcode: dispatch `0x080172E4(slot)` and advance cursor `+0x10` (`0x0801732C`).

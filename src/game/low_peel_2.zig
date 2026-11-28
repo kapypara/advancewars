@@ -4245,7 +4245,7 @@ fn func_0806F900() callconv(.c) void {
     blk: switch (@as(u32, 0)) {
         0 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_0806F7D0, 0x0806F905)) return;
+            if (!abi.call(func_0806F7D0, 0x0806F905)) return;
             continue :blk 1;
         },
         1 => {
@@ -4356,7 +4356,7 @@ fn func_08071B24() callconv(.c) void {
             abi.setRegNz(&rt.r[0], rt.r[0] << 3);
             abi.write16(rt.r[2] +% 0x0, @truncate(rt.r[0]));
             abi.setRegNz(&rt.r[0], 0xA0);
-            if (!abi.call(decls.func_0806CE28, 0x08071B37)) return;
+            if (!abi.call(func_0806CE28, 0x08071B37)) return;
             continue :blk 1;
         },
         1 => {
@@ -4614,7 +4614,7 @@ fn func_0807818C() callconv(.c) void {
         0 => {
             abi.fetches(5);
             rt.r[12] = rt.r[14];
-            if (!abi.call(decls.func_08078180, 0x08078193)) return;
+            if (!abi.call(func_08078180, 0x08078193)) return;
             continue :blk 1;
         },
         1 => {
@@ -4632,7 +4632,7 @@ fn func_0807818C() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08078164, 0x0807819D)) return;
+            if (!abi.call(func_08078164, 0x0807819D)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -4645,7 +4645,7 @@ fn func_080781A0() callconv(.c) void {
         0 => {
             abi.fetches(5);
             rt.r[12] = rt.r[14];
-            if (!abi.call(decls.func_08078180, 0x080781A7)) return;
+            if (!abi.call(func_08078180, 0x080781A7)) return;
             continue :blk 1;
         },
         1 => {
@@ -4663,7 +4663,7 @@ fn func_080781A0() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08078164, 0x080781B1)) return;
+            if (!abi.call(func_08078164, 0x080781B1)) return;
             continue :blk 2;
         },
         else => unreachable,

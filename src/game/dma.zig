@@ -69,7 +69,7 @@ fn copyMaskedHalfwords(comptime mask_ref: u32, comptime base_ref: u32, comptime 
     rt.r[3] = base;
     rt.r[1] = masked +% base;
     rt.r[2] &= 0xFFFF;
-    if (!abi.call(decls.func_0800FD94, ret_addr)) return;
+    if (!abi.call(func_0800FD94, ret_addr)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -133,7 +133,7 @@ fn copyMaskedPaletteAndSync(comptime mask_ref: u32, comptime base_ref: u32, comp
     rt.r[3] = base;
     rt.r[1] = masked +% base;
     rt.r[2] &= 0xFFFF;
-    if (!abi.call(decls.func_0800FD94, ret_copy)) return;
+    if (!abi.call(func_0800FD94, ret_copy)) return;
 
     abi.fetches(4);
     if (!abi.call(decls.func_080112C0, ret_sync)) return;
@@ -173,14 +173,14 @@ pub fn func_08011398() callconv(.c) void {
     const align_off = (slot_off >> 17) << 1;
     rt.r[1] = align_off +% abi.read32(0x080113CC);
     rt.r[2] = rt.r[4];
-    if (!abi.call(decls.func_0800FD94, 0x080113B7)) return;
+    if (!abi.call(func_0800FD94, 0x080113B7)) return;
 
     abi.fetches(10);
     rt.r[5] +%= @as(u32, 0xA0) << 19;
     rt.r[0] = rt.r[6];
     rt.r[1] = rt.r[5];
     rt.r[2] = rt.r[4];
-    if (!abi.call(decls.func_0800FD94, 0x080113C7)) return;
+    if (!abi.call(func_0800FD94, 0x080113C7)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);

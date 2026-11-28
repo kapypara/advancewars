@@ -368,7 +368,7 @@ fn func_08077A40() callconv(.c) void {
     while (true) {
         abi.fetches(5);
         rt.r[3] = abi.read32(rt.r[2]);
-        if (!abi.call(decls.func_08077A5A, 0x08077A4D)) return;
+        if (!abi.call(func_08077A5A, 0x08077A4D)) return;
         abi.fetches(6);
         abi.write32(rt.r[0], rt.r[3]);
         rt.r[0] +%= 4;
@@ -449,7 +449,7 @@ fn func_08077B34() callconv(.c) void {
         .{ 0x8, 0x2C, @as(u32, 0x08077B5F) },
     }) |step| {
         rt.r[3] = abi.read32(rt.r[2] +% step[0]);
-        if (!abi.call(decls.func_08077A5A, step[2])) return;
+        if (!abi.call(func_08077A5A, step[2])) return;
         abi.fetches(if (step[0] == 0x8) @as(u32, 4) else 6);
         abi.write32(rt.r[1] +% step[1], rt.r[3]);
     }
@@ -717,7 +717,7 @@ fn func_080642C8() callconv(.c) void {
         13 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x08064440);
-            switch (callCheckJumpTarget(decls.func_080796AC, 0x080643CF, 0x080643CF)) {
+            switch (callCheckJumpTarget(func_080796AC, 0x080643CF, 0x080643CF)) {
                 .jumped, .next => continue :blk 14,
                 .ret => return,
             }
@@ -751,7 +751,7 @@ fn func_080642C8() callconv(.c) void {
             abi.setRegNz(&rt.r[0], mask3 & rt.r[2]);
             abi.write8(p_flag, @truncate(rt.r[0]));
             rt.r[0] = abi.read32(abi.read32(0x0806444C));
-            switch (callCheckJumpTarget(decls.func_0807B44C, 0x080643F5, 0x080643CF)) {
+            switch (callCheckJumpTarget(func_0807B44C, 0x080643F5, 0x080643CF)) {
                 .jumped => continue :blk 14,
                 .ret => return,
                 .next => continue :blk 18,

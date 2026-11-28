@@ -318,7 +318,7 @@ fn allocOamSheetWithOffset(comptime pool_ref: u32, comptime ret_addr: u32) void 
     rt.r[0] = abi.read32(pool_ref);
     abi.setRegNz(&rt.r[2], 0);
     abi.setRegNz(&rt.r[3], 0);
-    if (!abi.call(decls.func_0801256C, ret_addr)) return;
+    if (!abi.call(func_0801256C, ret_addr)) return;
     abi.fetches(4);
     finishPoppedLr(1);
 }
@@ -424,7 +424,7 @@ pub fn func_08013550() callconv(.c) void {
     rt.r[0] = procSlotAnimHandle(0x08013574, rt.r[0]);
     rt.r[1] = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
     rt.r[2] = @bitCast(abi.signExtend16(@truncate(rt.r[2])));
-    if (!abi.call(decls.func_0801A0EC, 0x0801356F)) return;
+    if (!abi.call(func_0801A0EC, 0x0801356F)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -455,7 +455,7 @@ pub fn func_08013630() callconv(.c) void {
     abi.fetches(13);
     abi.pushLr();
     rt.r[0] = procSlotAnimHandle(0x08013650, rt.r[0]);
-    if (!abi.call(decls.func_0801A1AC, 0x08013647)) return;
+    if (!abi.call(func_0801A1AC, 0x08013647)) return;
     abi.fetches(6);
     abi.setRegNz(&rt.r[0], @bitCast(abi.signExtend16(@truncate(rt.r[0]))));
     finishPoppedLr(1);
@@ -467,7 +467,7 @@ pub fn func_08013654() callconv(.c) void {
     abi.fetches(13);
     abi.pushLr();
     rt.r[0] = procSlotAnimHandle(0x08013674, rt.r[0]);
-    if (!abi.call(decls.func_0801A1BC, 0x0801366B)) return;
+    if (!abi.call(func_0801A1BC, 0x0801366B)) return;
     abi.fetches(6);
     abi.setRegNz(&rt.r[0], @bitCast(abi.signExtend16(@truncate(rt.r[0]))));
     finishPoppedLr(1);
@@ -677,7 +677,7 @@ pub fn func_08049554() callconv(.c) void {
     rt.r[1] = @bitCast(abi.signExtend16(@truncate(rt.r[4] +% rt.r[5])));
     rt.r[2] = @bitCast(abi.signExtend16(@truncate(abi.read16(entry +% 0x20) +% abi.read16(cam +% 0x1E))));
     rt.r[3] = abi.read16(cam +% 0x1E);
-    if (!abi.call(decls.func_08013550, 0x08049583)) return;
+    if (!abi.call(func_08013550, 0x08049583)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -697,7 +697,7 @@ fn callWin1256CStep(
     rt.r[0] = ptr_val orelse abi.read32(p0_ref);
     abi.setRegNz(&rt.r[2], a2);
     abi.setRegNz(&rt.r[3], a3);
-    return abi.call(decls.func_0801256C, ret_addr);
+    return abi.call(func_0801256C, ret_addr);
 }
 
 fn runWin1256CChain2(
@@ -787,7 +787,7 @@ fn updateAnimByteFlag(comptime use_arg_bit: bool, comptime bit_shift: u5, compti
     }
     rt.r[0] = anim_idx;
     rt.r[1] = rt.r[13];
-    if (!abi.call(decls.func_080135FC, ret_1)) return;
+    if (!abi.call(func_080135FC, ret_1)) return;
 
     abi.fetches(if (use_arg_bit) 16 else if (clear_only) 12 else 11);
     const sp_base = rt.r[13];
@@ -802,7 +802,7 @@ fn updateAnimByteFlag(comptime use_arg_bit: bool, comptime bit_shift: u5, compti
     rt.r[0] = anim_idx;
     rt.r[1] = abi.read32(sp_base);
     rt.r[2] = abi.read32(sp_base +% 4);
-    if (!abi.call(decls.func_08013598, ret_2)) return;
+    if (!abi.call(func_08013598, ret_2)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;

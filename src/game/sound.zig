@@ -99,7 +99,7 @@ pub fn func_0803D7AC() callconv(.c) void {
     if (!abi.enter(0x0803D7AC)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_080782E4, 0x0803D7B3)) return;
+    if (!abi.call(func_080782E4, 0x0803D7B3)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -207,7 +207,7 @@ fn callSoundCue(comptime target: fn () callconv(.c) void, comptime id: u32, comp
 /// Play sound effect `0x68` via `0x0803D880` (`0x08038028`).
 pub fn func_08038028() callconv(.c) void {
     if (!abi.enter(0x08038028)) return;
-    callSoundCue(decls.func_0803D880, 0x68, 0x08038031);
+    callSoundCue(func_0803D880, 0x68, 0x08038031);
 }
 
 /// Play music track `0xD7` via `0x0803D8C8` (`0x08038034`).
@@ -326,7 +326,7 @@ pub fn func_080492A0() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0x84);
-    if (!abi.call(decls.func_0803D880, 0x080492A9)) return;
+    if (!abi.call(func_0803D880, 0x080492A9)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -339,7 +339,7 @@ pub fn func_0804E504() callconv(.c) void {
     rt.r[1] = abi.read8(abi.read32(abi.read32(0x0804E51C)) +% 0x4C);
     abi.write16(rt.r[0] +% 0x1E, @truncate(rt.r[1]));
     abi.setRegNz(&rt.r[0], 0x74);
-    if (!abi.call(decls.func_0803D880, 0x0804E517)) return;
+    if (!abi.call(func_0803D880, 0x0804E517)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -351,7 +351,7 @@ pub fn func_08050C5C() callconv(.c) void {
     abi.pushLr();
     rt.r[0] = abi.read32(0x08050C6C);
     abi.setRegNz(&rt.r[1], 4);
-    if (!abi.call(decls.func_08078488, 0x08050C67)) return;
+    if (!abi.call(func_08078488, 0x08050C67)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -362,7 +362,7 @@ pub fn func_08051868() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0xCC);
-    if (!abi.call(decls.func_0803D880, 0x08051871)) return;
+    if (!abi.call(func_0803D880, 0x08051871)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -575,7 +575,7 @@ pub fn func_0804E650() callconv(.c) void {
 
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0x74);
-    if (!abi.call(decls.func_0803D880, 0x0804E66F)) return;
+    if (!abi.call(func_0803D880, 0x0804E66F)) return;
 
     abi.fetches(4);
     abi.popReturn();

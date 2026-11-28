@@ -661,7 +661,7 @@ fn enter_0800FD54(start_block: u32) void {
             abi.fetches(6);
             rt.cpuAdd(&rt.r[0], rt.r[6], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[5], 0x0, true);
-            if (!abi.call(decls.func_08077EB0, 0x08078AC7)) return;
+            if (!abi.call(func_08077EB0, 0x08078AC7)) return;
             continue :blk 8;
         },
         8 => {
@@ -1178,7 +1178,7 @@ fn enter_080139D4(start_block: u32) void {
         4 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(rt.r[5] +% 0x0);
-            if (!abi.call(decls.func_08078A9C, 0x0807843B)) return;
+            if (!abi.call(func_08078A9C, 0x0807843B)) return;
             continue :blk 5;
         },
         5 => {
@@ -1209,7 +1209,7 @@ fn enter_080149E0(start_block: u32) void {
             rt.r[0] = abi.read32(0x08014A24);
             abi.setRegNz(&rt.r[4], 0x0);
             abi.write32(rt.r[0] +% 0x0, rt.r[4]);
-            if (!abi.call(decls.func_0801A69C, 0x080149ED)) return;
+            if (!abi.call(func_0801A69C, 0x080149ED)) return;
             continue :blk 1;
         },
         1 => {
@@ -2196,19 +2196,19 @@ fn enter_08078258(start_block: u32) void {
         1 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x080782CC);
-            if (!abi.call(decls.func_08078630, 0x08078275)) return;
+            if (!abi.call(func_08078630, 0x08078275)) return;
             continue :blk 2;
         },
         2 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x080782D0);
-            if (!abi.call(decls.func_080784E0, 0x0807827B)) return;
+            if (!abi.call(func_080784E0, 0x0807827B)) return;
             continue :blk 3;
         },
         3 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x080782D4);
-            if (!abi.call(decls.func_080787CC, 0x08078281)) return;
+            if (!abi.call(func_080787CC, 0x08078281)) return;
             continue :blk 4;
         },
         4 => {

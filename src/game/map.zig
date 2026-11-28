@@ -686,7 +686,7 @@ pub fn func_08019168() callconv(.c) void {
     abi.write32(rt.r[13], rt.r[4]);
     const st = rt.r[0];
     rt.r[4] = st;
-    if (!abi.call(decls.func_08020568, 0x08019171)) return;
+    if (!abi.call(func_08020568, 0x08019171)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08019058, 0x08019175)) return;
 
@@ -1181,12 +1181,12 @@ fn refreshMapViewAndCursor(view_pool: u32, cursor_pool: u32, rets: [4]u32) bool 
     rt.r[0] = abi.read8(abi.read32(view_pool) +% 0x2C);
     if (!abi.call(decls.func_08035274, rets[0])) return false;
     abi.fetches(4);
-    if (!abi.call(decls.func_080204B4, rets[1])) return false;
+    if (!abi.call(func_080204B4, rets[1])) return false;
     abi.fetches(6);
     const cursor_ptr = abi.read32(cursor_pool);
     rt.r[4] = cursor_ptr;
     rt.r[0] = abi.read16(cursor_ptr);
-    if (!abi.call(decls.func_080199A0, rets[2])) return false;
+    if (!abi.call(func_080199A0, rets[2])) return false;
     abi.fetches(5);
     rt.r[0] = abi.read16(rt.r[4]);
     if (!abi.call(decls.func_08019970, rets[3])) return false;
@@ -1443,11 +1443,11 @@ pub fn func_08020D6C() callconv(.c) void {
 
     abi.fetches(5);
     rt.r[0] = abi.read32(0x08020FFC);
-    if (!abi.call(decls.func_08038C70, 0x08020F31)) return;
+    if (!abi.call(func_08038C70, 0x08020F31)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08021DF8, 0x08020F35)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080203E8, 0x08020F39)) return;
+    if (!abi.call(func_080203E8, 0x08020F39)) return;
 
     abi.fetches(7);
     rt.r[0] = abi.read32(0x08021000);

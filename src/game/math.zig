@@ -210,7 +210,7 @@ pub fn func_0806D260() callconv(.c) void {
 pub fn func_0803D4F0() callconv(.c) void {
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08010A84, 0x0803D4F7)) return;
+    if (!abi.call(func_08010A84, 0x0803D4F7)) return;
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
     const lr_val = abi.read32(rt.r[13]);
@@ -232,7 +232,7 @@ pub fn func_08003918() callconv(.c) void {
 
     rt.cpuAdd(&rt.r[4], rt.r[0], 0, true);
     rt.cpuAdd(&rt.r[5], rt.r[1], 0, true);
-    if (!abi.call(decls.func_08010A84, 0x08003923)) return;
+    if (!abi.call(func_08010A84, 0x08003923)) return;
 
     abi.fetches(7);
     rt.cpuSub(&rt.r[4], rt.r[4], rt.r[5], true);
@@ -279,7 +279,7 @@ fn writeRotationMatrix3x3(axis: RotAxis, cos_ret: u32, sin_ret: u32) void {
     const angle: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
     rt.r[5] = angle;
     rt.r[0] = angle;
-    if (!abi.call(decls.func_0807AF30, cos_ret)) return;
+    if (!abi.call(func_0807AF30, cos_ret)) return;
 
     abi.fetches(10);
     const cos_q12: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])) >> 2);

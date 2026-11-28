@@ -396,7 +396,7 @@ fn enterTurnDayPhase(
 ) void {
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08034C74, ret1)) return;
+    if (!abi.call(func_08034C74, ret1)) return;
 
     abi.fetches(if (mode_byte != null) 33 else 32);
     const base = abi.read32(base_ref);
@@ -587,7 +587,7 @@ pub fn func_08032B1C() callconv(.c) void {
     if (!abi.call(decls.func_080197D8, 0x08032B2B)) return;
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0);
-    if (!abi.call(decls.func_08032240, 0x08032B31)) return;
+    if (!abi.call(func_08032240, 0x08032B31)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -966,7 +966,7 @@ pub fn func_080320E4() callconv(.c) void {
     abi.pushLr();
     rt.r[13] -%= 4;
     abi.write32(rt.r[13], rt.r[4]);
-    if (!abi.call(decls.func_08030708, 0x080320EB)) return;
+    if (!abi.call(func_08030708, 0x080320EB)) return;
 
     abi.fetches(11);
     const base = abi.read32(0x08032124);
@@ -1392,7 +1392,7 @@ pub fn func_080340F8() callconv(.c) void {
         .{ decls.func_0803322C, @as(u32, 0x0803410B) },
         .{ decls.func_080333A0, @as(u32, 0x0803410F) },
         .{ decls.func_0803401C, @as(u32, 0x08034113) },
-        .{ decls.func_080338FC, @as(u32, 0x08034117) },
+        .{ func_080338FC, @as(u32, 0x08034117) },
     };
     inline for (steps) |s| {
         if (!abi.call(s[0], s[1])) return;
@@ -1408,8 +1408,8 @@ pub fn func_0802FCBC() callconv(.c) void {
     abi.pushLr();
     const pre_calls = .{
         .{ decls.func_0801B820, @as(u32, 0x0802FCC3) },
-        .{ decls.func_08034C98, @as(u32, 0x0802FCC7) },
-        .{ decls.func_08034C74, @as(u32, 0x0802FCCB) },
+        .{ func_08034C98, @as(u32, 0x0802FCC7) },
+        .{ func_08034C74, @as(u32, 0x0802FCCB) },
         .{ decls.func_080149E0, @as(u32, 0x0802FCCF) },
         .{ decls.func_080134D4, @as(u32, 0x0802FCD3) },
         .{ decls.func_0800FC58, @as(u32, 0x0802FCD7) },

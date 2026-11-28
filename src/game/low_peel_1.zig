@@ -389,7 +389,7 @@ fn func_08003742() callconv(.c) void {
             abi.setRegNz(&rt.r[4], 0x0);
             rt.r[0] = abi.read32(0x08003760);
             rt.r[0] = abi.read8(rt.r[0] +% 0x0);
-            if (!abi.call(decls.func_08013BD0, 0x08003753)) return;
+            if (!abi.call(func_08013BD0, 0x08003753)) return;
             continue :blk 2;
         },
         2 => {

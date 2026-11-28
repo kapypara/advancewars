@@ -158,7 +158,7 @@ pub fn func_080036C8() callconv(.c) void {
 /// Run menu controller step `0x0800378C` (`0x08003708`).
 pub fn func_08003708() callconv(.c) void {
     if (!abi.enter(0x08003708)) return;
-    callVoidFn(decls.func_0800378C, 0x0800370F);
+    callVoidFn(func_0800378C, 0x0800370F);
 }
 
 /// Spawn `0x08003774` menu proc (`0x08003764`).
@@ -194,31 +194,31 @@ pub fn func_080046D4() callconv(.c) void {
 /// Play/switch menu BGM/state track `7` via `0x0800473C` (`0x0800476C`).
 pub fn func_0800476C() callconv(.c) void {
     if (!abi.enter(0x0800476C)) return;
-    callSingleU32(decls.func_0800473C, 7, 6, 0x08004775, false);
+    callSingleU32(func_0800473C, 7, 6, 0x08004775, false);
 }
 
 /// Play/switch menu BGM/state track `1` via `0x0800473C` (`0x08004778`).
 pub fn func_08004778() callconv(.c) void {
     if (!abi.enter(0x08004778)) return;
-    callSingleU32(decls.func_0800473C, 1, 6, 0x08004781, false);
+    callSingleU32(func_0800473C, 1, 6, 0x08004781, false);
 }
 
 /// Play/switch menu BGM/state track `3` via `0x0800473C` (`0x08004784`).
 pub fn func_08004784() callconv(.c) void {
     if (!abi.enter(0x08004784)) return;
-    callSingleU32(decls.func_0800473C, 3, 6, 0x0800478D, false);
+    callSingleU32(func_0800473C, 3, 6, 0x0800478D, false);
 }
 
 /// Play/switch menu BGM/state track `4` via `0x0800473C` (`0x08004790`).
 pub fn func_08004790() callconv(.c) void {
     if (!abi.enter(0x08004790)) return;
-    callSingleU32(decls.func_0800473C, 4, 6, 0x08004799, false);
+    callSingleU32(func_0800473C, 4, 6, 0x08004799, false);
 }
 
 /// Stop/reset menu BGM/state track (`-1`) via `0x0800473C` (`0x0800479C`).
 pub fn func_0800479C() callconv(.c) void {
     if (!abi.enter(0x0800479C)) return;
-    callSingleU32(decls.func_0800473C, @bitCast(@as(i32, -1)), 7, 0x080047A7, false);
+    callSingleU32(func_0800473C, @bitCast(@as(i32, -1)), 7, 0x080047A7, false);
 }
 
 /// Load/resolve menu resource `0x08004844` via `0x08018400` (`0x08004838`).
@@ -520,9 +520,9 @@ pub fn func_08002CC0() callconv(.c) void {
     if (!abi.enter(0x08002CC0)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_08002AF0, 0x08002CC7)) return;
+    if (!abi.call(func_08002AF0, 0x08002CC7)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08002A9C, 0x08002CCB)) return;
+    if (!abi.call(func_08002A9C, 0x08002CCB)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08002BE0, 0x08002CCF)) return;
     abi.fetches(4);
@@ -597,7 +597,7 @@ pub fn func_080045CC() callconv(.c) void {
     rt.r[0] = abi.read32(abi.read32(0x080045E8));
     abi.setRegNz(&rt.r[1], 3);
     abi.write16(rt.r[0] +% 4, 3);
-    if (!abi.call(decls.func_08004994, 0x080045E5)) return;
+    if (!abi.call(func_08004994, 0x080045E5)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -680,7 +680,7 @@ pub fn func_08004930() callconv(.c) void {
     abi.pushLr();
     rt.r[13] -%= 4;
     abi.write32(rt.r[13], rt.r[4]);
-    if (!abi.call(decls.func_08003580, 0x08004937)) return;
+    if (!abi.call(func_08003580, 0x08004937)) return;
 
     abi.fetches(11);
     rt.r[4] = abi.read32(0x08004960);
@@ -1038,7 +1038,7 @@ pub fn func_08004994() callconv(.c) void {
     const ctx0 = abi.read32(ctx_ptr);
     abi.write8(ctx0 +% 6, 0);
     abi.write16(ctx0 +% 2, 1);
-    if (!abi.call(decls.func_080034F0, 0x080049A9)) return;
+    if (!abi.call(func_080034F0, 0x080049A9)) return;
 
     abi.fetches(7);
     rt.r[0] = abi.read32(0x080049E4);
@@ -1333,7 +1333,7 @@ pub fn func_08004888() callconv(.c) void {
     rt.r[2] = 0x80;
     if (!abi.call(decls.func_0800FFA8, 0x080048B5)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08002AF0, 0x080048B9)) return;
+    if (!abi.call(func_08002AF0, 0x080048B9)) return;
 
     abi.fetches(13);
     const state = abi.read32(abi.read32(0x080048DC));
@@ -1369,7 +1369,7 @@ pub fn func_08004C38() callconv(.c) void {
     abi.fetches(7);
     rt.r[0] = abi.read32(rt.r[4]) +% 0x9C;
     rt.r[1] = rt.r[5];
-    if (!abi.call(decls.func_08004BE8, 0x08004C5F)) return;
+    if (!abi.call(func_08004BE8, 0x08004C5F)) return;
 
     abi.fetches(4);
     if (!abi.call(decls.func_0801F4B8, 0x08004C63)) return;
@@ -1482,7 +1482,7 @@ pub fn func_08005840() callconv(.c) void {
     abi.fetches(4);
     if (!abi.call(decls.func_08011804, 0x080058A1)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08005720, 0x080058A5)) return;
+    if (!abi.call(func_08005720, 0x080058A5)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;

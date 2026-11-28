@@ -405,7 +405,7 @@ pub fn func_0803F2AC() callconv(.c) void {
     abi.pushLr();
     abi.setRegNz(&rt.r[0], 0);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_0803F244, 0x0803F2B7)) return;
+    if (!abi.call(func_0803F244, 0x0803F2B7)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1729,7 +1729,7 @@ fn initCampaignCardDisplay(comptime cfg: CampaignCardCfg) void {
         const cur_state = abi.read32(state_ptr_ref);
         rt.r[0] = abi.read8(cur_state);
         rt.r[1] = abi.read32(cur_state +% 4);
-        if (!abi.call(decls.func_0803C5CC, cfg.ret_tail2)) return;
+        if (!abi.call(func_0803C5CC, cfg.ret_tail2)) return;
         abi.fetches(6);
     }
 

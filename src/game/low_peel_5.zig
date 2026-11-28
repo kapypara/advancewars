@@ -1396,7 +1396,7 @@ fn func_0804D864() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_0804CCE0, 0x0804D875)) return;
+            if (!abi.call(func_0804CCE0, 0x0804D875)) return;
             continue :blk 4;
         },
         4 => {
@@ -2983,7 +2983,7 @@ fn func_0805A018() callconv(.c) void {
         0 => {
             abi.fetches(5);
             abi.pushLr();
-            if (!abi.call(decls.func_0805AE44, 0x0805A01F)) return;
+            if (!abi.call(func_0805AE44, 0x0805A01F)) return;
             continue :blk 1;
         },
         1 => {
@@ -3732,7 +3732,7 @@ fn func_08062ECC() callconv(.c) void {
             rt.cpuAdd(&rt.r[5], rt.r[0], 0x0, true);
             rt.cpuAdd(&rt.r[6], rt.r[1], 0x0, true);
             rt.cpuAdd(&rt.r[4], rt.r[2], 0x0, true);
-            if (!abi.call(decls.func_080625CC, 0x08062EDB)) return;
+            if (!abi.call(func_080625CC, 0x08062EDB)) return;
             continue :blk 1;
         },
         1 => {
@@ -5816,12 +5816,12 @@ fn func_0806FD58() callconv(.c) void {
         },
         1 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_0806FD2C, 0x0806FD75)) return;
+            if (!abi.call(func_0806FD2C, 0x0806FD75)) return;
             continue :blk 3;
         },
         2 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_0806F538, 0x0806FD6B)) return;
+            if (!abi.call(func_0806F538, 0x0806FD6B)) return;
             continue :blk 4;
         },
         3 => {
@@ -6311,7 +6311,7 @@ fn func_08071A78() callconv(.c) void {
         3 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x08071ABC);
-            if (!abi.call(decls.func_0806CD78, 0x08071AA9)) return;
+            if (!abi.call(func_0806CD78, 0x08071AA9)) return;
             continue :blk 4;
         },
         4 => {
@@ -6364,7 +6364,7 @@ fn func_08071AC0() callconv(.c) void {
         3 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x08071B08);
-            if (!abi.call(decls.func_0806CD78, 0x08071AF3)) return;
+            if (!abi.call(func_0806CD78, 0x08071AF3)) return;
             continue :blk 4;
         },
         4 => {
@@ -6420,7 +6420,7 @@ fn func_08071B0C() callconv(.c) void {
         4 => {
             abi.fetches(5);
             rt.r[0] = abi.read32(0x08071B50);
-            if (!abi.call(decls.func_0806CD78, 0x08071B3D)) return;
+            if (!abi.call(func_0806CD78, 0x08071B3D)) return;
             continue :blk 5;
         },
         5 => {
@@ -6722,7 +6722,7 @@ fn func_08073C68() callconv(.c) void {
             abi.fetches(6);
             abi.pushLr();
             rt.r[0] = abi.read32(0x08073C84);
-            if (!abi.call(decls.func_0806CB80, 0x08073C71)) return;
+            if (!abi.call(func_0806CB80, 0x08073C71)) return;
             continue :blk 1;
         },
         1 => {
@@ -6758,7 +6758,7 @@ fn func_08073C88() callconv(.c) void {
             abi.fetches(6);
             abi.pushLr();
             rt.r[0] = abi.read32(0x08073CA4);
-            if (!abi.call(decls.func_0806CB80, 0x08073C91)) return;
+            if (!abi.call(func_0806CB80, 0x08073C91)) return;
             continue :blk 1;
         },
         1 => {
@@ -7246,7 +7246,7 @@ fn func_08077058() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08077034, 0x08077073)) return;
+            if (!abi.call(func_08077034, 0x08077073)) return;
             continue :blk 4;
         },
         4 => {
@@ -7460,7 +7460,7 @@ fn func_08077A10() callconv(.c) void {
         4 => {
             abi.fetches(5);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
-            if (!abi.call(decls.func_080779F0, 0x08077A2F)) return;
+            if (!abi.call(func_080779F0, 0x08077A2F)) return;
             continue :blk 5;
         },
         5 => {
@@ -8248,7 +8248,7 @@ fn func_0807ACC4() callconv(.c) void {
         2 => {
             abi.fetches(5);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
-            if (!abi.call(decls.func_0807CDEC, 0x0807ACE3)) return;
+            if (!abi.call(func_0807CDEC, 0x0807ACE3)) return;
             continue :blk 4;
         },
         3 => {
@@ -8443,7 +8443,7 @@ fn func_0807B068() callconv(.c) void {
             rt.cpuAdd(&rt.r[4], rt.r[0], 0x0, true);
             rt.cpuAdd(&rt.r[5], rt.r[1], 0x0, true);
             rt.cpuAdd(&rt.r[6], rt.r[2], 0x0, true);
-            if (!abi.call(decls.func_0807AF40, 0x0807B075)) return;
+            if (!abi.call(func_0807AF40, 0x0807B075)) return;
             continue :blk 1;
         },
         1 => {

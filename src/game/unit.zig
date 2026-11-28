@@ -735,7 +735,7 @@ fn adjustMapFocusMetric(
     const saved = abi.read32(slot_off +% tbl +% 0x18);
     rt.r[4] = saved;
     rt.r[0] = saved;
-    if (!abi.call(decls.func_08028D64, ret1)) return;
+    if (!abi.call(func_08028D64, ret1)) return;
 
     abi.fetches(17);
     const diff = saved -% abi.read32(abi.read32(cam_ref));
@@ -1137,7 +1137,7 @@ pub fn func_0802C6B8() callconv(.c) void {
     rt.r[13] -%= 4;
 
     rt.r[4] = rt.r[0];
-    if (!abi.call(decls.func_08021DF8, 0x0802C6C3)) return;
+    if (!abi.call(func_08021DF8, 0x0802C6C3)) return;
 
     abi.fetches(11);
     const cam = abi.read32(abi.read32(0x0802C750));
@@ -1454,12 +1454,12 @@ pub fn func_0805E808() callconv(.c) void {
     rt.r[4] = abi.read32(0x0805E844);
     rt.r[0] = abi.read16(rt.r[4] +% 0xA);
     rt.r[1] = 0;
-    if (!abi.call(decls.func_0805E848, 0x0805E82F)) return;
+    if (!abi.call(func_0805E848, 0x0805E82F)) return;
 
     abi.fetches(6);
     rt.r[0] = abi.read16(rt.r[4] +% 0x1A);
     rt.r[1] = 1;
-    if (!abi.call(decls.func_0805E848, 0x0805E837)) return;
+    if (!abi.call(func_0805E848, 0x0805E837)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
