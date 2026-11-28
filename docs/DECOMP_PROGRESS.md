@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 74 — Hi-ROM Deduplicated Component Wave 3 (`96.56%`)
+- **Stage:** Stage 75 — Hi-ROM Deduplicated Component Wave 4 (`97.58%`)
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 7,316 / 7,577 (96.56%)
+- **Lifted to Clean Zig (`src/game/`):** 7,394 / 7,577 (97.58%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
@@ -68,6 +68,7 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/hi_cluster_1.zig` (55): `0x080802A6..0x080B5D58` (hi-ROM deduplicated component wave 1: 7 components / 55 functions `> 500` reachable lines)
 - `src/game/hi_cluster_2.zig` (48): `0x080D2460..0x08113510` (hi-ROM deduplicated component wave 2: 16 components / 48 functions `> 500` reachable lines)
 - `src/game/hi_cluster_3.zig` (71): `0x08123242..0x081AD24E` (hi-ROM deduplicated component wave 3: 14 components / 71 functions `> 500` reachable lines)
+- `src/game/hi_cluster_4.zig` (78): `0x081B3276..0x081DD5B8` (hi-ROM deduplicated component wave 4: 8 components / 78 functions `> 500` reachable lines)
 
 ## Subsystem Roadmap
 - [x] **Stage 0:** Weak-linkage generator, `src/game/` scaffold, native + WASM + test wiring, baseline verified (`bd32afd`).
@@ -144,7 +145,8 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 71:** Low-ROM block-peeled wave 19 (`94335da`, `7,142 total`, remaining 46 `> 500L` functions — 100% low-ROM complete).
 - [x] **Stage 72:** Hi-ROM deduplicated component wave 1 (`e1fa112`, `7,197 total`, 7 components / 55 `> 500L` hi-ROM functions).
 - [x] **Stage 73:** Hi-ROM deduplicated component wave 2 (`db2dfa0`, `7,245 total`, 16 components / 48 `> 500L` hi-ROM functions).
-- [x] **Stage 74:** Hi-ROM deduplicated component wave 3 (`7,316 total`, 14 components / 71 `> 500L` hi-ROM functions).
+- [x] **Stage 74:** Hi-ROM deduplicated component wave 3 (`634c3cb`, `7,316 total`, 14 components / 71 `> 500L` hi-ROM functions).
+- [x] **Stage 75:** Hi-ROM deduplicated component wave 4 (`7,394 total`, 8 components / 78 `> 500L` hi-ROM functions).
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`
