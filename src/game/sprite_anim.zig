@@ -10,7 +10,7 @@ const types = @import("types.zig");
 /// Compute address of animator struct owned by proc `proc_idx` (`(proc.anim_slot) * 0x4C`).
 pub inline fn resolveAnimAddr(proc_base: u32, anim_base: u32, proc_idx: i16) u32 {
     const proc_off: u32 = @bitCast(@as(i32, proc_idx) *% @as(i32, types.proc_slot_stride));
-    const slot_idx = abi.read16(proc_base +% proc_off +% 0x26);
+    const slot_idx = abi.read16(proc_base +% proc_off +% @offsetOf(types.ProcSlot, "anim_slot"));
     return anim_base +% @as(u32, slot_idx) *% @as(u32, types.anim_slot_stride);
 }
 

@@ -5,9 +5,11 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
+const types = @import("types.zig");
 
 /// Entity slot byte stride at `*[0x0828_2CBC]`.
-pub const entity_stride: u32 = 0x68;
+pub const entity_stride: u32 = types.entity_stride;
 
 /// Load unit/army palette into palette RAM slot `0x160` size `0x20` for entity `u16(r0)` (`0x08019970`).
 pub fn func_08019970() callconv(.c) void {
@@ -15,8 +17,8 @@ pub fn func_08019970() callconv(.c) void {
     abi.fetches(20);
     abi.pushLr();
     const slot_idx: u16 = @truncate(rt.r[0]);
-    const entity_base = abi.read32(abi.read32(0x08019998));
-    const army = abi.read8(entity_base +% (@as(u32, slot_idx) *% entity_stride) +% 0x1A);
+    const entity_base = mem.entityTableBase();
+    const army = mem.readU8(mem.entitySlotAddr(entity_base, slot_idx) +% @offsetOf(types.UnitEntity, "army_id"));
     const pal_base = abi.read32(0x0801999C);
     rt.r[0] = ((@as(u32, army) +% 4) << 5) +% pal_base;
     rt.r[1] = 0x160;
@@ -34,8 +36,8 @@ pub fn func_0801C150() callconv(.c) void {
     abi.write16(abi.read32(0x0801C178), 0);
     abi.write16(abi.read32(0x0801C17C), 0);
     const active = abi.read16(abi.read32(0x0801C180));
-    const entity_base = abi.read32(abi.read32(0x0801C184));
-    abi.write8(entity_base +% (@as(u32, active) *% entity_stride) +% 0x1E, 1);
+    const entity_base = mem.entityTableBase();
+    mem.writeU8(mem.entitySlotAddr(entity_base, active) +% @offsetOf(types.UnitEntity, "active_flag"), 1);
     rt.r[2] = active;
     if (!abi.call(func_08021DF8, 0x0801C173)) return;
     abi.fetches(4);

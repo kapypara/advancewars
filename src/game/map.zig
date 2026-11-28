@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
 const types = @import("types.zig");
 
 /// Blank tile index (`0xBA << 1`) written into BG tilemap buffers (`0x0201_3340`).
@@ -25,10 +26,8 @@ pub fn func_0801FD98() callconv(.c) void {
     rt.r[13] -%= 4;
     abi.write32(rt.r[13], rt.r[4]);
 
-    const cam_base = abi.read32(abi.read32(0x0801FDE0));
-    const cam_x = abi.read16(cam_base +% 0xC);
-    const cam_y = abi.read16(cam_base +% 0xE);
-    const cell_off = wrappedTilemapByteOffset(@truncate(rt.r[0]), @truncate(rt.r[1]), cam_x, cam_y);
+    const cam = mem.readCameraState();
+    const cell_off = wrappedTilemapByteOffset(@truncate(rt.r[0]), @truncate(rt.r[1]), cam.cam_x, cam.cam_y);
     const buf_base = abi.read32(0x0801FDE4);
 
     abi.write16(cell_off +% buf_base, blank_tile_entry);
@@ -55,10 +54,8 @@ pub fn func_0801FD98() callconv(.c) void {
 pub fn func_0802055C() callconv(.c) void {
     if (!abi.enter(0x0802055C)) return;
     abi.fetches(6);
-    const dst = abi.read32(0x08020564);
-    abi.write16(dst, @truncate(rt.r[0]));
-    abi.write16(dst +% 2, @truncate(rt.r[1]));
-    rt.r[2] = dst;
+    mem.writeCursorPx(@truncate(rt.r[0]), @truncate(rt.r[1]));
+    rt.r[2] = types.addr.cursor_x_px;
     abi.retLr();
 }
 
@@ -66,16 +63,12 @@ pub fn func_0802055C() callconv(.c) void {
 pub fn func_08020568() callconv(.c) void {
     if (!abi.enter(0x08020568)) return;
     abi.fetches(11);
-    const px_addr = abi.read32(0x0802057C);
-    const tile_addr = abi.read32(0x08020580);
-    const tx = abi.read16(tile_addr);
-    abi.write16(px_addr, tx << 4);
-    const ty = abi.read16(tile_addr +% 2);
-    const py: u32 = @as(u32, ty) << 4;
-    abi.write16(px_addr +% 2, @truncate(py));
-    rt.r[3] = tx;
-    rt.r[2] = px_addr;
-    rt.r[1] = ty;
+    const tile = mem.readCursorTile();
+    const py: u32 = @as(u32, tile.y) << 4;
+    mem.writeCursorPx(tile.x << 4, @truncate(py));
+    rt.r[3] = tile.x;
+    rt.r[2] = types.addr.cursor_x_px;
+    rt.r[1] = tile.y;
     abi.setRegNz(&rt.r[0], py);
     abi.retLr();
 }

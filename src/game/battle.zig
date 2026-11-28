@@ -7,6 +7,7 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hw = @import("hw.zig");
+const mem = @import("mem.zig");
 const unit = @import("unit.zig");
 
 /// Compute raw scaled battle HP damage: `((100 - defense_pct) * base_damage) / 100`.
@@ -57,20 +58,19 @@ pub fn func_080234A0() callconv(.c) void {
 
     const ctx = rt.r[0];
     rt.r[4] = ctx;
-    const def_pct = abi.signExtend16(abi.read16(ctx +% 0xE));
-    const atk_pwr = abi.signExtend16(abi.read16(rt.r[1] +% 0xC));
-    rt.r[0] = @bitCast((100 -% def_pct) *% atk_pwr);
+    const def_ctx = mem.readBattleSideCtx(ctx);
+    const atk_ctx = mem.readBattleSideCtx(rt.r[1]);
+    rt.r[0] = @bitCast((100 -% @as(i32, def_ctx.defense_pct)) *% @as(i32, atk_ctx.attack_power));
     rt.r[2] = 0xC;
     abi.setRegNz(&rt.r[1], 100);
     if (!abi.call(bios.func_080796C8, 0x080234B9)) return;
 
     abi.fetches(12);
     const dmg = rt.r[0];
-    abi.write16(ctx +% 0x12, @truncate(dmg));
-    const unit_ptr = abi.read32(ctx);
-    const cur_hp: u32 = abi.read8(unit_ptr +% 4) & 0x7F;
+    abi.write16(ctx +% @offsetOf(@import("types.zig").BattleSideCtx, "dealt_damage"), @truncate(dmg));
+    const cur_hp: u32 = mem.readUnitHp(def_ctx.unit_ptr);
     rt.cpuSub(&rt.r[1], cur_hp, dmg, true);
-    abi.write16(ctx +% 8, @truncate(rt.r[1]));
+    abi.write16(ctx +% @offsetOf(@import("types.zig").BattleSideCtx, "remaining_hp"), @truncate(rt.r[1]));
 
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;

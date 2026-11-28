@@ -82,7 +82,7 @@ pub fn func_0801A6D8() callconv(.c) void {
 
 /// Compute EWRAM/IWRAM address of proc slot `idx` (`u8`, stride `0x60`).
 pub inline fn procSlotAddr(slot_idx: u8) u32 {
-    return types.addr.proc_table +% @as(u32, slot_idx) *% @as(u32, types.proc_slot_stride);
+    return mem.procSlotAddr(slot_idx);
 }
 
 /// Compute address of `+0x04` cursor word in secondary script slot `idx` (`i16`, stride `0x18`).

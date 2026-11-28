@@ -49,12 +49,6 @@ pub inline fn readStruct(comptime T: type, base_addr: u32) T {
     return val;
 }
 
-pub inline fn writeStruct(comptime T: type, base_addr: u32, val: T) void {
-    for (std.mem.asBytes(&val), 0..) |b, i| {
-        writeU8(base_addr +% @as(u32, @intCast(i)), b);
-    }
-}
-
 pub inline fn procSlotAddr(idx: usize) u32 {
     return types.addr.proc_table +% @as(u32, @intCast(idx * types.proc_slot_stride));
 }
@@ -87,34 +81,8 @@ pub inline fn cameraStateAddr() u32 {
     return readU32(types.addr.camera_state_ptr);
 }
 
-pub inline fn readProcSlot(idx: usize) types.ProcSlot {
-    return readStruct(types.ProcSlot, procSlotAddr(idx));
-}
-
-pub inline fn writeProcSlot(idx: usize, slot: types.ProcSlot) void {
-    writeStruct(types.ProcSlot, procSlotAddr(idx), slot);
-}
-
-pub inline fn readScriptSlot(idx: usize) types.ScriptSlot {
-    return readStruct(types.ScriptSlot, scriptSlotAddr(idx));
-}
-
-pub inline fn readAnimSlot(idx: usize) types.AnimSlot {
-    return readStruct(types.AnimSlot, animSlotAddr(idx));
-}
-
-pub inline fn readOamAttr(idx: usize) types.OamAttr {
-    return readStruct(types.OamAttr, oamAttrAddr(idx));
-}
-
-pub inline fn readMapWorkspace() types.MapWorkspace {
-    const base = types.addr.map_workspace;
-    return .{
-        .width = readU16(base),
-        .height = readU16(base +% 2),
-        .cam_x = readI16(base +% 4),
-        .cam_y = readI16(base +% 6),
-    };
+pub inline fn readCameraState() types.CameraState {
+    return readStruct(types.CameraState, cameraStateAddr());
 }
 
 pub inline fn readCursorTile() CursorTile {
@@ -124,26 +92,9 @@ pub inline fn readCursorTile() CursorTile {
     };
 }
 
-pub inline fn readCursorState() types.CursorState {
-    const base = types.addr.cursor_x_px;
-    return .{
-        .x_px = readU16(base),
-        .y_px = readU16(base +% 2),
-        .tile_x = readU16(base +% 4),
-        .tile_y = readU16(base +% 6),
-    };
-}
-
-pub inline fn writeCursorState(c: types.CursorState) void {
-    const base = types.addr.cursor_x_px;
-    writeU16(base, c.x_px);
-    writeU16(base +% 2, c.y_px);
-    writeU16(base +% 4, c.tile_x);
-    writeU16(base +% 6, c.tile_y);
-}
-
-pub inline fn readCameraState() types.CameraState {
-    return readStruct(types.CameraState, cameraStateAddr());
+pub inline fn writeCursorPx(x_px: u16, y_px: u16) void {
+    writeU16(types.addr.cursor_x_px, x_px);
+    writeU16(types.addr.cursor_y_px, y_px);
 }
 
 pub inline fn readBattleSideCtx(ctx_addr: u32) types.BattleSideCtx {
