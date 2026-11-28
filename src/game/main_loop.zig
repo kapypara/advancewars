@@ -4,6 +4,7 @@ const std = @import("std");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_11 = @import("low_peel_11.zig");
@@ -16,7 +17,7 @@ const types = @import("types.zig");
 
 /// Return true if active-low `KEYINPUT` has A + B + Select + Start pressed simultaneously.
 pub fn isSoftResetComboPressed(keyinput: u16) bool {
-    return (hw.decodeActiveLowKeys(keyinput) & types.key_mask_soft_reset) == types.key_mask_soft_reset;
+    return hal.input.isSoftResetCombo(keyinput);
 }
 
 /// Check `KEYINPUT` for A+B+Select+Start soft-reset combo and trigger soft reset (`0x08038824`).
@@ -25,8 +26,8 @@ pub fn func_08038824() callconv(.c) void {
     abi.fetches(12);
     abi.pushLr();
 
-    const keyinput = mem.readU16(types.addr.reg_keyinput);
-    const pressed_combo = hw.decodeActiveLowKeys(keyinput) & types.key_mask_soft_reset;
+    const keyinput = hal.input.readRaw();
+    const pressed_combo = hal.input.decodeActiveLow(keyinput) & types.key_mask_soft_reset;
     rt.r[2] = types.key_mask_all;
     rt.r[1] = types.key_mask_soft_reset;
     rt.r[0] = pressed_combo;
@@ -82,7 +83,7 @@ pub fn func_080383F8() callconv(.c) void {
 pub fn func_0805BA34() callconv(.c) void {
     if (!abi.enter(0x0805BA34)) return;
     abi.fetches(15);
-    _ = mem.readU16(types.addr.reg_keyinput);
+    _ = hal.input.readRaw();
     const val_a = mem.readU16(types.addr.frame_input_state +% 0x54);
     mem.writeU16(types.addr.frame_input_shadow_a, val_a);
     const val_b = mem.readU16(types.addr.frame_input_state +% 0x50);

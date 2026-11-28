@@ -6,6 +6,7 @@ const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const clusters_low = @import("clusters_low.zig");
 const dma = @import("dma.zig");
+const hal = @import("hal.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_11 = @import("low_peel_11.zig");
 const low_peel_13 = @import("low_peel_13.zig");
@@ -23,7 +24,7 @@ const types = @import("types.zig");
 
 /// Decode active-low GBA `KEYINPUT` halfword into active-high 10-bit button mask.
 pub inline fn decodeActiveLowKeys(raw_keyinput: u16) u16 {
-    return @truncate(types.key_mask_all & ~@as(u32, raw_keyinput));
+    return hal.input.decodeActiveLow(raw_keyinput);
 }
 
 /// Typed cross-module bridge calling indirect draw dispatch `func_0801B888` with exact ABI state.
@@ -91,7 +92,7 @@ pub fn func_0801122C() callconv(.c) void {
 
     if (poll_hw) {
         abi.fetches(8);
-        const raw_keys = mem.readU16(types.addr.reg_keyinput);
+        const raw_keys = hal.input.readRaw();
         const pressed = decodeActiveLowKeys(raw_keys);
         rt.r[0] = types.key_mask_all;
         rt.r[1] = raw_keys;
@@ -1682,12 +1683,7 @@ const FlashOpCfg = struct {
 fn writeFlashChipUnlock(cmd_aa_addr: u32, cmd_55_addr: u32, opcode: u8) void {
     const a5 = abi.read32(cmd_aa_addr);
     const a2 = abi.read32(cmd_55_addr);
-    abi.write8(a5, 0xAA);
-    abi.write8(a2, 0x55);
-    abi.write8(a5, 0x80);
-    abi.write8(a5, 0xAA);
-    abi.write8(a2, 0x55);
-    abi.write8(a5, opcode);
+    hal.save.writeFlashUnlockCmd(a5, a2, opcode);
 }
 
 fn runFlashEraseAndVerify(comptime cfg: FlashOpCfg) void {
@@ -1707,7 +1703,7 @@ fn runFlashEraseAndVerify(comptime cfg: FlashOpCfg) void {
     const mask = abi.read32(cfg.pool_mask);
     const info = abi.read16(abi.read32(abi.read32(cfg.pool_info)) +% cfg.info_off);
     abi.write16(io_ptr, @truncate((abi.read16(io_ptr) & mask) | info));
-    writeFlashChipUnlock(cfg.pool_cmd_aa, cfg.pool_cmd_55, 0x10);
+    writeFlashChipUnlock(cfg.pool_cmd_aa, cfg.pool_cmd_55, hal.save.flash_cmd_erase_chip);
 
     if (cfg.pre_setup) {
         rt.r[0] = fp +% cfg.buf_off;

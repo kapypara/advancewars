@@ -6,6 +6,7 @@ const abi = @import("abi.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
 const co = @import("co.zig");
 const dma = @import("dma.zig");
+const hal = @import("hal.zig");
 const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
@@ -33,13 +34,8 @@ const ui = @import("ui.zig");
 const unit = @import("unit.zig");
 
 /// Compute byte address and mask (`u8`) for bit `bit_idx` inside a save bitset at `base + byte_off`.
-pub inline fn bitLocation(base: u32, byte_off: u32, bit_idx: u32) struct { addr: u32, shift: u3, mask: u8 } {
-    const shift: u3 = @truncate(bit_idx & 7);
-    return .{
-        .addr = base +% byte_off +% (bit_idx >> 3),
-        .shift = shift,
-        .mask = @as(u8, 1) << shift,
-    };
+pub inline fn bitLocation(base: u32, byte_off: u32, bit_idx: u32) hal.save.BitLocation {
+    return hal.save.bitLocation(base, byte_off, bit_idx);
 }
 
 /// Pure bitset read helper (`byte & (1 << shift)`) used for native unit tests and lifted getters.
