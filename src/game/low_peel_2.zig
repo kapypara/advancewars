@@ -2886,12 +2886,6 @@ fn func_0803A6B8() callconv(.c) void {
     rt.recompReturn(rt.r[14]); return;
 }
 
-fn func_0803CF1C() callconv(.c) void {
-    if (!abi.enter(0x0803CF1C)) return;
-    abi.fetches(3);
-    rt.recompReturn(rt.r[14]); return;
-}
-
 fn func_0803D598() callconv(.c) void {
     if (!abi.enter(0x0803D598)) return;
     blk: switch (@as(u32, 0)) {
@@ -3276,25 +3270,6 @@ fn func_08047FB4() callconv(.c) void {
     rt.cpuAdd(&rt.r[0], rt.r[1], rt.r[0], true);
     abi.setRegNz(&rt.r[1], 0x0);
     abi.write8(rt.r[0] +% 0x0, @truncate(rt.r[1]));
-    rt.recompReturn(rt.r[14]); return;
-}
-
-fn func_08049000() callconv(.c) void {
-    if (!abi.enter(0x08049000)) return;
-    abi.fetches(7);
-    rt.r[2] = abi.read32(0x0804900C);
-    rt.r[2] = abi.read32(rt.r[2] +% 0x0);
-    abi.write16(rt.r[2] +% 0x1A, @truncate(rt.r[0]));
-    abi.write16(rt.r[2] +% 0x1E, @truncate(rt.r[1]));
-    rt.recompReturn(rt.r[14]); return;
-}
-
-fn func_08049010() callconv(.c) void {
-    if (!abi.enter(0x08049010)) return;
-    abi.fetches(6);
-    rt.r[0] = abi.read32(0x08049018);
-    rt.r[0] = abi.read32(rt.r[0] +% 0x0);
-    rt.r[0] = abi.read16(rt.r[0] +% 0x1A);
     rt.recompReturn(rt.r[14]); return;
 }
 
@@ -5043,7 +5018,6 @@ comptime {
         @export(&func_08039CAC, .{ .name = "func_08039CAC", .linkage = .strong });
         @export(&func_0803A6B4, .{ .name = "func_0803A6B4", .linkage = .strong });
         @export(&func_0803A6B8, .{ .name = "func_0803A6B8", .linkage = .strong });
-        @export(&func_0803CF1C, .{ .name = "func_0803CF1C", .linkage = .strong });
         @export(&func_0803D598, .{ .name = "func_0803D598", .linkage = .strong });
         @export(&func_0803DFA0, .{ .name = "func_0803DFA0", .linkage = .strong });
         @export(&func_0803E008, .{ .name = "func_0803E008", .linkage = .strong });
@@ -5060,8 +5034,6 @@ comptime {
         @export(&func_08044644, .{ .name = "func_08044644", .linkage = .strong });
         @export(&func_080468C0, .{ .name = "func_080468C0", .linkage = .strong });
         @export(&func_08047FB4, .{ .name = "func_08047FB4", .linkage = .strong });
-        @export(&func_08049000, .{ .name = "func_08049000", .linkage = .strong });
-        @export(&func_08049010, .{ .name = "func_08049010", .linkage = .strong });
         @export(&func_08049B28, .{ .name = "func_08049B28", .linkage = .strong });
         @export(&func_08049C8C, .{ .name = "func_08049C8C", .linkage = .strong });
         @export(&func_0804B250, .{ .name = "func_0804B250", .linkage = .strong });

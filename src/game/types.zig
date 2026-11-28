@@ -81,6 +81,7 @@ pub const addr = struct {
     pub const frame_input_shadow_b: u32 = 0x0300_4B54;
     pub const sin_table_q12: u32 = 0x0827_D3A8;
     pub const dma_immediate_flag: u32 = 0x0300_48C0;
+    pub const ui_dialog_state_ptr: u32 = 0x0300_48D4;
     pub const dma_queue_count: u32 = 0x0300_322C;
     pub const dma_queue_buf: u32 = 0x0201_0274;
 };

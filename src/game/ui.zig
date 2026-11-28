@@ -5,10 +5,32 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
+const types = @import("types.zig");
 
 /// Encode a 4bpp GBA screen entry `(tile_id | (hflip_pal_fields))`.
 pub inline fn encodeScreenEntry(tile: u16, pal_bank: u16, extra: u16) u16 {
     return (tile +% (pal_bank << 12)) | (extra << 10);
+}
+
+/// Write UI dialog state halfwords `+0x1A = u16(r0)` and `+0x1E = u16(r1)` (`0x08049000`).
+pub fn func_08049000() callconv(.c) void {
+    if (!abi.enter(0x08049000)) return;
+    abi.fetches(7);
+    const state_ptr = mem.readU32(types.addr.ui_dialog_state_ptr);
+    rt.r[2] = state_ptr;
+    mem.writeU16(state_ptr +% 0x1A, @truncate(rt.r[0]));
+    mem.writeU16(state_ptr +% 0x1E, @truncate(rt.r[1]));
+    abi.retLr();
+}
+
+/// Read UI dialog state halfword `+0x1A` (`0x08049010`).
+pub fn func_08049010() callconv(.c) void {
+    if (!abi.enter(0x08049010)) return;
+    abi.fetches(6);
+    const state_ptr = mem.readU32(types.addr.ui_dialog_state_ptr);
+    rt.r[0] = mem.readU16(state_ptr +% 0x1A);
+    abi.retLr();
 }
 
 fn writeTilemapScreenEntry(comptime base_pool_ref: u32) void {
@@ -9852,6 +9874,8 @@ comptime {
         @export(&func_08041BB0, .{ .name = "func_08041BB0", .linkage = .strong });
         @export(&func_080421EC, .{ .name = "func_080421EC", .linkage = .strong });
         @export(&func_08047AB0, .{ .name = "func_08047AB0", .linkage = .strong });
+        @export(&func_08049000, .{ .name = "func_08049000", .linkage = .strong });
+        @export(&func_08049010, .{ .name = "func_08049010", .linkage = .strong });
         @export(&func_0804901C, .{ .name = "func_0804901C", .linkage = .strong });
         @export(&func_0804A06C, .{ .name = "func_0804A06C", .linkage = .strong });
         @export(&func_0804A0F0, .{ .name = "func_0804A0F0", .linkage = .strong });
@@ -9901,4 +9925,5 @@ comptime {
 test "encodeScreenEntry packs tile, palette bank, and flip flags" {
     try std.testing.expectEqual(@as(u16, 0x2015), encodeScreenEntry(0x15, 2, 0));
     try std.testing.expectEqual(@as(u16, 0x2415), encodeScreenEntry(0x15, 2, 1));
+    try std.testing.expectEqual(@as(u32, 0x0300_48D4), types.addr.ui_dialog_state_ptr);
 }

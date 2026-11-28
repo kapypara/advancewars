@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
 const types = @import("types.zig");
 
 /// Compute byte address and mask (`u8`) for bit `bit_idx` inside a save bitset at `base + byte_off`.
@@ -66,6 +67,68 @@ fn readSaveUnlockBit(comptime fetches_n: u32, comptime byte_off: u32, comptime p
     rt.r[1] = loc.shift;
     rt.r[2] = byte_val;
     abi.setRegNz(&rt.r[0], res);
+    abi.retLr();
+}
+
+/// Finish campaign slide step via `0x0803B3A8` and stop proc if `+0x1E` != 0 (`0x0803B3DC`).
+pub fn func_0803B3DC() callconv(.c) void {
+    if (!abi.enter(0x0803B3DC)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.pushReg(4);
+
+    rt.r[4] = rt.r[0];
+    if (!abi.call(decls.func_0803B3A8, 0x0803B3E5)) return;
+
+    abi.fetches(6);
+    abi.setRegNz(&rt.r[1], 0x1E);
+    const flag = mem.readI16(rt.r[4] +% 0x1E);
+    rt.r[0] = @bitCast(@as(i32, flag));
+    rt.cpuSub(null, rt.r[0], 0, true);
+    if (flag != 0) {
+        abi.fetches(5);
+        abi.setRegNz(&rt.r[0], 0);
+        mem.writeU16(rt.r[4] +% 0x1E, 0);
+        mem.writeU32(rt.r[4] +% 0x8, 0);
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Decrement campaign scroll coordinate `+0x20` by 8, clamping at `0x82` (`0x0803B3F8`).
+pub fn func_0803B3F8() callconv(.c) void {
+    if (!abi.enter(0x0803B3F8)) return;
+    abi.fetches(11);
+    abi.pushLr();
+
+    const slot = rt.r[0];
+    rt.cpuAdd(&rt.r[1], slot, 0, true);
+    const next_u16: u16 = mem.readU16(slot +% 0x20) -% 8;
+    mem.writeU16(slot +% 0x20, next_u16);
+    const next_s16: i16 = @bitCast(next_u16);
+    abi.setRegNz(&rt.r[0], @bitCast(@as(i32, next_s16)));
+    rt.cpuSub(null, rt.r[0], 0x81, true);
+    if (next_s16 <= 0x81) {
+        abi.fetches(6);
+        mem.writeU16(slot +% 0x20, 0x82);
+        abi.setRegNz(&rt.r[0], 0);
+        mem.writeU32(slot +% 0x8, 0);
+    }
+
+    abi.fetches(5);
+    rt.cpuAdd(&rt.r[0], rt.r[1], 0, true);
+    if (!abi.call(decls.func_0803B3A8, 0x0803B419)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Campaign/map flow callback no-op (`0x0803CF1C`).
+pub fn func_0803CF1C() callconv(.c) void {
+    if (!abi.enter(0x0803CF1C)) return;
+    abi.fetches(3);
     abi.retLr();
 }
 
@@ -2085,7 +2148,10 @@ comptime {
         @export(&func_08040310, .{ .name = "func_08040310", .linkage = .strong });
         @export(&func_0803B350, .{ .name = "func_0803B350", .linkage = .strong });
         @export(&func_0803B368, .{ .name = "func_0803B368", .linkage = .strong });
+        @export(&func_0803B3DC, .{ .name = "func_0803B3DC", .linkage = .strong });
+        @export(&func_0803B3F8, .{ .name = "func_0803B3F8", .linkage = .strong });
         @export(&func_0803B4D8, .{ .name = "func_0803B4D8", .linkage = .strong });
+        @export(&func_0803CF1C, .{ .name = "func_0803CF1C", .linkage = .strong });
         @export(&func_0803BAA0, .{ .name = "func_0803BAA0", .linkage = .strong });
         @export(&func_0803C6F0, .{ .name = "func_0803C6F0", .linkage = .strong });
         @export(&func_0803C878, .{ .name = "func_0803C878", .linkage = .strong });
