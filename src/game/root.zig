@@ -68,6 +68,7 @@ pub const hi_cluster_5 = @import("hi_cluster_5.zig");
 pub const hi_cluster_6 = @import("hi_cluster_6.zig");
 pub const hi_cluster_7 = @import("hi_cluster_7.zig");
 pub const hi_cluster_8 = @import("hi_cluster_8.zig");
+pub const hi_blobs = @import("hi_blobs.zig");
 
 comptime {
     _ = abi;
@@ -136,6 +137,7 @@ comptime {
     _ = hi_cluster_6;
     _ = hi_cluster_7;
     _ = hi_cluster_8;
+    _ = hi_blobs;
 }
 
 test {
@@ -205,4 +207,5 @@ test {
     _ = hi_cluster_6;
     _ = hi_cluster_7;
     _ = hi_cluster_8;
+    _ = hi_blobs;
 }
