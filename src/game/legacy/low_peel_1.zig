@@ -2,14 +2,14 @@
 
 const std = @import("std");
 const rt = @import("runtime");
-const abi = @import("abi.zig");
-const dispatch = @import("dispatch.zig");
-const dma = @import("dma.zig");
-const hw = @import("hw.zig");
+const abi = @import("../abi.zig");
+const dispatch = @import("../dispatch.zig");
+const dma = @import("../dma.zig");
+const hw = @import("../hw.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_6 = @import("low_peel_6.zig");
-const sprite_anim = @import("sprite_anim.zig");
+const sprite_anim = @import("../sprite_anim.zig");
 
 fn pushRegs(comptime regs: []const u5) void {
     inline for (0..regs.len) |i| {

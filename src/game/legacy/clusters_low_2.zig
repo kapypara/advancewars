@@ -2,17 +2,17 @@
 
 const std = @import("std");
 const rt = @import("runtime");
-const abi = @import("abi.zig");
-const bios = @import("bios.zig");
+const abi = @import("../abi.zig");
+const bios = @import("../bios.zig");
 const clusters_low = @import("clusters_low.zig");
-const dma = @import("dma.zig");
-const hw = @import("hw.zig");
+const dma = @import("../dma.zig");
+const hw = @import("../hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_13 = @import("low_peel_13.zig");
 const low_peel_6 = @import("low_peel_6.zig");
-const proc = @import("proc.zig");
-const sprite_anim = @import("sprite_anim.zig");
-const state = @import("state.zig");
+const proc = @import("../proc.zig");
+const sprite_anim = @import("../sprite_anim.zig");
+const state = @import("../state.zig");
 const tail_low = @import("tail_low.zig");
 
 fn pushRegs(comptime regs: []const u5) void {

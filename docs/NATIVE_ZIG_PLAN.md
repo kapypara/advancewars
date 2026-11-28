@@ -92,7 +92,7 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
 ## Phase 6 — Proper Architectural Layering & Legacy Quarantine
 - **Objective:** Separate clean HAL, engine/runtime, gameplay, and quarantined legacy ARM-register shards into clear directories and focused modules.
   - [x] **6A — Modular `src/game/hal/` Submodules ([hal.zig](file:///home/moon/Projects/zig/advancewars/src/game/hal.zig), `src/game/hal/{bios,input,save,dma,audio,video}.zig`):** Split monolithic `hal.zig` into 6 focused HAL submodules behind a clean barrel re-export (`hal.zig`) with per-module unit tests.
-  - [ ] **6B — Quarantine Legacy Recomp Shards (`src/game/legacy/`):** Move the `22` un-lifted recompilation shards (`low_peel_1..19`, `clusters_low*`, `tail_low`) into `src/game/legacy/` so clean engine/gameplay modules are architecturally separated from raw ARM-register code.
+  - [x] **6B — Quarantine Legacy Recomp Shards (`src/game/legacy/`):** Moved the `22` un-lifted recompilation shards (`low_peel_1..19`, `clusters_low`, `clusters_low_2`, `tail_low`) into `src/game/legacy/` and rewired module imports so clean top-level files (`24` files + `hal/`) are architecturally separated from raw ARM-register code.
   - [ ] **6C — Split `src/runtime.zig` into Focused Runtime Modules:** Separate CPU register state, memory bus, and frame/IRQ scheduler out of [runtime.zig](file:///home/moon/Projects/zig/advancewars/src/runtime.zig).
 
 ## Phase 7 — Comptime Dual-Backend HAL (`Native` vs `GBA_VALIDATE`)

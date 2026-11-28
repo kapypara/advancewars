@@ -2,13 +2,13 @@
 
 const std = @import("std");
 const rt = @import("runtime");
-const abi = @import("abi.zig");
-const battle = @import("battle.zig");
-const campaign = @import("campaign.zig");
+const abi = @import("../abi.zig");
+const battle = @import("../battle.zig");
+const campaign = @import("../campaign.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
-const dispatch = @import("dispatch.zig");
-const dma = @import("dma.zig");
-const hw = @import("hw.zig");
+const dispatch = @import("../dispatch.zig");
+const dma = @import("../dma.zig");
+const hw = @import("../hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_12 = @import("low_peel_12.zig");
@@ -23,13 +23,13 @@ const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_7 = @import("low_peel_7.zig");
 const low_peel_8 = @import("low_peel_8.zig");
 const low_peel_9 = @import("low_peel_9.zig");
-const main_loop = @import("main_loop.zig");
-const math = @import("math.zig");
-const proc = @import("proc.zig");
-const sound = @import("sound.zig");
-const sprite_anim = @import("sprite_anim.zig");
+const main_loop = @import("../main_loop.zig");
+const math = @import("../math.zig");
+const proc = @import("../proc.zig");
+const sound = @import("../sound.zig");
+const sprite_anim = @import("../sprite_anim.zig");
 const tail_low = @import("tail_low.zig");
-const ui = @import("ui.zig");
+const ui = @import("../ui.zig");
 
 fn pushRegs(comptime regs: []const u5) void {
     inline for (0..regs.len) |i| {

@@ -6,8 +6,8 @@ const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hal = @import("hal.zig");
 const hw = @import("hw.zig");
-const low_peel_3 = @import("low_peel_3.zig");
-const low_peel_6 = @import("low_peel_6.zig");
+const low_peel_3 = @import("legacy/low_peel_3.zig");
+const low_peel_6 = @import("legacy/low_peel_6.zig");
 const types = @import("types.zig");
 
 /// Convert a byte count (`u16`) to halfword transfer count (`>> 1`) for `CpuSet`.

@@ -5,10 +5,10 @@ const rt = @import("runtime");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hw = @import("hw.zig");
-const low_peel_13 = @import("low_peel_13.zig");
-const low_peel_17 = @import("low_peel_17.zig");
-const low_peel_18 = @import("low_peel_18.zig");
-const low_peel_2 = @import("low_peel_2.zig");
+const low_peel_13 = @import("legacy/low_peel_13.zig");
+const low_peel_17 = @import("legacy/low_peel_17.zig");
+const low_peel_18 = @import("legacy/low_peel_18.zig");
+const low_peel_2 = @import("legacy/low_peel_2.zig");
 const types = @import("types.zig");
 
 /// Advance the Advance Wars 32-bit PRNG state: `((4*s + 2) * (4*s + 3)) >> 2`.

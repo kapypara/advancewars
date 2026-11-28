@@ -2,12 +2,12 @@
 
 const std = @import("std");
 const rt = @import("runtime");
-const abi = @import("abi.zig");
+const abi = @import("../abi.zig");
 const clusters_low = @import("clusters_low.zig");
 const clusters_low_2 = @import("clusters_low_2.zig");
-const dispatch = @import("dispatch.zig");
-const hal = @import("hal.zig");
-const hw = @import("hw.zig");
+const dispatch = @import("../dispatch.zig");
+const hal = @import("../hal.zig");
+const hw = @import("../hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_12 = @import("low_peel_12.zig");
@@ -22,10 +22,10 @@ const low_peel_6 = @import("low_peel_6.zig");
 const low_peel_7 = @import("low_peel_7.zig");
 const low_peel_8 = @import("low_peel_8.zig");
 const low_peel_9 = @import("low_peel_9.zig");
-const math = @import("math.zig");
-const menu = @import("menu.zig");
-const sprite_anim = @import("sprite_anim.zig");
-const ui = @import("ui.zig");
+const math = @import("../math.zig");
+const menu = @import("../menu.zig");
+const sprite_anim = @import("../sprite_anim.zig");
+const ui = @import("../ui.zig");
 
 /// Typed cross-module bridge calling indirect branch trampoline `__call_via_r4` (`func_0807B45C`).
 pub inline fn callViaR4Call(comptime ret_addr: u32) bool {

@@ -3,16 +3,16 @@
 const std = @import("std");
 const rt = @import("runtime");
 const abi = @import("abi.zig");
-const clusters_low = @import("clusters_low.zig");
+const clusters_low = @import("legacy/clusters_low.zig");
 const dma = @import("dma.zig");
 const hal = @import("hal.zig");
-const low_peel_1 = @import("low_peel_1.zig");
-const low_peel_10 = @import("low_peel_10.zig");
-const low_peel_3 = @import("low_peel_3.zig");
-const low_peel_6 = @import("low_peel_6.zig");
+const low_peel_1 = @import("legacy/low_peel_1.zig");
+const low_peel_10 = @import("legacy/low_peel_10.zig");
+const low_peel_3 = @import("legacy/low_peel_3.zig");
+const low_peel_6 = @import("legacy/low_peel_6.zig");
 const mem = @import("mem.zig");
 const proc = @import("proc.zig");
-const tail_low = @import("tail_low.zig");
+const tail_low = @import("legacy/tail_low.zig");
 const types = @import("types.zig");
 
 /// Typed cross-module bridge spawning a sprite animator (`func_08012A68`).
