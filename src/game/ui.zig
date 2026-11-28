@@ -18,6 +18,7 @@ const proc_mod = @import("proc.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state_mod = @import("state.zig");
+const tail_low = @import("tail_low.zig");
 const turn = @import("turn.zig");
 const types = @import("types.zig");
 const unit = @import("unit.zig");
@@ -1781,7 +1782,7 @@ pub fn func_0803EE30() callconv(.c) void {
     rt.r[0] = abi.read32(entry +% 0x10);
     abi.setRegNz(&rt.r[1], 1);
     rt.r[2] = abi.read32(entry +% 0xC);
-    if (!abi.call(decls.func_0807B454, 0x0803EE53)) return;
+    if (!abi.call(tail_low.func_0807B454, 0x0803EE53)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -3410,7 +3411,7 @@ pub fn func_0801862C() callconv(.c) void {
     abi.write16(base +% row +% 0x40, t1);
     rt.r[4] = abi.read32(0x08018670);
     rt.r[0] = abi.read32(obj +% 0x2C);
-    if (!abi.call(decls.func_0807B44C, 0x08018669)) return;
+    if (!abi.call(tail_low.func_0807B44C, 0x08018669)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -3715,7 +3716,7 @@ pub fn func_080275EC() callconv(.c) void {
     rt.r[1] = abi.read32(0x0802761C);
     abi.write32(saved +% 8, rt.r[1]);
     rt.r[0] = saved;
-    if (!abi.call(decls.func_0807B450, 0x08027611)) return;
+    if (!abi.call(tail_low.func_0807B450, 0x08027611)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -7248,7 +7249,7 @@ pub fn func_08075EB8() callconv(.c) void {
     if (!abi.call(decls.func_08011660, 0x08075ED7)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080796A4, 0x08075EDB)) return;
+    if (!abi.call(tail_low.func_080796A4, 0x08075EDB)) return;
     abi.fetches(4);
     if (!abi.call(hw.func_080112C0, 0x08075EDF)) return;
 
@@ -9235,7 +9236,7 @@ pub fn func_08075968() callconv(.c) void {
     rt.updateNz(rt.r[0]);
     if (!abi.call(decls.func_080116D8, 0x080759C9)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080796A4, 0x080759CD)) return;
+    if (!abi.call(tail_low.func_080796A4, 0x080759CD)) return;
     abi.fetches(4);
     if (!abi.call(hw.func_080112C0, 0x080759D1)) return;
 

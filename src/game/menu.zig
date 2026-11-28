@@ -16,6 +16,7 @@ const mem = @import("mem.zig");
 const proc = @import("proc.zig");
 const sound = @import("sound.zig");
 const state = @import("state.zig");
+const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 const ui = @import("ui.zig");
 const unit = @import("unit.zig");
@@ -3128,7 +3129,7 @@ pub fn func_08074CA8() callconv(.c) void {
     if (!abi.call(decls.func_0801153C, 0x08074D17)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080796A4, 0x08074D1B)) return;
+    if (!abi.call(tail_low.func_080796A4, 0x08074D1B)) return;
 
     abi.fetches(11);
     rt.r[0] = 0x80;

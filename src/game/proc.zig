@@ -13,6 +13,7 @@ const menu = @import("menu.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
+const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 const unit = @import("unit.zig");
 
@@ -52,7 +53,7 @@ pub fn func_08013984() callconv(.c) void {
         if (on_idle != 0) {
             abi.fetches(5);
             rt.r[0] = slot_addr;
-            if (!abi.call(decls.func_0807B450, 0x080139BD)) return;
+            if (!abi.call(tail_low.func_0807B450, 0x080139BD)) return;
         }
         abi.fetches(5);
         rt.r[0] = slot_idx;
@@ -613,7 +614,7 @@ pub fn func_08010F04() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(rt.r[0] +% 0x18);
-    if (!abi.call(decls.func_0807B44C, 0x08010F0D)) return;
+    if (!abi.call(tail_low.func_0807B44C, 0x08010F0D)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -811,7 +812,7 @@ fn attachCutsceneWaitCb(
     rt.r[0] = slot_ptr;
     rt.r[1] = cb_ptr;
     rt.r[2] = cb_fn;
-    if (!abi.call(decls.func_0807B454, ret_addr)) return;
+    if (!abi.call(tail_low.func_0807B454, ret_addr)) return;
 
     abi.fetches(9);
     abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
@@ -1097,7 +1098,7 @@ pub fn func_08011060() callconv(.c) void {
 
     abi.fetches(5);
     rt.r[4] = rt.r[0];
-    if (!abi.call(decls.func_0807B460, 0x0801107B)) return;
+    if (!abi.call(tail_low.func_0807B460, 0x0801107B)) return;
 
     abi.fetches(10);
     abi.write32(rt.r[4] +% 0x20, rt.r[6]);

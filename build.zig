@@ -68,6 +68,7 @@ fn isStandaloneGameFile(name: []const u8) bool {
         "ui.zig",
         "unit.zig",
         "battle.zig",
+        "tail_low.zig",
     };
     for (skip) |s| {
         if (std.mem.eql(u8, name, s)) return false;

@@ -1,9 +1,15 @@
 //! Low-ROM (`< 0x08080000`) branching, main loop, and tail-call dispatchers.
 
+const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const hw = @import("hw.zig");
+const math = @import("math.zig");
+const menu = @import("menu.zig");
+const sprite_anim = @import("sprite_anim.zig");
+const ui = @import("ui.zig");
 
 fn bxReg(addr: u32, comptime reg: u5) void {
     if (!abi.enter(addr)) return;
@@ -75,105 +81,105 @@ fn callCheckJumpTarget(comptime target: fn () callconv(.c) void, lr: u32, jump_p
     return .next;
 }
 
-fn func_0800F8FA() callconv(.c) void { bxReg(0x0800F8FA, 0); }
-fn func_0800FCF8() callconv(.c) void { bxReg(0x0800FCF8, 0); }
-fn func_08010970() callconv(.c) void { bxReg(0x08010970, 0); }
-fn func_0801FFFC() callconv(.c) void { bxReg(0x0801FFFC, 0); }
-fn func_0802F9FC() callconv(.c) void { bxReg(0x0802F9FC, 0); }
-fn func_08030004() callconv(.c) void { bxReg(0x08030004, 1); }
-fn func_0803008C() callconv(.c) void { bxReg(0x0803008C, 0); }
-fn func_0803FCF6() callconv(.c) void { bxReg(0x0803FCF6, 0); }
-fn func_0803FD02() callconv(.c) void { bxReg(0x0803FD02, 0); }
-fn func_0803FD1A() callconv(.c) void { bxReg(0x0803FD1A, 0); }
-fn func_0804FA04() callconv(.c) void { bxReg(0x0804FA04, 0); }
-fn func_080779D2() callconv(.c) void { bxReg(0x080779D2, 3); }
-fn func_08077EA0() callconv(.c) void { bxReg(0x08077EA0, 3); }
+pub fn func_0800F8FA() callconv(.c) void { bxReg(0x0800F8FA, 0); }
+pub fn func_0800FCF8() callconv(.c) void { bxReg(0x0800FCF8, 0); }
+pub fn func_08010970() callconv(.c) void { bxReg(0x08010970, 0); }
+pub fn func_0801FFFC() callconv(.c) void { bxReg(0x0801FFFC, 0); }
+pub fn func_0802F9FC() callconv(.c) void { bxReg(0x0802F9FC, 0); }
+pub fn func_08030004() callconv(.c) void { bxReg(0x08030004, 1); }
+pub fn func_0803008C() callconv(.c) void { bxReg(0x0803008C, 0); }
+pub fn func_0803FCF6() callconv(.c) void { bxReg(0x0803FCF6, 0); }
+pub fn func_0803FD02() callconv(.c) void { bxReg(0x0803FD02, 0); }
+pub fn func_0803FD1A() callconv(.c) void { bxReg(0x0803FD1A, 0); }
+pub fn func_0804FA04() callconv(.c) void { bxReg(0x0804FA04, 0); }
+pub fn func_080779D2() callconv(.c) void { bxReg(0x080779D2, 3); }
+pub fn func_08077EA0() callconv(.c) void { bxReg(0x08077EA0, 3); }
 /// GCC `__call_via_r0`..`__call_via_ip` indirect branch trampolines (`func_0807B44C` accounts for ~32.6% of dynamic calls).
-fn func_0807B44C() callconv(.c) void { bxReg(0x0807B44C, 0); }
-fn func_0807B450() callconv(.c) void { bxReg(0x0807B450, 1); }
-fn func_0807B454() callconv(.c) void { bxReg(0x0807B454, 2); }
-fn func_0807B458() callconv(.c) void { bxReg(0x0807B458, 3); }
-fn func_0807B45C() callconv(.c) void { bxReg(0x0807B45C, 4); }
-fn func_0807B460() callconv(.c) void { bxReg(0x0807B460, 5); }
-fn func_0807B464() callconv(.c) void { bxReg(0x0807B464, 6); }
-fn func_0807B46C() callconv(.c) void { bxReg(0x0807B46C, 8); }
-fn func_0807B47C() callconv(.c) void { bxReg(0x0807B47C, 12); }
+pub fn func_0807B44C() callconv(.c) void { bxReg(0x0807B44C, 0); }
+pub fn func_0807B450() callconv(.c) void { bxReg(0x0807B450, 1); }
+pub fn func_0807B454() callconv(.c) void { bxReg(0x0807B454, 2); }
+pub fn func_0807B458() callconv(.c) void { bxReg(0x0807B458, 3); }
+pub fn func_0807B45C() callconv(.c) void { bxReg(0x0807B45C, 4); }
+pub fn func_0807B460() callconv(.c) void { bxReg(0x0807B460, 5); }
+pub fn func_0807B464() callconv(.c) void { bxReg(0x0807B464, 6); }
+pub fn func_0807B46C() callconv(.c) void { bxReg(0x0807B46C, 8); }
+pub fn func_0807B47C() callconv(.c) void { bxReg(0x0807B47C, 12); }
 
-fn func_080385C8() callconv(.c) void {
+pub fn func_080385C8() callconv(.c) void {
     if (!abi.enter(0x080385C8)) return;
     while (true) {
         abi.fetches(3);
     }
 }
 
-fn func_080796A4() callconv(.c) void { tailCall0(0x080796A4, decls.func_080796A8); }
-fn func_080796AC() callconv(.c) void { tailCall0(0x080796AC, decls.func_080796B0); }
-fn func_080796B4() callconv(.c) void { tailCall0(0x080796B4, decls.func_080796B8); }
+pub fn func_080796A4() callconv(.c) void { tailCall0(0x080796A4, decls.func_080796A8); }
+pub fn func_080796AC() callconv(.c) void { tailCall0(0x080796AC, decls.func_080796B0); }
+pub fn func_080796B4() callconv(.c) void { tailCall0(0x080796B4, decls.func_080796B8); }
 
-fn func_080775A0() callconv(.c) void {
+pub fn func_080775A0() callconv(.c) void {
     if (!abi.enter(0x080775A0)) return;
     abi.fetches(4);
     rt.r[2] = 0x080775A4;
     decls.awre_cpu_bx(0x080775A4);
 }
 
-fn func_0800F2C2() callconv(.c) void {
+pub fn func_0800F2C2() callconv(.c) void {
     if (!abi.enter(0x0800F2C2)) return;
     abi.fetches(3);
     rt.updateNz(rt.r[0]);
     decls.func_0800F2C4();
 }
 
-fn func_0800F7F6() callconv(.c) void {
+pub fn func_0800F7F6() callconv(.c) void {
     if (!abi.enter(0x0800F7F6)) return;
     abi.fetches(3);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
     decls.func_0800F7F8();
 }
 
-fn func_08020704() callconv(.c) void {
+pub fn func_08020704() callconv(.c) void {
     if (!abi.enter(0x08020704)) return;
     abi.fetches(5);
     _ = abi.read8(rt.r[1] +% rt.r[5]);
     abi.setRegNz(&rt.r[0], 0);
 }
 
-fn func_0803E9EE() callconv(.c) void {
+pub fn func_0803E9EE() callconv(.c) void {
     if (!abi.enter(0x0803E9EE)) return;
     abi.fetches(3);
     rt.updateNz(rt.r[0]);
     decls.func_0803E9F0();
 }
 
-fn func_0804F7FE() callconv(.c) void {
+pub fn func_0804F7FE() callconv(.c) void {
     if (!abi.enter(0x0804F7FE)) return;
     abi.fetches(3);
     abi.setRegNz(&rt.r[0], 0);
-    decls.func_0804F800();
+    ui.func_0804F800();
 }
 
-fn func_08060706() callconv(.c) void {
+pub fn func_08060706() callconv(.c) void {
     if (!abi.enter(0x08060706)) return;
     abi.fetches(3);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
     decls.func_08060708();
 }
 
-fn func_0806F426() callconv(.c) void {
+pub fn func_0806F426() callconv(.c) void {
     if (!abi.enter(0x0806F426)) return;
     abi.fetches(3);
     rt.updateNz(rt.r[0]);
-    decls.func_0806F428();
+    ui.func_0806F428();
 }
 
-fn func_080702FA() callconv(.c) void {
+pub fn func_080702FA() callconv(.c) void {
     if (!abi.enter(0x080702FA)) return;
     abi.fetches(3);
     abi.setRegNz(&rt.r[3], 0);
-    decls.func_080702FC();
+    hw.func_080702FC();
 }
 
-fn func_0806F2F4() callconv(.c) void {
+pub fn func_0806F2F4() callconv(.c) void {
     if (!abi.enter(0x0806F2F4)) return;
     abi.fetches(4);
     abi.write32(rt.r[13] +% 0x230, rt.r[1]);
@@ -181,7 +187,7 @@ fn func_0806F2F4() callconv(.c) void {
     decls.func_0806F2F8();
 }
 
-fn func_080055A8() callconv(.c) void {
+pub fn func_080055A8() callconv(.c) void {
     if (!abi.enter(0x080055A8)) return;
     abi.fetches(4);
     rt.updateNz(rt.r[1] << 14);
@@ -189,7 +195,7 @@ fn func_080055A8() callconv(.c) void {
     decls.func_080055AC();
 }
 
-fn func_0800FC10() callconv(.c) void {
+pub fn func_0800FC10() callconv(.c) void {
     if (!abi.enter(0x0800FC10)) return;
     abi.fetches(6);
     rt.cpuAdd(&rt.r[3], rt.r[3], 0x90, true);
@@ -199,7 +205,7 @@ fn func_0800FC10() callconv(.c) void {
     decls.func_0800FC18();
 }
 
-fn func_08011636() callconv(.c) void {
+pub fn func_08011636() callconv(.c) void {
     if (!abi.enter(0x08011636)) return;
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
@@ -208,14 +214,14 @@ fn func_08011636() callconv(.c) void {
     decls.func_0801163C();
 }
 
-fn func_08060A16() callconv(.c) void {
+pub fn func_08060A16() callconv(.c) void {
     if (!abi.enter(0x08060A16)) return;
     abi.fetches(7);
     abi.write32(rt.r[7] +% rt.r[6], rt.r[0]);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
 }
 
-fn func_0800EE12() callconv(.c) void {
+pub fn func_0800EE12() callconv(.c) void {
     if (!abi.enter(0x0800EE12)) return;
     abi.fetches(7);
     rt.r[10] = 0;
@@ -224,7 +230,7 @@ fn func_0800EE12() callconv(.c) void {
     decls.func_0800EE1C();
 }
 
-fn func_0801BCB4() callconv(.c) void {
+pub fn func_0801BCB4() callconv(.c) void {
     if (!abi.enter(0x0801BCB4)) return;
     abi.fetches(8);
     rt.r[13] -%= 8;
@@ -237,10 +243,10 @@ fn func_0801BCB4() callconv(.c) void {
     _ = rt.recompCalled(0x0801BCC0);
 }
 
-fn func_08077B00() callconv(.c) void { writeUnpackFieldByte(0x08077B00, 0x08077B07, 0x1D); }
-fn func_08077BB4() callconv(.c) void { writeUnpackFieldByte(0x08077BB4, 0x08077BBB, 0x1B); }
+pub fn func_08077B00() callconv(.c) void { writeUnpackFieldByte(0x08077B00, 0x08077B07, 0x1D); }
+pub fn func_08077BB4() callconv(.c) void { writeUnpackFieldByte(0x08077BB4, 0x08077BBB, 0x1B); }
 
-fn func_080796F0() callconv(.c) void {
+pub fn func_080796F0() callconv(.c) void {
     if (!abi.enter(0x080796F0)) return;
     abi.fetches(8);
     rt.r[3] = abi.read32(0x08079700);
@@ -253,17 +259,17 @@ fn func_080796F0() callconv(.c) void {
     abi.swi(0x00);
 }
 
-fn func_0800F710() callconv(.c) void {
+pub fn func_0800F710() callconv(.c) void {
     if (!abi.enter(0x0800F710)) return;
     abi.fetches(8);
     abi.setRegNz(&rt.r[4], rt.r[0] >> 19);
     rt.r[0] = (rt.r[2] >> 24) << 12;
     rt.cpuAdd(&rt.r[3], rt.r[3], 0x88, true);
     abi.setRegNz(&rt.r[0], rt.r[0] << 12);
-    decls.func_0800F71C();
+    menu.func_0800F71C();
 }
 
-fn func_0805F70E() callconv(.c) void {
+pub fn func_0805F70E() callconv(.c) void {
     if (!abi.enter(0x0805F70E)) return;
     abi.fetches(9);
     rt.cpuSub(null, rt.r[4], 0xB8, true);
@@ -273,7 +279,7 @@ fn func_0805F70E() callconv(.c) void {
     decls.func_0805F71C();
 }
 
-fn func_08033374() callconv(.c) void {
+pub fn func_08033374() callconv(.c) void {
     if (!abi.enter(0x08033374)) return;
     abi.fetches(10);
     rt.cpuSub(null, rt.r[4], 0xB8, true);
@@ -282,14 +288,14 @@ fn func_08033374() callconv(.c) void {
     rt.r[1] = 0;
     rt.cpuSub(&rt.r[0], rt.r[2], rt.r[2], true);
     abi.setRegNz(&rt.r[0], 0);
-    decls.func_08033384();
+    ui.func_08033384();
 }
 
-fn func_08077B20() callconv(.c) void { writeUnpackFlagsByte(0x08077B20, 0x08077B27, false, 0xA, 0xC); }
-fn func_08077B64() callconv(.c) void { writeUnpackFlagsByte(0x08077B64, 0x08077B6B, false, 0x12, 0x3); }
-fn func_08077BA0() callconv(.c) void { writeUnpackFlagsByte(0x08077BA0, 0x08077BA7, false, 0xF, 0xC); }
+pub fn func_08077B20() callconv(.c) void { writeUnpackFlagsByte(0x08077B20, 0x08077B27, false, 0xA, 0xC); }
+pub fn func_08077B64() callconv(.c) void { writeUnpackFlagsByte(0x08077B64, 0x08077B6B, false, 0x12, 0x3); }
+pub fn func_08077BA0() callconv(.c) void { writeUnpackFlagsByte(0x08077BA0, 0x08077BA7, false, 0xF, 0xC); }
 
-fn func_0800BBEC() callconv(.c) void {
+pub fn func_0800BBEC() callconv(.c) void {
     if (!abi.enter(0x0800BBEC)) return;
     abi.fetches(10);
     abi.setRegNz(&rt.r[1], (rt.r[6] << 2) << 8);
@@ -300,7 +306,7 @@ fn func_0800BBEC() callconv(.c) void {
     decls.func_0800BBFC();
 }
 
-fn func_0802FDF8() callconv(.c) void {
+pub fn func_0802FDF8() callconv(.c) void {
     if (!abi.enter(0x0802FDF8)) return;
     abi.fetches(10);
     rt.cpuAdd(&rt.r[0], rt.r[1], 5, true);
@@ -310,7 +316,7 @@ fn func_0802FDF8() callconv(.c) void {
     decls.func_0802FE08();
 }
 
-fn func_08061114() callconv(.c) void {
+pub fn func_08061114() callconv(.c) void {
     if (!abi.enter(0x08061114)) return;
     abi.fetches(13);
     rt.cpuAdd(&rt.r[6], rt.r[6], 0, true);
@@ -322,11 +328,11 @@ fn func_08061114() callconv(.c) void {
     abi.setRegNz(&rt.r[0], 0);
 }
 
-fn func_08077B78() callconv(.c) void { writeUnpackFlagsByte(0x08077B78, 0x08077B7F, true, 0x14, 0x3); }
-fn func_08077B8C() callconv(.c) void { writeUnpackFlagsByte(0x08077B8C, 0x08077B93, true, 0xE, 0xC); }
-fn func_08077BD8() callconv(.c) void { writeUnpackFlagsByte(0x08077BD8, 0x08077BDF, true, 0xC, 0xC); }
+pub fn func_08077B78() callconv(.c) void { writeUnpackFlagsByte(0x08077B78, 0x08077B7F, true, 0x14, 0x3); }
+pub fn func_08077B8C() callconv(.c) void { writeUnpackFlagsByte(0x08077B8C, 0x08077B93, true, 0xE, 0xC); }
+pub fn func_08077BD8() callconv(.c) void { writeUnpackFlagsByte(0x08077BD8, 0x08077BDF, true, 0xC, 0xC); }
 
-fn func_08077BEC() callconv(.c) void {
+pub fn func_08077BEC() callconv(.c) void {
     if (!abi.enter(0x08077BEC)) return;
     abi.fetches(10);
     rt.r[12] = rt.r[14];
@@ -343,7 +349,7 @@ fn func_08077BEC() callconv(.c) void {
     decls.awre_cpu_bx(rt.r[12]);
 }
 
-fn func_08077B0C() callconv(.c) void {
+pub fn func_08077B0C() callconv(.c) void {
     if (!abi.enter(0x08077B0C)) return;
     abi.fetches(5);
     rt.r[12] = rt.r[14];
@@ -360,7 +366,7 @@ fn func_08077B0C() callconv(.c) void {
     decls.awre_cpu_bx(rt.r[12]);
 }
 
-fn func_08077A40() callconv(.c) void {
+pub fn func_08077A40() callconv(.c) void {
     if (!abi.enter(0x08077A40)) return;
     abi.fetches(5);
     rt.r[12] = rt.r[14];
@@ -381,7 +387,7 @@ fn func_08077A40() callconv(.c) void {
     decls.awre_cpu_bx(rt.r[12]);
 }
 
-fn func_0807C49E() callconv(.c) void {
+pub fn func_0807C49E() callconv(.c) void {
     if (!abi.enter(0x0807C49E)) return;
     abi.fetches(15);
     pushRegs(&.{ 4, 14 });
@@ -404,7 +410,7 @@ fn func_0807C49E() callconv(.c) void {
     decls.awre_cpu_bx(rt.r[3]);
 }
 
-fn func_08077A5A() callconv(.c) void {
+pub fn func_08077A5A() callconv(.c) void {
     if (!abi.enter(0x08077A5A)) return;
     abi.fetches(5);
     pushRegs(&.{0});
@@ -430,7 +436,7 @@ fn func_08077A5A() callconv(.c) void {
     rt.recompReturn(rt.r[14]);
 }
 
-fn func_08077B34() callconv(.c) void {
+pub fn func_08077B34() callconv(.c) void {
     if (!abi.enter(0x08077B34)) return;
     abi.fetches(15);
     rt.r[12] = rt.r[14];
@@ -457,13 +463,13 @@ fn func_08077B34() callconv(.c) void {
     decls.awre_cpu_bx(rt.r[12]);
 }
 
-fn func_08059DD4() callconv(.c) void {
+pub fn func_08059DD4() callconv(.c) void {
     if (!abi.enter(0x08059DD4)) return;
     abi.fetches(5);
     abi.pushLr();
     const init_seq = .{
         .{ &decls.func_0807B434, @as(u32, 0x08059DDB) },
-        .{ &decls.func_08010544, @as(u32, 0x08059DDF) },
+        .{ &hw.func_08010544, @as(u32, 0x08059DDF) },
         .{ &decls.func_08010574, @as(u32, 0x08059DE3) },
         .{ &decls.func_0800FD54, @as(u32, 0x08059DE7) },
         .{ &decls.func_080130A0, @as(u32, 0x08059DEB) },
@@ -479,7 +485,7 @@ fn func_08059DD4() callconv(.c) void {
 
     while (true) {
         const frame_seq = .{
-            .{ &decls.func_08014B3C, @as(u32, 0x08059DF7) },
+            .{ &sprite_anim.func_08014B3C, @as(u32, 0x08059DF7) },
             .{ &decls.func_080138F8, @as(u32, 0x08059DFB) },
             .{ &decls.func_0801A0A8, @as(u32, 0x08059DFF) },
             .{ &decls.func_0807AD88, @as(u32, 0x08059E03) },
@@ -494,7 +500,7 @@ fn func_08059DD4() callconv(.c) void {
     }
 }
 
-fn func_0800020C() callconv(.c) void {
+pub fn func_0800020C() callconv(.c) void {
     if (!abi.enter(0x0800020C)) return;
     abi.fetches(8);
     abi.pushLr();
@@ -557,7 +563,7 @@ fn func_0800020C() callconv(.c) void {
     rt.recompReturn(lr);
 }
 
-fn func_080642C8() callconv(.c) void {
+pub fn func_080642C8() callconv(.c) void {
     if (!abi.enter(0x080642C8)) return;
     blk: switch (@as(u32, 0)) {
         0 => {
@@ -680,7 +686,7 @@ fn func_080642C8() callconv(.c) void {
             rt.r[4] = abi.read8(rt.r[4] +% 2);
             rt.r[6] = abi.read32(0x080643C0);
             rt.r[7] = abi.read8(s_ptr +% 1);
-            switch (callCheckJumpTarget(decls.func_08010A84, 0x080643A1, 0x080643CF)) {
+            switch (callCheckJumpTarget(math.func_08010A84, 0x080643A1, 0x080643CF)) {
                 .jumped => continue :blk 14,
                 .ret => return,
                 .next => continue :blk 9,
@@ -690,7 +696,7 @@ fn func_080642C8() callconv(.c) void {
             abi.fetches(6);
             rt.r[4] = abi.read32(rt.r[5]);
             abi.setRegNz(&rt.r[1], 0x64);
-            switch (callCheckJumpTarget(decls.func_0807B6AC, 0x080643A9, 0x080643CF)) {
+            switch (callCheckJumpTarget(math.func_0807B6AC, 0x080643A9, 0x080643CF)) {
                 .jumped => continue :blk 14,
                 .ret => return,
                 .next => continue :blk 10,
@@ -901,4 +907,9 @@ comptime {
         @export(&func_0800020C, .{ .name = "func_0800020C", .linkage = .strong });
         @export(&func_080642C8, .{ .name = "func_080642C8", .linkage = .strong });
     }
+}
+
+test "tail_low trampoline exports are callable" {
+    try std.testing.expect(@TypeOf(func_0807B44C) == fn () callconv(.c) void);
+    try std.testing.expect(@TypeOf(func_080796A4) == fn () callconv(.c) void);
 }

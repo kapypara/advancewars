@@ -9,6 +9,7 @@ const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
 const sprite_anim = @import("sprite_anim.zig");
+const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 
 /// Byte offset of the current bytecode sequence cursor inside `MusicPlayerTrack`.
@@ -242,7 +243,7 @@ pub fn func_08038058() callconv(.c) void {
 /// Fade out audio volume using rate `0xFE` via `0x080796F0` (`0x080386D8`).
 pub fn func_080386D8() callconv(.c) void {
     if (!abi.enter(0x080386D8)) return;
-    callSoundCue(decls.func_080796F0, 0xFE, 0x080386E1);
+    callSoundCue(tail_low.func_080796F0, 0xFE, 0x080386E1);
 }
 
 fn callSoundVoid(comptime target: fn () callconv(.c) void, comptime ret_addr: u32) void {
@@ -493,7 +494,7 @@ pub fn func_08078608() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     rt.r[1] = abi.read32(abi.read32(0x08078618));
-    if (!abi.call(decls.func_0807B450, 0x08078613)) return;
+    if (!abi.call(tail_low.func_0807B450, 0x08078613)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -504,7 +505,7 @@ pub fn func_0807861C() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     rt.r[1] = abi.read32(abi.read32(0x0807862C));
-    if (!abi.call(decls.func_0807B450, 0x08078627)) return;
+    if (!abi.call(tail_low.func_0807B450, 0x08078627)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -521,7 +522,7 @@ pub fn func_08079580() callconv(.c) void {
     const slot = (op << 2) +% abi.read32(0x0807959C);
     rt.r[3] = slot;
     rt.r[2] = abi.read32(slot);
-    if (!abi.call(decls.func_0807B454, 0x08079597)) return;
+    if (!abi.call(tail_low.func_0807B454, 0x08079597)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -532,7 +533,7 @@ pub fn func_080795A0() callconv(.c) void {
     abi.fetches(7);
     abi.pushLr();
     rt.r[2] = abi.read32(abi.read32(0x080795B0));
-    if (!abi.call(decls.func_0807B454, 0x080795AB)) return;
+    if (!abi.call(tail_low.func_0807B454, 0x080795AB)) return;
     abi.fetches(4);
     abi.popReturn();
 }

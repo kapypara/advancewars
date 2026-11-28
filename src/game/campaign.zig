@@ -16,6 +16,7 @@ const proc = @import("proc.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
+const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 const ui = @import("ui.zig");
 const unit = @import("unit.zig");
@@ -640,7 +641,7 @@ pub fn func_0803BAA0() callconv(.c) void {
     rt.r[1] = co_id;
     rt.r[3] = ent_idx;
     rt.r[0] = abi.read32(tbl_base +% (@as(u32, co_id) *% 292));
-    if (!abi.call(decls.func_0807B44C, 0x0803BAD7)) return;
+    if (!abi.call(tail_low.func_0807B44C, 0x0803BAD7)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -865,7 +866,7 @@ pub fn func_0803FCEC() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[0] = abi.read32(rt.r[0] +% 0x18);
-    if (!abi.call(decls.func_0807B44C, 0x0803FCF5)) return;
+    if (!abi.call(tail_low.func_0807B44C, 0x0803FCF5)) return;
     abi.fetches(6);
     abi.popReturn();
 }

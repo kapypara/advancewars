@@ -7,6 +7,7 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const dma = @import("dma.zig");
 const mem = @import("mem.zig");
+const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 
 /// Compute address of animator struct owned by proc `proc_idx` (`(proc.anim_slot) * 0x4C`).
@@ -646,7 +647,7 @@ pub fn func_080153D4() callconv(.c) void {
     abi.write32(rt.r[5], abi.read32(word_addr));
     rt.r[0] = @bitCast(abi.signExtend16(abi.read16(rt.r[4])));
     rt.r[1] = abi.read32(0x08015418);
-    if (!abi.call(decls.func_0807B454, 0x08015403)) return;
+    if (!abi.call(tail_low.func_0807B454, 0x08015403)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);

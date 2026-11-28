@@ -13,6 +13,7 @@ const mem = @import("mem.zig");
 const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
+const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 const ui = @import("ui.zig");
 const unit = @import("unit.zig");
@@ -1254,7 +1255,7 @@ pub fn func_080333B0() callconv(.c) void {
     if (!abi.call(decls.func_08011660, 0x080333C5)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080796A4, 0x080333C9)) return;
+    if (!abi.call(tail_low.func_080796A4, 0x080333C9)) return;
 
     abi.fetches(4);
     if (!abi.call(hw.func_080112C0, 0x080333CD)) return;

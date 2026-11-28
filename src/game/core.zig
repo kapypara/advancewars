@@ -18,6 +18,7 @@ pub const turn = @import("turn.zig");
 pub const menu = @import("menu.zig");
 pub const campaign = @import("campaign.zig");
 pub const ui = @import("ui.zig");
+pub const tail_low = @import("tail_low.zig");
 
 comptime {
     _ = bios;
@@ -37,4 +38,5 @@ comptime {
     _ = menu;
     _ = campaign;
     _ = ui;
+    _ = tail_low;
 }

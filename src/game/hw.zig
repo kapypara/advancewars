@@ -10,6 +10,7 @@ const dma = @import("dma.zig");
 const math = @import("math.zig");
 const mem = @import("mem.zig");
 const sound = @import("sound.zig");
+const tail_low = @import("tail_low.zig");
 const types = @import("types.zig");
 
 /// Decode active-low GBA `KEYINPUT` halfword into active-high 10-bit button mask.
@@ -560,7 +561,7 @@ pub fn func_0801B850() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[1] = abi.read32(0x0801B85C);
-    if (!abi.call(decls.func_0807B450, 0x0801B859)) return;
+    if (!abi.call(tail_low.func_0807B450, 0x0801B859)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -571,7 +572,7 @@ pub fn func_0801B860() callconv(.c) void {
     abi.fetches(6);
     abi.pushLr();
     rt.r[1] = abi.read32(0x0801B86C);
-    if (!abi.call(decls.func_0807B450, 0x0801B869)) return;
+    if (!abi.call(tail_low.func_0807B450, 0x0801B869)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -585,7 +586,7 @@ pub fn func_0801B870() callconv(.c) void {
     rt.r[2] &= 0xFFFF;
     rt.updateNz(rt.r[2]);
     rt.r[3] = abi.read32(0x0801B884);
-    if (!abi.call(decls.func_0807B458, 0x0801B881)) return;
+    if (!abi.call(tail_low.func_0807B458, 0x0801B881)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -602,7 +603,7 @@ pub fn func_0801B888() callconv(.c) void {
     rt.r[0] = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
     rt.r[1] = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
     rt.updateNz(rt.r[1]);
-    if (!abi.call(decls.func_0807B45C, 0x0801B89D)) return;
+    if (!abi.call(tail_low.func_0807B45C, 0x0801B89D)) return;
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -617,7 +618,7 @@ pub fn func_0801B8A8() callconv(.c) void {
     rt.r[2] &= 0xFFFF;
     rt.updateNz(rt.r[2]);
     rt.r[3] = abi.read32(0x0801B8B8);
-    if (!abi.call(decls.func_0807B458, 0x0801B8B5)) return;
+    if (!abi.call(tail_low.func_0807B458, 0x0801B8B5)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -644,7 +645,7 @@ pub fn func_0801DAB8() callconv(.c) void {
     rt.r[1] = arg1;
     rt.r[0] = arg0;
     abi.setRegNz(&rt.r[3], 0x78);
-    if (!abi.call(decls.func_0807B45C, 0x0801DAD3)) return;
+    if (!abi.call(tail_low.func_0807B45C, 0x0801DAD3)) return;
     abi.fetches(6);
     rt.r[13] +%= 4;
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1681,7 +1682,7 @@ fn runFlashEraseAndVerify(comptime cfg: FlashOpCfg) void {
     rt.r[1] = 0xE0 << 20;
     rt.r[2] = 0xFF;
     rt.updateNz(0xFF);
-    if (!abi.call(decls.func_0807B458, cfg.ret_verify)) return;
+    if (!abi.call(tail_low.func_0807B458, cfg.ret_verify)) return;
 
     abi.fetches(22);
     abi.write16(fp +% cfg.save_off, @truncate(rt.r[0]));
