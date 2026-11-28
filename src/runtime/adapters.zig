@@ -1,7 +1,10 @@
 //! Comptime-parameterized runtime context adapters for BIOS HLE, Thumb/ARM interpreter, and validator.
 
 const core = @import("awre_core");
+const bus = @import("bus.zig");
 const diagnostics = @import("diagnostics.zig");
+const state = @import("state.zig");
+const timing = @import("timing.zig");
 const MachineState = @import("../validate/validate.zig").MachineState;
 
 const BusMode = core.dma.BusMode;
@@ -12,49 +15,49 @@ pub fn BiosCtx(comptime Rt: type) type {
             return Rt.regs();
         }
         pub fn ewram(_: *@This()) *[0x40000]u8 {
-            return Rt.ewram();
+            return &state.ewram_buf;
         }
         pub fn iwram(_: *@This()) *[0x8000]u8 {
-            return Rt.iwram();
+            return &state.iwram_buf;
         }
         pub fn palette(_: *@This()) *[0x400]u8 {
-            return Rt.palette();
+            return &state.palette_buf;
         }
         pub fn vram(_: *@This()) *[0x18000]u8 {
-            return Rt.vram();
+            return &state.vram_buf;
         }
         pub fn oam(_: *@This()) *[0x400]u8 {
-            return Rt.oam();
+            return &state.oam_buf;
         }
         pub fn ioRead16(_: *@This(), off: u32) u16 {
-            return Rt.ioRead16(off);
+            return state.ioRead16(off);
         }
         pub fn accessCycles(_: *@This(), addr: u32, wide: bool) u32 {
-            return Rt.accessCycles(addr, wide);
+            return timing.accessCycles(addr, wide, state.ioRead16(0x204));
         }
         pub fn advanceCycles(_: *@This(), cycles: u32) void {
             Rt.advanceCycles(cycles);
         }
         pub fn getBusMode(_: *@This()) BusMode {
-            return Rt.getBusMode();
+            return state.bus_mode;
         }
         pub fn setBusMode(_: *@This(), m: BusMode) void {
-            Rt.setBusMode(m);
+            state.bus_mode = m;
         }
         pub fn setVramBurst(_: *@This(), b: bool) void {
-            Rt.setVramBurst(b);
+            state.vram_burst = b;
         }
         pub fn setCpsrRaw(_: *@This(), val: u32) void {
-            Rt.setCpsrRaw(val);
+            state.cpsr = val;
         }
         pub fn triggerSoftReset(_: *@This()) void {
             Rt.triggerSoftReset();
         }
         pub fn softResetPending(_: *@This()) bool {
-            return Rt.softResetPending();
+            return state.soft_reset_pending;
         }
         pub fn logSwi(_: *@This(), number: u32) void {
-            diagnostics.logSwi(number, Rt.frameCount(), Rt.scanline(), Rt.cycleCounter(), Rt.regs());
+            diagnostics.logSwi(number, state.frame_count, state.scanline, state.cycle_counter, Rt.regs());
         }
         pub fn warnUnhandledSwi(_: *@This(), number: u32) void {
             if (number == 0x13) {
@@ -129,65 +132,62 @@ pub fn InterpCtx(comptime Rt: type) type {
             Rt.setSpsr(val, mask);
         }
         pub fn getBusMode(_: *@This()) BusMode {
-            return Rt.getBusMode();
+            return state.bus_mode;
         }
         pub fn setBusMode(_: *@This(), m: BusMode) void {
-            Rt.setBusMode(m);
+            state.bus_mode = m;
         }
         pub fn setRet(_: *@This(), val: u32) void {
             Rt.setRet(val);
         }
         pub fn softResetPending(_: *@This()) bool {
-            return Rt.softResetPending();
+            return state.soft_reset_pending;
         }
         pub fn traceInterpEnter(_: *@This(), target: u32) void {
-            diagnostics.traceInterpEnter(target, Rt.frameCount(), Rt.regs());
+            diagnostics.traceInterpEnter(target, state.frame_count, Rt.regs());
         }
         pub fn peekCodeWord(_: *@This(), peek_addr: u32) ?u32 {
             const region = peek_addr >> 24;
             switch (region) {
                 0x02 => {
-                    const ew = Rt.ewram();
                     const off = peek_addr & 0x3FFFF;
-                    return @as(u32, ew[off]) |
-                        (@as(u32, ew[(off + 1) & 0x3FFFF]) << 8) |
-                        (@as(u32, ew[(off + 2) & 0x3FFFF]) << 16) |
-                        (@as(u32, ew[(off + 3) & 0x3FFFF]) << 24);
+                    return @as(u32, state.ewram_buf[off]) |
+                        (@as(u32, state.ewram_buf[(off + 1) & 0x3FFFF]) << 8) |
+                        (@as(u32, state.ewram_buf[(off + 2) & 0x3FFFF]) << 16) |
+                        (@as(u32, state.ewram_buf[(off + 3) & 0x3FFFF]) << 24);
                 },
                 0x03 => {
-                    const iw = Rt.iwram();
                     const off = peek_addr & 0x7FFF;
-                    return @as(u32, iw[off]) |
-                        (@as(u32, iw[(off + 1) & 0x7FFF]) << 8) |
-                        (@as(u32, iw[(off + 2) & 0x7FFF]) << 16) |
-                        (@as(u32, iw[(off + 3) & 0x7FFF]) << 24);
+                    return @as(u32, state.iwram_buf[off]) |
+                        (@as(u32, state.iwram_buf[(off + 1) & 0x7FFF]) << 8) |
+                        (@as(u32, state.iwram_buf[(off + 2) & 0x7FFF]) << 16) |
+                        (@as(u32, state.iwram_buf[(off + 3) & 0x7FFF]) << 24);
                 },
                 0x08...0x0D => {
-                    const sz = Rt.romSize();
-                    if (sz == 0) return null;
-                    const off = (peek_addr - 0x0800_0000) % sz;
-                    return @as(u32, Rt.romByte(off)) |
-                        (@as(u32, Rt.romByte(off + 1)) << 8) |
-                        (@as(u32, Rt.romByte(off + 2)) << 16) |
-                        (@as(u32, Rt.romByte(off + 3)) << 24);
+                    if (state.rom_size == 0) return null;
+                    const off = (peek_addr - 0x0800_0000) % state.rom_size;
+                    return @as(u32, state.romByte(off)) |
+                        (@as(u32, state.romByte(off + 1)) << 8) |
+                        (@as(u32, state.romByte(off + 2)) << 16) |
+                        (@as(u32, state.romByte(off + 3)) << 24);
                 },
                 else => return null,
             }
         }
         pub fn accessCycles(_: *@This(), addr: u32, wide: bool) u32 {
-            return Rt.accessCycles(addr, wide);
+            return timing.accessCycles(addr, wide, state.ioRead16(0x204));
         }
         pub fn dataCycles(_: *@This(), addr: u32, wide: bool, load: bool) i32 {
-            return Rt.dataCycles(addr, wide, load);
+            return timing.dataCycles(addr, wide, load, state.bus_mode, &state.io_regs_buf, state.scanline, state.scanline_cycles, state.vram_burst);
         }
         pub fn charge(_: *@This(), c_delta: i32) void {
             Rt.charge(c_delta);
         }
         pub fn read32Raw(_: *@This(), addr: u32) u32 {
-            return Rt.read32Raw(addr);
+            return bus.read32Raw(addr);
         }
         pub fn read16Raw(_: *@This(), addr: u32) u16 {
-            return Rt.read16Raw(addr);
+            return bus.read16Raw(addr);
         }
         pub fn busWrite32Raw(_: *@This(), addr: u32, val: u32) void {
             Rt.busWrite32Raw(addr, val);
@@ -258,7 +258,7 @@ pub fn ValidateHost(comptime Rt: type) type {
             Rt.setRet(v);
         }
         pub fn getCycleCounter(_: *@This()) u32 {
-            return Rt.cycleCounter();
+            return state.cycle_counter;
         }
         pub fn stateSave(_: *@This(), s: *MachineState) void {
             Rt.stateSave(s);

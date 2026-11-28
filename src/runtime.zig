@@ -6,6 +6,7 @@ const adapters = @import("runtime/adapters.zig");
 const bus = @import("runtime/bus.zig");
 const diagnostics = @import("runtime/diagnostics.zig");
 const save_io = @import("runtime/save_io.zig");
+const scheduler = @import("runtime/scheduler.zig");
 const state = @import("runtime/state.zig");
 const timing = @import("runtime/timing.zig");
 const validate_mod = @import("validate/validate.zig");
@@ -19,7 +20,6 @@ pub fn hasEmbeddedRom() bool {
 
 const bios_mod = core.bios;
 const interp_mod = core.interp;
-const BusMode = state.BusMode;
 
 const has_posix = builtin.os.tag != .freestanding;
 
@@ -123,216 +123,26 @@ pub fn romSlice() ?[]const u8 {
 const wasm_rom_max: usize = 16 * 1024 * 1024;
 var wasm_rom_buf: if (!has_posix) [wasm_rom_max]u8 else [0]u8 = @splat(0);
 
-const save_debounce_frames = save_io.save_debounce_frames;
 const cycles_per_scanline = timing.cycles_per_scanline;
 const visible_scanlines = timing.visible_scanlines;
 const scanlines_per_frame = timing.scanlines_per_frame;
-const cycles_per_frame = timing.cycles_per_frame;
 const hblank_start_cycle = timing.hblank_start_cycle;
-const poll_interval = timing.poll_interval;
 
 // ---- Fetch Timing State ----
 var fetch_x16: u32 = 0;
 var fetch_frac: u32 = 0;
 
 // ---- Timing & Waitstates ----
-inline fn accessCycles(addr: u32, wide: bool) u32 {
-    return timing.accessCycles(addr, wide, state.ioRead16(0x204));
-}
-
 inline fn dataCycles(addr: u32, wide: bool, load: bool) i32 {
     return timing.dataCycles(addr, wide, load, state.bus_mode, &state.io_regs_buf, state.scanline, state.scanline_cycles, state.vram_burst);
 }
 
-fn charge(c_delta: i32) void {
-    const c = c_delta + state.cycle_credit;
-    state.cycle_credit = if (c < 0) c else 0;
-    if (c > 0) advanceCycles(@intCast(c));
+inline fn charge(c_delta: i32) void {
+    scheduler.charge(AdapterRt, c_delta);
 }
-
-const rt_file = @This();
 
 // ---- DMA Bus Interface ----
 var dma_bus: bus.DmaBus(AdapterRt) = .{};
-
-// ---- Interrupt Delivery ----
-fn checkInterrupts() void {
-    if (state.soft_reset_pending or validate_mod.g_validating or (state.in_irq and (state.cpsr & 0x80) != 0)) return;
-
-    const ime = state.ioRead16(0x208);
-    if (ime == 0) return;
-
-    const ie = state.ioRead16(0x200);
-    const if_val = state.ioRead16(0x202);
-    const pending = ie & if_val;
-    if (pending == 0) return;
-
-    const handler_addr = @as(u32, state.iwram_buf[0x7FFC]) |
-        (@as(u32, state.iwram_buf[0x7FFD]) << 8) |
-        (@as(u32, state.iwram_buf[0x7FFE]) << 16) |
-        (@as(u32, state.iwram_buf[0x7FFF]) << 24);
-    if (handler_addr == 0) return;
-
-    const was_in_irq = state.in_irq;
-    const saved_cpsr = state.cpsr;
-    const saved_spsr = state.spsr;
-    state.spsr = cpu_get_cpsr();
-    state.cpsr = (state.cpsr & ~@as(u32, 0xFF)) | 0x92;
-    state.in_irq = true;
-
-    const bios_if = (@as(u16, state.iwram_buf[0x7FF8]) | (@as(u16, state.iwram_buf[0x7FF9]) << 8)) | pending;
-    state.iwram_buf[0x7FF8] = @truncate(bios_if);
-    state.iwram_buf[0x7FF9] = @truncate(bios_if >> 8);
-
-    const saved_r = r;
-    const saved_N = CPU_N;
-    const saved_Z = CPU_Z;
-    const saved_C = CPU_C;
-    const saved_V = CPU_V;
-    const saved_ret = g_ret;
-    g_ret = 0;
-    const saved_mode = state.bus_mode;
-    state.bus_mode = .rom_code;
-
-    cbCpuBx(handler_addr);
-
-    state.bus_mode = saved_mode;
-    state.in_irq = was_in_irq;
-    if (state.soft_reset_pending) return;
-
-    g_ret = saved_ret;
-    r = saved_r;
-    CPU_N = saved_N;
-    CPU_Z = saved_Z;
-    CPU_C = saved_C;
-    CPU_V = saved_V;
-    state.cpsr = saved_cpsr;
-    state.spsr = saved_spsr;
-}
-
-// ---- Scanline Scheduler ----
-fn advanceCycles(cycles: u32) void {
-    if (state.soft_reset_pending) return;
-
-    var remaining: u32 = cycles;
-    while (remaining > 0) {
-        // Slice cycles at HBlank/scanline boundaries so scanline_cycles never overshoots
-        // past a boundary before a re-entrant IRQ handler runs at that boundary.
-        const next_boundary: u32 = if (!state.hblank_done) hblank_start_cycle else cycles_per_scanline;
-        const to_boundary: u32 = if (state.scanline_cycles < next_boundary) next_boundary - state.scanline_cycles else 0;
-        const step: u32 = @min(remaining, to_boundary);
-        if (step > 0) {
-            state.cycle_counter +%= step;
-            state.scanline_cycles +%= step;
-            remaining -= step;
-            validate_mod.checkDeadline(state.cycle_counter);
-            const timer_irqs = state.timer_state.tick(step);
-            if (timer_irqs != 0) state.raiseIrqBits(timer_irqs);
-        }
-
-        if (!state.hblank_done and state.scanline_cycles >= hblank_start_cycle) {
-            state.hblank_done = true;
-            if (state.scanline < visible_scanlines and !validate_mod.g_validating) {
-                disp.display_render_line(@intCast(state.scanline));
-            }
-            state.ioWrite16(0x004, state.ioRead16(0x004) | 2);
-            if ((state.ioRead16(0x004) & 0x10) != 0) {
-                state.ioWrite16(0x202, state.ioRead16(0x202) | 2);
-            }
-            if (state.scanline < visible_scanlines) {
-                state.dma_state.triggerHBlank(&dma_bus);
-            }
-            checkInterrupts();
-            if (state.soft_reset_pending) return;
-            continue;
-        }
-        if (state.scanline_cycles >= cycles_per_scanline) {
-            state.scanline_cycles -= cycles_per_scanline;
-            state.hblank_done = false;
-
-            const prev_scanline = state.scanline;
-            state.scanline = (state.scanline + 1) % scanlines_per_frame;
-
-            state.io_regs_buf[0x006] = @truncate(state.scanline & 0xFF);
-            state.io_regs_buf[0x007] = 0;
-
-            var dispstat = state.ioRead16(0x004);
-            const vcount_target = (dispstat >> 8) & 0xFF;
-            dispstat &= ~@as(u16, 0x0007);
-            if (state.scanline >= visible_scanlines) dispstat |= 1;
-            if (state.scanline == vcount_target) dispstat |= 4;
-            state.ioWrite16(0x004, dispstat);
-
-            if (state.scanline == visible_scanlines and prev_scanline != visible_scanlines) {
-                state.ioWrite16(0x202, state.ioRead16(0x202) | 1);
-                state.dma_state.triggerVBlank(&dma_bus);
-
-                state.frame_count +%= 1;
-
-                const keys = disp.display_get_keys();
-                state.io_regs_buf[0x130] = @truncate(keys);
-                state.io_regs_buf[0x131] = @truncate(keys >> 8);
-
-                if (!validate_mod.g_validating) {
-                    disp.display_render_frame();
-                }
-                disp.display_pace();
-
-                diagnostics.checkHistFrame(state.frame_count, &g_hist_on);
-                writeDumpAtSnapshot();
-                if (!validate_mod.g_validating) pollBackupFlush();
-
-                const log_every = disp.display_log_every();
-                if (state.frame_count <= 5 or (log_every != 0 and @mod(state.frame_count, @as(u32, @intCast(log_every))) == 0)) {
-                    const dispcnt = state.ioRead16(0x000);
-                    const pal0 = @as(u16, state.palette_buf[0]) | (@as(u16, state.palette_buf[1]) << 8);
-                    const pal1 = @as(u16, state.palette_buf[2]) | (@as(u16, state.palette_buf[3]) << 8);
-                    core.gba.logPrint(
-                        "[frame {d}] DISPCNT=0x{X:0>4} mode={d} BG={d}{d}{d}{d} OBJ={d} BLDCNT=0x{X:0>4} BLDY={d} pal0=0x{X:0>4} pal1=0x{X:0>4}\n",
-                        .{
-                            state.frame_count,
-                            dispcnt,
-                            dispcnt & 7,
-                            (dispcnt >> 8) & 1,
-                            (dispcnt >> 9) & 1,
-                            (dispcnt >> 10) & 1,
-                            (dispcnt >> 11) & 1,
-                            (dispcnt >> 12) & 1,
-                            state.ioRead16(0x050),
-                            state.ioRead16(0x054) & 31,
-                            pal0,
-                            pal1,
-                        },
-                    );
-                }
-            }
-
-            if (state.scanline == vcount_target and (dispstat & 0x20) != 0) {
-                state.ioWrite16(0x202, state.ioRead16(0x202) | 4);
-            }
-
-            checkInterrupts();
-            if (state.soft_reset_pending) return;
-            continue;
-        }
-        if (step == 0) break;
-    }
-
-    if (state.cycle_counter -% state.last_poll_cycle > poll_interval) {
-        state.last_poll_cycle = state.cycle_counter;
-        if (disp.display_poll_events() != 0) {
-            if (!state.wasm_stop_requested) gba_shutdown();
-            if (has_posix) {
-                c_host.exit(0);
-            } else {
-                state.wasm_stop_requested = true;
-                state.soft_reset_pending = true;
-                g_ret = 0xFFFF_FFFF;
-                return;
-            }
-        }
-    }
-}
 
 // ---- Bus & CPU Timing API ----
 pub export fn bus_read32(addr: u32) u32 {
@@ -422,21 +232,6 @@ const AdapterRt = struct {
     pub fn regs() *[16]u32 {
         return &r;
     }
-    pub fn ewram() *[0x40000]u8 {
-        return &state.ewram_buf;
-    }
-    pub fn iwram() *[0x8000]u8 {
-        return &state.iwram_buf;
-    }
-    pub fn palette() *[0x400]u8 {
-        return &state.palette_buf;
-    }
-    pub fn vram() *[0x18000]u8 {
-        return &state.vram_buf;
-    }
-    pub fn oam() *[0x400]u8 {
-        return &state.oam_buf;
-    }
     pub fn getN() bool {
         return CPU_N;
     }
@@ -467,30 +262,15 @@ const AdapterRt = struct {
     pub fn setCpsr(val: u32, mask: u32) void {
         cpu_set_cpsr(val, mask);
     }
-    pub fn setCpsrRaw(val: u32) void {
-        state.cpsr = val;
-    }
     pub fn getSpsr() u32 {
         return cpu_get_spsr();
     }
     pub fn setSpsr(val: u32, mask: u32) void {
         cpu_set_spsr(val, mask);
     }
-    pub fn getBusMode() BusMode {
-        return state.bus_mode;
-    }
-    pub fn setBusMode(m: BusMode) void {
-        state.bus_mode = m;
-    }
-    pub fn setVramBurst(b: bool) void {
-        state.vram_burst = b;
-    }
     pub fn triggerSoftReset() void {
         state.soft_reset_pending = true;
         g_ret = 0xFFFF_FFFF;
-    }
-    pub fn softResetPending() bool {
-        return state.soft_reset_pending;
     }
     pub fn getBxDepth() i32 {
         return if (game_cb) |cb| cb.bx_depth.* else 0;
@@ -504,41 +284,11 @@ const AdapterRt = struct {
     pub fn setRet(val: u32) void {
         g_ret = val;
     }
-    pub fn frameCount() u32 {
-        return state.frame_count;
-    }
-    pub fn scanline() u32 {
-        return state.scanline;
-    }
-    pub fn cycleCounter() u32 {
-        return state.cycle_counter;
-    }
-    pub fn romSize() u32 {
-        return state.rom_size;
-    }
-    pub fn romByte(off: u32) u8 {
-        return state.romByte(off);
-    }
-    pub fn ioRead16(off: u32) u16 {
-        return state.ioRead16(off);
-    }
-    pub fn accessCycles(addr: u32, wide: bool) u32 {
-        return rt_file.accessCycles(addr, wide);
-    }
     pub fn advanceCycles(cycles: u32) void {
-        rt_file.advanceCycles(cycles);
-    }
-    pub fn dataCycles(addr: u32, wide: bool, load: bool) i32 {
-        return rt_file.dataCycles(addr, wide, load);
+        scheduler.advanceCycles(AdapterRt, cycles);
     }
     pub fn charge(c_delta: i32) void {
-        rt_file.charge(c_delta);
-    }
-    pub fn read32Raw(addr: u32) u32 {
-        return bus.read32Raw(addr);
-    }
-    pub fn read16Raw(addr: u32) u16 {
-        return bus.read16Raw(addr);
+        scheduler.charge(AdapterRt, c_delta);
     }
     pub fn busWrite32Raw(addr: u32, val: u32) void {
         bus.write32Raw(addr, val, &dma_bus, &g_func_ring, g_func_ring_i, r[14]);
@@ -575,6 +325,15 @@ const AdapterRt = struct {
     }
     pub fn recompLookupFn(addr: u32) ?*const fn () callconv(.c) void {
         return cbRecompLookupFn(addr);
+    }
+    pub fn dmaBus() *bus.DmaBus(AdapterRt) {
+        return &dma_bus;
+    }
+    pub fn histOnPtr() *c_int {
+        return &g_hist_on;
+    }
+    pub fn shutdown() void {
+        gba_shutdown();
     }
     pub fn stateSave(s: *validate_mod.MachineState) void {
         state.saveMachineState(s, r, CPU_N, CPU_Z, CPU_C, CPU_V);
@@ -637,109 +396,18 @@ pub fn timer_step(cycles: u32) void {
 }
 
 pub fn irq_check() void {
-    checkInterrupts();
+    scheduler.checkInterrupts(AdapterRt);
 }
 
 pub fn gba_frame() void {
-    const target_cycle = ((state.cycle_counter / cycles_per_frame) + 1) * cycles_per_frame +
-        visible_scanlines * cycles_per_scanline;
-    while (state.cycle_counter < target_cycle) {
-        advanceCycles(cycles_per_scanline);
-        if (state.soft_reset_pending) return;
-    }
+    scheduler.stepFrame(AdapterRt);
 }
 
 pub fn gba_run(entry_func: *const fn () void) void {
-    while (true) {
-        state.soft_reset_pending = false;
-        state.in_irq = false;
-        g_ret = 0;
-        entry_func();
-        if (state.wasm_stop_requested or !state.soft_reset_pending) break;
-        state.soft_reset_count +%= 1;
-        if (state.soft_reset_count <= 5) {
-            core.gba.logPrint("[runtime] SoftReset #{d}\n", .{state.soft_reset_count});
-        }
-    }
+    scheduler.runLoop(entry_func, &g_ret);
 }
 
-// ---- Save / Dump / Tracing / Validation ----
-fn pollBackupFlush() void {
-    if (state.flash_state.dirty) {
-        if (state.flash_state.write_seq != state.sram_last_seq) {
-            state.sram_last_seq = state.flash_state.write_seq;
-            state.sram_dirty_frames = save_debounce_frames;
-        } else if (state.sram_dirty_frames > 0) {
-            state.sram_dirty_frames -= 1;
-            if (state.sram_dirty_frames == 0) sramSave();
-        }
-    }
-    if (state.eeprom_state.dirty) {
-        if (state.eeprom_state.write_seq != state.eeprom_last_seq) {
-            state.eeprom_last_seq = state.eeprom_state.write_seq;
-            state.eeprom_dirty_frames = save_debounce_frames;
-        } else if (state.eeprom_dirty_frames > 0) {
-            state.eeprom_dirty_frames -= 1;
-            if (state.eeprom_dirty_frames == 0) eepromSave();
-        }
-    }
-}
-
-fn sramLoad() void {
-    if (!has_posix or !state.sram_active or state.sram_path_len == 0) return;
-    const path: [*:0]const u8 = @ptrCast(&state.sram_path_buf);
-    if (!save_io.readFileInto(path, state.sram_buf[0..state.flash_state.backup_size])) return;
-    core.gba.logPrint("[runtime] Loaded SRAM from {s}\n", .{state.sram_path_buf[0..state.sram_path_len]});
-}
-
-fn sramSave() void {
-    if (!state.sram_active or !state.flash_state.dirty) return;
-    if (!has_posix) {
-        core.platform.WasmBackend.saveSram(&state.sram_buf, state.flash_state.backup_size);
-        state.flash_state.dirty = false;
-        state.sram_dirty_frames = 0;
-        return;
-    }
-    if (state.sram_path_len == 0) return;
-    const path_slice = state.sram_path_buf[0..state.sram_path_len];
-    const path: [*:0]const u8 = @ptrCast(&state.sram_path_buf);
-    if (save_io.writeAtomicFile(path, path_slice, state.sram_buf[0..state.flash_state.backup_size])) {
-        state.flash_state.dirty = false;
-        state.sram_dirty_frames = 0;
-        core.gba.logPrint("[runtime] Saved Flash to {s}\n", .{path_slice});
-    }
-}
-
-fn eepromLoad() void {
-    if (!has_posix or !state.eeprom_state.present or state.eeprom_path_len == 0) return;
-    const path: [*:0]const u8 = @ptrCast(&state.eeprom_path_buf);
-    if (!save_io.readFileInto(path, &state.eeprom_state.storage)) return;
-    core.gba.logPrint("[runtime] Loaded EEPROM from {s}\n", .{state.eeprom_path_buf[0..state.eeprom_path_len]});
-}
-
-fn eepromSave() void {
-    if (!has_posix or !state.eeprom_state.present or state.eeprom_path_len == 0 or !state.eeprom_state.dirty) return;
-    const path_slice = state.eeprom_path_buf[0..state.eeprom_path_len];
-    const path: [*:0]const u8 = @ptrCast(&state.eeprom_path_buf);
-    if (save_io.writeAtomicFile(path, path_slice, &state.eeprom_state.storage)) {
-        state.eeprom_state.dirty = false;
-        state.eeprom_dirty_frames = 0;
-        core.gba.logPrint("[runtime] Saved EEPROM to {s}\n", .{path_slice});
-    }
-}
-
-fn writeDumpAtSnapshot() void {
-    if (!has_posix) return;
-    const dp = disp.display_dump_path(@intCast(state.frame_count)) orelse return;
-    const df = c_host.fopen(dp, "wb") orelse return;
-    defer _ = c_host.fclose(df);
-    _ = c_host.fwrite(&state.ewram_buf, 1, state.ewram_buf.len, df);
-    _ = c_host.fwrite(&state.iwram_buf, 1, state.iwram_buf.len, df);
-    _ = c_host.fwrite(&state.io_regs_buf, 1, state.io_regs_buf.len, df);
-    _ = c_host.fwrite(&state.palette_buf, 1, state.palette_buf.len, df);
-    _ = c_host.fwrite(&state.vram_buf, 1, state.vram_buf.len, df);
-    _ = c_host.fwrite(&state.oam_buf, 1, state.oam_buf.len, df);
-}
+// ---- Validation Hooks ----
 
 pub export fn recomp_enter(addr: u32) bool {
     g_func_ring[g_func_ring_i & 4095] = addr;
@@ -933,7 +601,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
         core.gba.logPrint("[runtime] Flash {s} detected ({s})\n", .{ size_label, tag });
         @memset(state.sram_buf[0..state.flash_state.backup_size], 0xFF);
     }
-    sramLoad();
+    save_io.sramLoad();
     state.flash_state.dirty = false;
     state.flash_state.write_seq = 0;
     state.sram_last_seq = 0;
@@ -942,7 +610,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
         core.gba.logPrint("[runtime] EEPROM detected at ROM 0x{X:0>8} (assuming 8KB)\n", .{ee_addr});
         const ee_base = if (save_path_opt) |sp| std.mem.span(sp) else default_base;
         state.eeprom_path_len = save_io.buildSidecarPath(ee_base, ".eep", &state.eeprom_path_buf);
-        eepromLoad();
+        save_io.eepromLoad();
         state.eeprom_state.dirty = false;
         state.eeprom_state.write_seq = 0;
         state.eeprom_last_seq = 0;
@@ -967,8 +635,8 @@ pub fn gba_shutdown() void {
         if (c_host.getenv("GBA_FUNC_TRACE") != null) diagnostics.funcRingDump(state.frame_count, &g_func_ring, g_func_ring_i);
     }
     validate_mod.printSummary(g_validate != 0);
-    sramSave();
-    eepromSave();
+    save_io.sramSave();
+    save_io.eepromSave();
     disp.display_shutdown();
 
     ewram = null;
@@ -996,6 +664,7 @@ pub fn gba_shutdown() void {
 test {
     _ = state;
     _ = bus;
+    _ = scheduler;
     _ = timing;
     _ = save_io;
     _ = diagnostics;

@@ -1,7 +1,9 @@
-//! Host save-file path resolution and atomic persistence helpers.
+//! Host save-file path resolution, backup persistence (SRAM/Flash/EEPROM), and snapshot dumps.
 
 const std = @import("std");
 const builtin = @import("builtin");
+const core = @import("awre_core");
+const state = @import("state.zig");
 
 const has_posix = builtin.os.tag != .freestanding;
 
@@ -82,6 +84,83 @@ pub fn readFileInto(path: [*:0]const u8, dst: []u8) bool {
     defer _ = c_host.fclose(f);
     _ = c_host.fread(dst.ptr, 1, dst.len, f);
     return true;
+}
+
+pub fn pollBackupFlush() void {
+    if (state.flash_state.dirty) {
+        if (state.flash_state.write_seq != state.sram_last_seq) {
+            state.sram_last_seq = state.flash_state.write_seq;
+            state.sram_dirty_frames = save_debounce_frames;
+        } else if (state.sram_dirty_frames > 0) {
+            state.sram_dirty_frames -= 1;
+            if (state.sram_dirty_frames == 0) sramSave();
+        }
+    }
+    if (state.eeprom_state.dirty) {
+        if (state.eeprom_state.write_seq != state.eeprom_last_seq) {
+            state.eeprom_last_seq = state.eeprom_state.write_seq;
+            state.eeprom_dirty_frames = save_debounce_frames;
+        } else if (state.eeprom_dirty_frames > 0) {
+            state.eeprom_dirty_frames -= 1;
+            if (state.eeprom_dirty_frames == 0) eepromSave();
+        }
+    }
+}
+
+pub fn sramLoad() void {
+    if (!has_posix or !state.sram_active or state.sram_path_len == 0) return;
+    const path: [*:0]const u8 = @ptrCast(&state.sram_path_buf);
+    if (!readFileInto(path, state.sram_buf[0..state.flash_state.backup_size])) return;
+    core.gba.logPrint("[runtime] Loaded SRAM from {s}\n", .{state.sram_path_buf[0..state.sram_path_len]});
+}
+
+pub fn sramSave() void {
+    if (!state.sram_active or !state.flash_state.dirty) return;
+    if (!has_posix) {
+        core.platform.WasmBackend.saveSram(&state.sram_buf, state.flash_state.backup_size);
+        state.flash_state.dirty = false;
+        state.sram_dirty_frames = 0;
+        return;
+    }
+    if (state.sram_path_len == 0) return;
+    const path_slice = state.sram_path_buf[0..state.sram_path_len];
+    const path: [*:0]const u8 = @ptrCast(&state.sram_path_buf);
+    if (writeAtomicFile(path, path_slice, state.sram_buf[0..state.flash_state.backup_size])) {
+        state.flash_state.dirty = false;
+        state.sram_dirty_frames = 0;
+        core.gba.logPrint("[runtime] Saved Flash to {s}\n", .{path_slice});
+    }
+}
+
+pub fn eepromLoad() void {
+    if (!has_posix or !state.eeprom_state.present or state.eeprom_path_len == 0) return;
+    const path: [*:0]const u8 = @ptrCast(&state.eeprom_path_buf);
+    if (!readFileInto(path, &state.eeprom_state.storage)) return;
+    core.gba.logPrint("[runtime] Loaded EEPROM from {s}\n", .{state.eeprom_path_buf[0..state.eeprom_path_len]});
+}
+
+pub fn eepromSave() void {
+    if (!has_posix or !state.eeprom_state.present or state.eeprom_path_len == 0 or !state.eeprom_state.dirty) return;
+    const path_slice = state.eeprom_path_buf[0..state.eeprom_path_len];
+    const path: [*:0]const u8 = @ptrCast(&state.eeprom_path_buf);
+    if (writeAtomicFile(path, path_slice, &state.eeprom_state.storage)) {
+        state.eeprom_state.dirty = false;
+        state.eeprom_dirty_frames = 0;
+        core.gba.logPrint("[runtime] Saved EEPROM to {s}\n", .{path_slice});
+    }
+}
+
+pub fn writeDumpAtSnapshot(dump_path: ?[*:0]const u8) void {
+    if (!has_posix) return;
+    const dp = dump_path orelse return;
+    const df = c_host.fopen(dp, "wb") orelse return;
+    defer _ = c_host.fclose(df);
+    _ = c_host.fwrite(&state.ewram_buf, 1, state.ewram_buf.len, df);
+    _ = c_host.fwrite(&state.iwram_buf, 1, state.iwram_buf.len, df);
+    _ = c_host.fwrite(&state.io_regs_buf, 1, state.io_regs_buf.len, df);
+    _ = c_host.fwrite(&state.palette_buf, 1, state.palette_buf.len, df);
+    _ = c_host.fwrite(&state.vram_buf, 1, state.vram_buf.len, df);
+    _ = c_host.fwrite(&state.oam_buf, 1, state.oam_buf.len, df);
 }
 
 test "save_io.buildSidecarPath handles extensions and directory dots" {
