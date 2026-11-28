@@ -1380,6 +1380,27 @@ pub fn func_08034E7C() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Reset turn/minimap sub-controllers and cursor visuals (`0x080340F8`).
+pub fn func_080340F8() callconv(.c) void {
+    if (!abi.enter(0x080340F8)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    const steps = .{
+        .{ decls.func_0803293C, @as(u32, 0x080340FF) },
+        .{ decls.func_080328B8, @as(u32, 0x08034103) },
+        .{ decls.func_0800FC58, @as(u32, 0x08034107) },
+        .{ decls.func_0803322C, @as(u32, 0x0803410B) },
+        .{ decls.func_080333A0, @as(u32, 0x0803410F) },
+        .{ decls.func_0803401C, @as(u32, 0x08034113) },
+        .{ decls.func_080338FC, @as(u32, 0x08034117) },
+    };
+    inline for (steps) |s| {
+        if (!abi.call(s[0], s[1])) return;
+        abi.fetches(4);
+    }
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08032200, .{ .name = "func_08032200", .linkage = .strong });
@@ -1440,6 +1461,7 @@ comptime {
         @export(&func_08034988, .{ .name = "func_08034988", .linkage = .strong });
         @export(&func_08034CC0, .{ .name = "func_08034CC0", .linkage = .strong });
         @export(&func_08034E7C, .{ .name = "func_08034E7C", .linkage = .strong });
+        @export(&func_080340F8, .{ .name = "func_080340F8", .linkage = .strong });
     }
 }
 

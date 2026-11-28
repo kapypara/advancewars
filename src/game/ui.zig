@@ -6845,6 +6845,385 @@ pub fn func_0805390C() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Render animated battle-unit cursor bracket sprites for slot `r0` (`0x0806E0E4`).
+pub fn func_0806E0E4() callconv(.c) void {
+    if (!abi.enter(0x0806E0E4)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[7] = rt.r[0];
+    rt.r[0] = @as(u32, @bitCast(abi.signExtend16(abi.read16(rt.r[7] +% 0x28)))) +% 0x20;
+    rt.r[1] = @bitCast(abi.signExtend16(abi.read16(rt.r[7] +% 0x2A)));
+    rt.r[2] = abi.read16(rt.r[7] +% 0x1C);
+    if (!abi.call(decls.func_0806E044, 0x0806E0F9)) return;
+
+    abi.fetches(11);
+    rt.r[0] = @as(u32, @bitCast(abi.signExtend16(abi.read16(rt.r[7] +% 0x28)))) +% 0x20;
+    rt.r[1] = @as(u32, @bitCast(abi.signExtend16(abi.read16(rt.r[7] +% 0x2A)))) +% 0x10;
+    rt.r[2] = abi.read16(rt.r[7] +% 0x1C);
+    if (!abi.call(decls.func_0806E098, 0x0806E10B)) return;
+
+    abi.fetches(19);
+    const mask_x = abi.read32(0x0806E15C);
+    const mask_y_base = mask_x -% 0xE3;
+    rt.r[0] = (0x200 +% abi.read16(rt.r[7] +% 0x28)) & mask_x;
+    rt.r[1] = (abi.read16(rt.r[7] +% 0x2A) +% mask_y_base) & 0xFF;
+    rt.r[2] = abi.read32(0x0806E160);
+    rt.r[3] = abi.read16(rt.r[7] +% 0x3E);
+    if (!abi.call(decls.func_0801B888, 0x0806E12D)) return;
+
+    abi.fetches(17);
+    rt.r[0] = (0x200 +% abi.read16(rt.r[7] +% 0x28)) & mask_x;
+    rt.r[1] = (abi.read16(rt.r[7] +% 0x2A) +% 0x100) & 0xFF;
+    rt.r[2] = abi.read32(0x0806E164);
+    rt.r[3] = abi.read16(rt.r[7] +% 0x44);
+    if (!abi.call(decls.func_0801B888, 0x0806E14B)) return;
+
+    abi.fetches(10);
+    abi.write8(rt.r[7] +% 0x49, abi.read8(rt.r[7] +% 0x48));
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Queue active tactical dialog cursor indicator and arrow widgets (`0x0806F298`).
+pub fn func_0806F298() callconv(.c) void {
+    if (!abi.enter(0x0806F298)) return;
+    abi.fetches(26);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const menu_ctx = abi.read32(abi.read32(0x0806F2F4));
+    const slot_idx: u32 = @bitCast(abi.signExtend8(abi.read8(menu_ctx +% 0x36)));
+    rt.r[4] = abi.read32(menu_ctx +% 0x48 +% (slot_idx << 2));
+    rt.r[5] = @as(u32, abi.read8(menu_ctx +% 0x11 +% slot_idx)) << 2;
+
+    const base_x: u32 = @bitCast(abi.signExtend16(abi.read16(rt.r[4] +% 0x28)));
+    const base_y: u32 = @bitCast(abi.signExtend16(abi.read16(rt.r[4] +% 0x2A)));
+    rt.r[0] = base_x;
+    rt.r[1] = base_y +% rt.r[5];
+    rt.r[2] = 0x11;
+    rt.r[3] = 0x10;
+    if (!abi.call(decls.func_0806D714, 0x0806F2C9)) return;
+
+    abi.fetches(11);
+    rt.r[0] = @as(u32, @bitCast(abi.signExtend16(abi.read16(rt.r[4] +% 0x28)))) +% 9;
+    rt.r[1] = @as(u32, @bitCast(abi.signExtend16(abi.read16(rt.r[4] +% 0x2A)))) +% (rt.r[5] -% 4);
+    if (!abi.call(decls.func_0806D624, 0x0806F2DB)) return;
+
+    abi.fetches(11);
+    rt.r[0] = @as(u32, @bitCast(abi.signExtend16(abi.read16(rt.r[4] +% 0x28)))) +% 9;
+    rt.r[1] = @as(u32, @bitCast(abi.signExtend16(abi.read16(rt.r[4] +% 0x2A)))) +% (rt.r[5] +% 0x1C);
+    if (!abi.call(decls.func_0806D69C, 0x0806F2ED)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Configure dialog/results BG layers, scroll state, and effect timers on proc `r0` (`0x08071F68`).
+pub fn func_08071F68() callconv(.c) void {
+    if (!abi.enter(0x08071F68)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[5] = rt.r[0];
+    if (!abi.call(decls.func_080104B0, 0x08071F71)) return;
+
+    abi.fetches(56);
+    const disp_ctl = abi.read32(0x08071FDC);
+    const b0 = ((0x3F & @as(u32, abi.read8(disp_ctl))) | 0x40) & ~@as(u32, 0xF) | 0x10;
+    abi.write8(disp_ctl, @truncate(b0));
+    const b1 = (@as(u32, abi.read8(disp_ctl +% 1)) & ~@as(u32, 0x15)) | 0x0A;
+    abi.write8(disp_ctl +% 1, @truncate(b1));
+    abi.write16(abi.read32(0x08071FE0), 8);
+    abi.write16(abi.read32(0x08071FE4), 8);
+    const p2 = abi.read32(0x08071FE8);
+    abi.write8(p2, @truncate(@as(u32, abi.read8(p2)) | 0x20));
+    abi.write16(rt.r[5] +% 0x44, 0x10);
+    abi.write32(rt.r[5] +% 0x30, 0x15);
+    abi.write32(rt.r[5] +% 0x34, 0x4D);
+    abi.write32(rt.r[5] +% 0x38, 0x85);
+
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Launch campaign victory/match-result summary dialogue sequence for proc `r0` (`0x08072DB0`).
+pub fn func_08072DB0() callconv(.c) void {
+    if (!abi.enter(0x08072DB0)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0x34;
+
+    rt.r[4] = rt.r[0];
+    rt.r[0] = 0;
+    if (!abi.call(decls.func_0806CD78, 0x08072DBD)) return;
+
+    abi.fetches(10);
+    const step_ptr = abi.read32(0x08072E2C);
+    const step_idx = abi.read8(step_ptr);
+    abi.write8(step_ptr, step_idx +% 1);
+    rt.r[0] = step_idx;
+    if (!abi.call(decls.func_080702EC, 0x08072DCD)) return;
+
+    abi.fetches(31);
+    abi.write16(rt.r[4] +% 0x42, @truncate(rt.r[0]));
+    const args = [_]u32{ 1, 0x64, 0x5A, 6, 4, 1, 0x13, 1, 0x64, 0xA, 1, 1 };
+    inline for (args, 0..) |v, i| {
+        abi.write32(rt.r[13] +% @as(u32, i * 4), v);
+    }
+    abi.write32(rt.r[13] +% 0x30, abi.read32(0x08072E30));
+    rt.r[0] = 8;
+    rt.r[1] = 3;
+    rt.r[2] = 0xC;
+    rt.r[3] = 0xE;
+    if (!abi.call(decls.func_08038A70, 0x08072E07)) return;
+
+    abi.fetches(11);
+    const p1 = abi.read32(0x08072E34);
+    abi.write8(p1, @truncate(@as(u32, abi.read8(p1)) | 0x80));
+    rt.r[0] = abi.read32(0x08072E38);
+    rt.r[1] = 0;
+    if (!abi.call(decls.func_0801320C, 0x08072E19)) return;
+
+    abi.fetches(8);
+    rt.r[1] = 0x10;
+    rt.r[2] = 0;
+    rt.r[3] = 0xFFFF_FFFE;
+    if (!abi.call(decls.func_08072C6C, 0x08072E25)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 0x34;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Enable blend/window BG layers and clear transition countdown on proc `r0` (`0x080747F8`).
+pub fn func_080747F8() callconv(.c) void {
+    if (!abi.enter(0x080747F8)) return;
+    abi.fetches(81);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[9]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[8]);
+
+    abi.write16(rt.r[0] +% 0x44, 0x168);
+    abi.write16(rt.r[0] +% 0x42, 0);
+
+    const p1 = abi.read32(0x08074898);
+    abi.write8(p1 +% 1, @truncate(@as(u32, abi.read8(p1 +% 1)) | 0x1F));
+
+    const p2 = abi.read32(0x0807489C);
+    abi.write8(p2 +% 0, @truncate(((0xC0 | @as(u32, abi.read8(p2))) & ~@as(u32, 3)) | 0x1C));
+    abi.write8(p2 +% 1, @truncate(@as(u32, abi.read8(p2 +% 1)) & ~@as(u32, 0x1F)));
+
+    abi.write16(abi.read32(0x080748A0), 0x10);
+    const p4 = abi.read32(0x080748A4);
+    abi.write8(p4, @truncate((@as(u32, abi.read8(p4)) | 3) & ~@as(u32, 0x1C)));
+
+    const val = abi.read32(0x080748AC);
+    abi.write16(abi.read32(0x080748A8), @truncate(val));
+    abi.write16(abi.read32(0x080748B0), @truncate(val));
+
+    rt.r[3] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = rt.r[3];
+    rt.r[9] = rt.r[4];
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Tear down campaign intro/title overlay screen and reset active proc (`0x08074C84`).
+pub fn func_08074C84() callconv(.c) void {
+    if (!abi.enter(0x08074C84)) return;
+    abi.fetches(5);
+    abi.pushLr();
+    if (!abi.call(decls.func_08038C44, 0x08074C8B)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_0800FC58, 0x08074C8F)) return;
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x08074CA0);
+    if (!abi.call(decls.func_0801329C, 0x08074C95)) return;
+    abi.fetches(6);
+    rt.r[0] = abi.read8(abi.read32(0x08074CA4));
+    if (!abi.call(decls.func_08013BD0, 0x08074C9D)) return;
+    abi.fetches(4);
+    abi.popReturn();
+}
+
+/// Clear and initialize dual 32x32 BG screens for summary/credits view (`0x080754F4`).
+pub fn func_080754F4() callconv(.c) void {
+    if (!abi.enter(0x080754F4)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 8;
+
+    rt.r[0] = abi.read32(0x08075538);
+    rt.r[1] = abi.read32(0x0807553C);
+    if (!abi.call(decls.func_0800FE18, 0x08075501)) return;
+
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x08075540);
+    if (!abi.call(decls.func_0806CD50, 0x08075507)) return;
+
+    const fill_val = abi.read32(0x08075548);
+    const bg_fills = [_][2]u32{
+        .{ 0x08075544, 0x0807551B },
+        .{ 0x0807554C, 0x0807552B },
+    };
+    inline for (bg_fills, 0..) |f, i| {
+        abi.fetches(if (i == 0) 12 else 10);
+        abi.write32(rt.r[13] +% 0, 0x20);
+        abi.write32(rt.r[13] +% 4, fill_val);
+        rt.r[0] = abi.read32(f[0]);
+        rt.r[1] = 0;
+        rt.r[2] = 0;
+        rt.r[3] = 0x20;
+        if (!abi.call(decls.func_08010C70, f[1])) return;
+    }
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_08011814, 0x0807552F)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Draw campaign ending rank badge `(5 - r0)` and paired UI labels (`0x08075808`).
+pub fn func_08075808() callconv(.c) void {
+    if (!abi.enter(0x08075808)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 4;
+
+    rt.r[0] = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    if (!abi.call(decls.func_080397B8, 0x08075815)) return;
+
+    abi.fetches(15);
+    const rank_val: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    abi.write16(abi.read32(0x08075870), 0);
+    rt.r[4] = abi.read32(0x08075874);
+    rt.r[0] = rt.r[4];
+    rt.r[1] = (5 -% rank_val) & 0xFFFF;
+    if (!abi.call(decls.func_080501DC, 0x0807582F)) return;
+
+    abi.fetches(15);
+    const pal_idx: u32 = abi.read8(abi.read32(0x08075878) +% (0x9F << 2));
+    rt.r[0] = (pal_idx << 5) +% abi.read32(0x0807587C);
+    rt.r[1] = 0x240;
+    rt.r[2] = 0x20;
+    if (!abi.call(decls.func_08011330, 0x08075849)) return;
+
+    abi.fetches(10);
+    abi.write32(rt.r[13] +% 0, abi.read32(0x08075880));
+    rt.r[0] = 0x46;
+    rt.r[1] = 0x82;
+    rt.r[2] = rt.r[4];
+    rt.r[3] = 2;
+    if (!abi.call(decls.func_0804FF1C, 0x08075859)) return;
+
+    abi.fetches(10);
+    abi.write32(rt.r[13] +% 0, abi.read32(0x08075888));
+    rt.r[0] = 0x46;
+    rt.r[1] = 0x8A;
+    rt.r[2] = abi.read32(0x08075884);
+    rt.r[3] = 2;
+    if (!abi.call(decls.func_0804FF1C, 0x08075869)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 4;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Set summary timer `(0xAD, 0x20)`, fade-in BGM track `0x79`, and reset OAM (`0x08075EB8`).
+pub fn func_08075EB8() callconv(.c) void {
+    if (!abi.enter(0x08075EB8)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    abi.write16(rt.r[0] +% 0x44, 0x20);
+    abi.write16(rt.r[0] +% 0x42, 0xAD);
+    if (!abi.call(decls.func_080113D0, 0x08075ECD)) return;
+
+    abi.fetches(7);
+    rt.r[0] = 0x11;
+    rt.r[1] = 0xFFFF_FFFF;
+    if (!abi.call(decls.func_08011660, 0x08075ED7)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_080796A4, 0x08075EDB)) return;
+    abi.fetches(4);
+    if (!abi.call(decls.func_080112C0, 0x08075EDF)) return;
+
+    abi.fetches(5);
+    rt.r[0] = 0x79;
+    if (!abi.call(decls.func_0803D880, 0x08075EE5)) return;
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08018DE4, .{ .name = "func_08018DE4", .linkage = .strong });
@@ -7236,6 +7615,15 @@ comptime {
         @export(&func_08050E74, .{ .name = "func_08050E74", .linkage = .strong });
         @export(&func_08051CA8, .{ .name = "func_08051CA8", .linkage = .strong });
         @export(&func_0805390C, .{ .name = "func_0805390C", .linkage = .strong });
+        @export(&func_0806E0E4, .{ .name = "func_0806E0E4", .linkage = .strong });
+        @export(&func_0806F298, .{ .name = "func_0806F298", .linkage = .strong });
+        @export(&func_08071F68, .{ .name = "func_08071F68", .linkage = .strong });
+        @export(&func_08072DB0, .{ .name = "func_08072DB0", .linkage = .strong });
+        @export(&func_080747F8, .{ .name = "func_080747F8", .linkage = .strong });
+        @export(&func_08074C84, .{ .name = "func_08074C84", .linkage = .strong });
+        @export(&func_080754F4, .{ .name = "func_080754F4", .linkage = .strong });
+        @export(&func_08075808, .{ .name = "func_08075808", .linkage = .strong });
+        @export(&func_08075EB8, .{ .name = "func_08075EB8", .linkage = .strong });
     }
 }
 

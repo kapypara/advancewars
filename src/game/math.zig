@@ -256,6 +256,281 @@ pub fn func_08003918() callconv(.c) void {
     rt.recompReturn(lr_val);
 }
 
+fn popReturnPcMath() void {
+    const pc = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[15] = pc;
+    rt.recompReturn(pc);
+}
+
+const RotAxis = enum { x, y, z };
+
+fn writeRotationMatrix3x3(axis: RotAxis, cos_ret: u32, sin_ret: u32) void {
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    rt.r[6] = rt.r[0];
+    const angle: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[1])));
+    rt.r[5] = angle;
+    rt.r[0] = angle;
+    if (!abi.call(decls.func_0807AF30, cos_ret)) return;
+
+    abi.fetches(10);
+    const cos_q12: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])) >> 2);
+    rt.r[4] = cos_q12 & 0xFFFF;
+    rt.r[0] = rt.r[5];
+    if (!abi.call(decls.func_0807AED4, sin_ret)) return;
+
+    abi.fetches(22);
+    const sin_q12: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])) >> 2);
+    const neg_sin: u32 = 0 -% sin_q12;
+    const one: u32 = 0x1000;
+    const mat: [9]u32 = switch (axis) {
+        .x => .{ one, 0, 0, 0, cos_q12, neg_sin, 0, sin_q12, cos_q12 },
+        .y => .{ cos_q12, 0, neg_sin, 0, one, 0, sin_q12, 0, cos_q12 },
+        .z => .{ cos_q12, neg_sin, 0, sin_q12, cos_q12, 0, 0, 0, one },
+    };
+    inline for (mat, 0..) |entry, idx| {
+        abi.write32(rt.r[6] +% @as(u32, idx * 4), entry);
+    }
+
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Build 3x3 fixed-point X-axis rotation matrix at `[r0]` for angle `i16(r1)` (`0x0806D160`).
+pub fn func_0806D160() callconv(.c) void {
+    if (!abi.enter(0x0806D160)) return;
+    writeRotationMatrix3x3(.x, 0x0806D16F, 0x0806D17F);
+}
+
+/// Build 3x3 fixed-point Y-axis rotation matrix at `[r0]` for angle `i16(r1)` (`0x0806D1A8`).
+pub fn func_0806D1A8() callconv(.c) void {
+    if (!abi.enter(0x0806D1A8)) return;
+    writeRotationMatrix3x3(.y, 0x0806D1B7, 0x0806D1C7);
+}
+
+/// Build 3x3 fixed-point Z-axis rotation matrix at `[r0]` for angle `i16(r1)` (`0x0806D1F0`).
+pub fn func_0806D1F0() callconv(.c) void {
+    if (!abi.enter(0x0806D1F0)) return;
+    writeRotationMatrix3x3(.z, 0x0806D1FF, 0x0806D20F);
+}
+
+fn softfpDoubleAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0x4C;
+    abi.write32(rt.r[13] +% 0x3C, rt.r[0]);
+    abi.write32(rt.r[13] +% 0x40, rt.r[1]);
+    abi.write32(rt.r[13] +% 0x44, rt.r[2]);
+    abi.write32(rt.r[13] +% 0x48, rt.r[3]);
+    rt.r[0] = rt.r[13] +% 0x3C;
+    rt.r[1] = rt.r[13];
+    if (!abi.call(decls.func_0807B8B4, r1)) return;
+
+    abi.fetches(7);
+    rt.r[0] = rt.r[13] +% 0x44;
+    rt.r[4] = rt.r[13] +% 0x14;
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807B8B4, r2)) return;
+
+    abi.fetches(if (sub) 11 else 7);
+    if (sub) {
+        abi.write32(rt.r[4] +% 4, abi.read32(rt.r[4] +% 4) ^ 1);
+    }
+    rt.r[2] = rt.r[13] +% 0x28;
+    rt.r[0] = rt.r[13];
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807B98C, r3)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0807B76C, r4)) return;
+
+    abi.fetches(4);
+    rt.r[13] +%= 0x4C;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnPcMath();
+}
+
+/// Software IEEE-754 double-precision addition (`__adddf3`, `0x0807BBF8`).
+pub fn func_0807BBF8() callconv(.c) void {
+    if (!abi.enter(0x0807BBF8)) return;
+    softfpDoubleAddSub(false, 0x0807BC0D, 0x0807BC17, 0x0807BC21, 0x0807BC25);
+}
+
+/// Software IEEE-754 double-precision subtraction (`__subdf3`, `0x0807BC28`).
+pub fn func_0807BC28() callconv(.c) void {
+    if (!abi.enter(0x0807BC28)) return;
+    softfpDoubleAddSub(true, 0x0807BC3D, 0x0807BC47, 0x0807BC59, 0x0807BC5D);
+}
+
+/// Software IEEE-754 double-precision multiplication (`__muldf3`, `0x0807C190`).
+pub fn func_0807C190() callconv(.c) void {
+    if (!abi.enter(0x0807C190)) return;
+    abi.fetches(12);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0x38;
+    abi.write32(rt.r[13] +% 0x28, rt.r[0]);
+    abi.write32(rt.r[13] +% 0x2C, rt.r[1]);
+    abi.write32(rt.r[13] +% 0x30, rt.r[2]);
+    abi.write32(rt.r[13] +% 0x34, rt.r[3]);
+    rt.r[0] = rt.r[13] +% 0x28;
+    rt.r[1] = rt.r[13];
+    if (!abi.call(decls.func_0807B8B4, 0x0807C1A5)) return;
+
+    abi.fetches(7);
+    rt.r[0] = rt.r[13] +% 0x30;
+    rt.r[4] = rt.r[13] +% 0x14;
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807B8B4, 0x0807C1AF)) return;
+
+    abi.fetches(6);
+    rt.r[0] = rt.r[13];
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807C090, 0x0807C1B7)) return;
+
+    abi.fetches(4);
+    rt.r[13] +%= 0x38;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnPcMath();
+}
+
+fn softfpFloatAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0x38;
+    abi.write32(rt.r[13] +% 0x30, rt.r[0]);
+    abi.write32(rt.r[13] +% 0x34, rt.r[1]);
+    rt.r[0] = rt.r[13] +% 0x30;
+    rt.r[1] = rt.r[13];
+    if (!abi.call(decls.func_0807C5C0, r1)) return;
+
+    abi.fetches(7);
+    rt.r[0] = rt.r[13] +% 0x34;
+    rt.r[4] = rt.r[13] +% 0x10;
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807C5C0, r2)) return;
+
+    abi.fetches(if (sub) 11 else 7);
+    if (sub) {
+        abi.write32(rt.r[4] +% 4, abi.read32(rt.r[4] +% 4) ^ 1);
+    }
+    rt.r[2] = rt.r[13] +% 0x20;
+    rt.r[0] = rt.r[13];
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807C63C, r3)) return;
+
+    abi.fetches(4);
+    if (!abi.call(decls.func_0807C508, r4)) return;
+
+    abi.fetches(4);
+    rt.r[13] +%= 0x38;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnPcMath();
+}
+
+/// Software IEEE-754 single-precision addition (`__addsf3`, `0x0807C7B8`).
+pub fn func_0807C7B8() callconv(.c) void {
+    if (!abi.enter(0x0807C7B8)) return;
+    softfpFloatAddSub(false, 0x0807C7C9, 0x0807C7D3, 0x0807C7DD, 0x0807C7E1);
+}
+
+/// Software IEEE-754 single-precision subtraction (`__subsf3`, `0x0807C7E4`).
+pub fn func_0807C7E4() callconv(.c) void {
+    if (!abi.enter(0x0807C7E4)) return;
+    softfpFloatAddSub(true, 0x0807C7F5, 0x0807C7FF, 0x0807C811, 0x0807C815);
+}
+
+/// Software IEEE-754 single-precision multiplication (`__mulsf3`, `0x0807CB4C`).
+pub fn func_0807CB4C() callconv(.c) void {
+    if (!abi.enter(0x0807CB4C)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0x28;
+    abi.write32(rt.r[13] +% 0x20, rt.r[0]);
+    abi.write32(rt.r[13] +% 0x24, rt.r[1]);
+    rt.r[0] = rt.r[13] +% 0x20;
+    rt.r[1] = rt.r[13];
+    if (!abi.call(decls.func_0807C5C0, 0x0807CB5D)) return;
+
+    abi.fetches(7);
+    rt.r[0] = rt.r[13] +% 0x24;
+    rt.r[4] = rt.r[13] +% 0x10;
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807C5C0, 0x0807CB67)) return;
+
+    abi.fetches(6);
+    rt.r[0] = rt.r[13];
+    rt.r[1] = rt.r[4];
+    if (!abi.call(decls.func_0807CA68, 0x0807CB6F)) return;
+
+    abi.fetches(4);
+    rt.r[13] +%= 0x28;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnPcMath();
+}
+
+/// Convert IEEE-754 single-precision float to signed 32-bit integer (`__fixsfsi`, `0x0807CE28`).
+pub fn func_0807CE28() callconv(.c) void {
+    if (!abi.enter(0x0807CE28)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 0x18;
+    abi.write32(rt.r[13] +% 0x14, rt.r[0]);
+    rt.r[0] = rt.r[13] +% 0x14;
+    rt.r[1] = rt.r[13] +% 0x4;
+    if (!abi.call(decls.func_0807C5C0, 0x0807CE37)) return;
+
+    abi.fetches(15);
+    rt.r[0] = abi.read32(rt.r[13] +% 0x4);
+    rt.r[1] = abi.read32(rt.r[13] +% 0x8);
+    rt.r[2] = abi.read32(rt.r[13] +% 0xC);
+    rt.r[3] = abi.read32(rt.r[13] +% 0x10);
+    const shifted = rt.r[3] >> 2;
+    abi.write32(rt.r[13] +% 0x0, shifted);
+    rt.r[3] = rt.r[3] << 30;
+    if (!abi.call(decls.func_0807C49C, 0x0807CE51)) return;
+
+    abi.fetches(4);
+    rt.r[13] +%= 0x18;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnPcMath();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010A84, .{ .name = "func_08010A84", .linkage = .strong });
@@ -266,6 +541,16 @@ comptime {
         @export(&func_0807AF30, .{ .name = "func_0807AF30", .linkage = .strong });
         @export(&func_0800FCFA, .{ .name = "func_0800FCFA", .linkage = .strong });
         @export(&func_0803D4F0, .{ .name = "func_0803D4F0", .linkage = .strong });
+        @export(&func_0806D160, .{ .name = "func_0806D160", .linkage = .strong });
+        @export(&func_0806D1A8, .{ .name = "func_0806D1A8", .linkage = .strong });
+        @export(&func_0806D1F0, .{ .name = "func_0806D1F0", .linkage = .strong });
+        @export(&func_0807BBF8, .{ .name = "func_0807BBF8", .linkage = .strong });
+        @export(&func_0807BC28, .{ .name = "func_0807BC28", .linkage = .strong });
+        @export(&func_0807C190, .{ .name = "func_0807C190", .linkage = .strong });
+        @export(&func_0807C7B8, .{ .name = "func_0807C7B8", .linkage = .strong });
+        @export(&func_0807C7E4, .{ .name = "func_0807C7E4", .linkage = .strong });
+        @export(&func_0807CB4C, .{ .name = "func_0807CB4C", .linkage = .strong });
+        @export(&func_0807CE28, .{ .name = "func_0807CE28", .linkage = .strong });
     }
 }
 

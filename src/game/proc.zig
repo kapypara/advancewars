@@ -1431,6 +1431,64 @@ pub fn func_08014850() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Bind sprite slot `u16(r0)` to object palette/priority attributes via `0x0801A218`/`0x080135FC` (`0x080147B8`).
+pub fn func_080147B8() callconv(.c) void {
+    if (!abi.enter(0x080147B8)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[13] -%= 8;
+
+    const slot_u16 = rt.r[0] & 0xFFFF;
+    const slot_s16: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])));
+    rt.r[5] = slot_s16;
+    rt.r[0] = slot_u16;
+    if (!abi.call(decls.func_0801A218, 0x080147C7)) return;
+
+    abi.fetches(23);
+    const val_u8 = rt.r[0] & 0xFF;
+    const val_s8: u32 = @bitCast(abi.signExtend8(@truncate(val_u8)));
+    rt.r[4] = val_u8;
+    const slot_entry = (slot_s16 *% 3 << 5) +% abi.read32(0x0801484C);
+    const anim_idx = abi.read16(slot_entry +% 0x26);
+    const anim_slot = (@as(u32, anim_idx) *% 0x4C) +% abi.read32(0x08014848);
+    abi.write16(anim_slot +% 0x3A, @truncate(rt.r[0]));
+
+    rt.r[6] = rt.r[13];
+    rt.r[0] = slot_s16;
+    rt.r[1] = rt.r[13];
+    if (!abi.call(decls.func_080135FC, 0x080147F1)) return;
+
+    abi.fetches(41);
+    abi.write8(rt.r[6] +% 1, @truncate(@as(u32, abi.read8(rt.r[6] +% 1)) | 1));
+    const old_b3: u32 = abi.read8(rt.r[6] +% 3);
+    const new_b3 = (old_b3 & ~@as(u32, 0x3E)) |
+        ((val_s8 & 7) << 1) |
+        (((val_s8 >> 3) & 1) << 4) |
+        (((val_s8 >> 4) & 1) << 5);
+    abi.write8(rt.r[6] +% 3, @truncate(new_b3));
+
+    rt.r[0] = rt.r[5];
+    rt.r[1] = abi.read32(rt.r[13] +% 0x0);
+    rt.r[2] = abi.read32(rt.r[13] +% 0x4);
+    if (!abi.call(decls.func_08013598, 0x0801483F)) return;
+
+    abi.fetches(6);
+    rt.r[13] +%= 8;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08010F04, .{ .name = "func_08010F04", .linkage = .strong });
@@ -1510,6 +1568,7 @@ comptime {
         @export(&func_08013144, .{ .name = "func_08013144", .linkage = .strong });
         @export(&func_0801381C, .{ .name = "func_0801381C", .linkage = .strong });
         @export(&func_08014850, .{ .name = "func_08014850", .linkage = .strong });
+        @export(&func_080147B8, .{ .name = "func_080147B8", .linkage = .strong });
     }
 }
 

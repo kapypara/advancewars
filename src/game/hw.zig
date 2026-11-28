@@ -1282,6 +1282,38 @@ pub fn func_08010C70() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Reset display/OAM buffers and clear two VRAM/buffer regions via `0x0807AE60`/`0x0807B2DC` (`0x0807AE14`).
+pub fn func_0807AE14() callconv(.c) void {
+    if (!abi.enter(0x0807AE14)) return;
+    abi.fetches(7);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    rt.r[0] = 0;
+    rt.r[1] = 0;
+    if (!abi.call(decls.func_0807AE60, 0x0807AE1F)) return;
+
+    abi.fetches(7);
+    rt.r[0] = abi.read32(0x0807AE3C);
+    rt.r[1] = abi.read32(0x0807AE40);
+    rt.r[2] = 0x1E;
+    if (!abi.call(decls.func_0807B2DC, 0x0807AE29)) return;
+
+    abi.fetches(9);
+    rt.r[0] = abi.read32(0x0807AE44);
+    rt.r[4] = abi.read32(0x0807AE48);
+    rt.r[1] = rt.r[4];
+    rt.r[2] = 0x100;
+    if (!abi.call(decls.func_0807B2DC, 0x0807AE37)) return;
+
+    abi.fetches(5);
+    rt.r[0] = abi.read32(0x0807AE4C);
+    abi.write32(rt.r[0], rt.r[4]);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    popReturnPcHw();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08002E88, .{ .name = "func_08002E88", .linkage = .strong });
@@ -1359,6 +1391,7 @@ comptime {
         @export(&func_0807AD10, .{ .name = "func_0807AD10", .linkage = .strong });
         @export(&func_0807AD74, .{ .name = "func_0807AD74", .linkage = .strong });
         @export(&func_0807AE04, .{ .name = "func_0807AE04", .linkage = .strong });
+        @export(&func_0807AE14, .{ .name = "func_0807AE14", .linkage = .strong });
         @export(&func_08010C70, .{ .name = "func_08010C70", .linkage = .strong });
     }
 }
