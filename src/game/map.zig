@@ -94,10 +94,9 @@ pub fn func_0801D048() callconv(.c) void {
             if (!(rt.CPU_N == rt.CPU_V)) {
                 abi.fetches(4);
                 const row_ptr_addr = types.addr.reachability_rows +% (y << 2);
-                const row_ptr = mem.readU32(row_ptr_addr);
                 while (true) {
                     abi.fetches(10);
-                    mem.writeU8(row_ptr +% x, fill_val);
+                    mem.writeReachability(x, y, fill_val);
                     x +%= 1;
                     rt.cpuSub(null, x, width, true);
                     if (rt.CPU_N == rt.CPU_V) break;

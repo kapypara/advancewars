@@ -43,6 +43,7 @@ pub inline fn isFastCopyAligned(size_bytes: u32) bool {
     return (size_bytes & 0x1F) == 0;
 }
 
+/// [Phase 4 API — uncalled while func_0800FDA4 preserves exact abi.fetches/SWI branches]
 /// Copy `size_bytes` from `src` to `dst` via `CpuFastSet` when 32-byte aligned, else `CpuSet` (`0x0800FDA4`).
 pub fn cpuCopyAuto(src: u32, dst: u32, size_bytes: u32) void {
     if (isFastCopyAligned(size_bytes)) {

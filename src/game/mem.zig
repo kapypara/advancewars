@@ -53,18 +53,22 @@ pub inline fn procSlotAddr(idx: usize) u32 {
     return types.addr.proc_table +% @as(u32, @intCast(idx * types.proc_slot_stride));
 }
 
+/// [Phase 3C — reserved for script/proc scheduler lifting]
 pub inline fn scriptSlotAddr(idx: usize) u32 {
     return types.addr.script_pool +% @as(u32, @intCast(idx * types.script_slot_stride));
 }
 
+/// [Phase 3C — reserved for sprite_anim.zig lifting]
 pub inline fn animSlotAddr(idx: usize) u32 {
     return types.addr.anim_pool +% @as(u32, @intCast(idx * types.anim_slot_stride));
 }
 
+/// [Phase 3C — reserved for OAM table lifting]
 pub inline fn oamAttrAddr(idx: usize) u32 {
     return types.addr.oam_attr_table +% @as(u32, @intCast(idx * types.oam_attr_stride));
 }
 
+/// [Phase 3C — reserved for OAM queue lifting]
 pub inline fn oamQueueAddr(idx: usize) u32 {
     return types.addr.oam_queue +% @as(u32, @intCast(idx * types.oam_queue_stride));
 }

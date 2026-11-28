@@ -8,6 +8,7 @@ const abi = @import("abi.zig");
 const mem = @import("mem.zig");
 const types = @import("types.zig");
 
+/// [Phase 4 API — uncalled while func_08018B68 preserves exact loop fetches/flags]
 /// Look up `key` in an `0xFF`-terminated array of 8-byte menu guard entries.
 pub fn lookupGuardTable(entries: []const [8]u8, key: u8, fallback: u8) u8 {
     for (entries) |entry| {

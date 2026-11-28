@@ -18,11 +18,12 @@ pub fn func_0801BE04() callconv(.c) void {
     if (!abi.enter(0x0801BE04)) return;
     abi.fetches(6);
     const co_id: u8 = @truncate(rt.r[0]);
+    const norm = normalizeCoId(co_id);
     abi.setRegNz(&rt.r[0], co_id);
     rt.cpuSub(null, rt.r[0], 0xB, true);
     if (rt.CPU_Z) {
         abi.fetches(3);
-        abi.setRegNz(&rt.r[0], 0xA);
+        abi.setRegNz(&rt.r[0], norm);
     }
     abi.fetches(3);
     abi.retLr();
@@ -135,8 +136,7 @@ pub fn func_0801BE10() callconv(.c) void {
     rt.updateNz(rt.r[0]);
     if (!abi.call(func_0801BE04, 0x0801BE1B)) return;
     abi.fetches(10);
-    const tbl = abi.read32(0x0801BE2C);
-    const res = (rt.r[0] << 8) +% 0x540 +% tbl;
+    const res = coPortraitTilesAddr(@truncate(rt.r[0]));
     abi.setRegNz(&rt.r[0], res);
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
@@ -154,9 +154,7 @@ pub fn func_0801BE30() callconv(.c) void {
     rt.updateNz(rt.r[0]);
     if (!abi.call(func_0801BE04, 0x0801BE3B)) return;
     abi.fetches(9);
-    const off = abi.read32(0x0801BE48);
-    const tbl = abi.read32(0x0801BE4C);
-    const res = (rt.r[0] << 7) +% off +% tbl;
+    const res = coPortraitSmallTilesAddr(@truncate(rt.r[0]));
     abi.setRegNz(&rt.r[0], res);
     const lr_val = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;

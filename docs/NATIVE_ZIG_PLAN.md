@@ -49,7 +49,10 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
   - [x] **3B.4 — Unit Record, Stats & Action Helpers (`unit.zig`, `types.zig`, `mem.zig`, `battle.zig`, `low_peel_1.zig`):** Expand 12-byte `UnitRecord` (`unit_type`, `tile_x`, `tile_y`, `hp_flags`, `state_flags`) and `UnitEntity.gold`, add `mem.unitListBase`/`unitRecordAddr`, wire into `func_08023D2C` ([battle.zig](../src/game/battle.zig)), and lift `func_08024154` (`clampArmyFunds`), `func_08024CC0`, `func_08025874`, `func_08026020`, `func_08026048` out of [low_peel_1.zig](../src/game/low_peel_1.zig) into [unit.zig](../src/game/unit.zig).
   - [x] **3B.5 — Battle Combat Exchange & Remaining-HP Resolution (`battle.zig`, `types.zig`, `low_peel_7.zig`):** Name `BattleSideCtx.counter_power` (`+0x10`), add `computeCounterAttackPower` and `clampCombatRemainingHp` (`CombatHpPair`) with unit tests, and lift `func_080234CC` (full attack + counterattack exchange calling local `func_080234A0`) and `func_08023508` (post-combat HP normalization) out of [low_peel_7.zig](../src/game/low_peel_7.zig) into [battle.zig](../src/game/battle.zig).
 - **3C — Engine, Task Scheduler & Hardware (`proc.zig`, `hw.zig`, `sprite_anim.zig`, `sound.zig`, `state.zig`):**
-  - Typed `Proc` tree scheduler, OAM/BG queue builders, audio triggers, main state loop.
+  - [ ] **3C.1 — Proc & Script Scheduler Helpers (`proc.zig`, `mem.zig`, `types.zig`):** Lift core proc/script slot allocation, lookup, and timer helpers and wire `mem.scriptSlotAddr`.
+  - [ ] **3C.2 — Sprite Animator & OAM Queue Helpers (`sprite_anim.zig`, `mem.zig`):** Lift core animator/OAM queue builders and wire `mem.animSlotAddr`, `mem.oamAttrAddr`, `mem.oamQueueAddr`.
+  - [ ] **3C.3 — Hardware Input, Display & IRQ Helpers (`hw.zig`, `main_loop.zig`):** Lift key polling (`func_0801122C`) and hardware register sync helpers into `hw.zig`.
+  - [ ] **3C.4 — Audio Triggers & Game State Helpers (`sound.zig`, `state.zig`):** Lift core SFX/BGM trigger wrappers and top-level game state transition helpers.
 - **3D — Gameplay, UI, Turns & AI (`turn.zig`, `menu.zig`, `ui.zig`, `campaign.zig`, `overlay*.zig`, hot `low_peel_*` / `clusters_low*`):**
   - Turn phase machine, command menus, CO power logic, campaign flow, AI evaluation.
 

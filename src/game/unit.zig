@@ -28,13 +28,14 @@ pub fn func_08024154() callconv(.c) void {
     abi.setRegNz(&rt.r[0], @as(u32, slot_idx) *% stride);
     rt.cpuAdd(&rt.r[2], rt.r[0], entity_base, true);
     const prev = mem.readU32(rt.r[2] +% @offsetOf(types.UnitEntity, "gold"));
+    const clamped = clampArmyFunds(prev, rt.r[1]);
     rt.cpuAdd(&rt.r[0], prev, rt.r[1], true);
     mem.writeU32(rt.r[2] +% @offsetOf(types.UnitEntity, "gold"), rt.r[0]);
     rt.r[1] = types.max_army_funds;
     rt.cpuSub(null, rt.r[0], rt.r[1], true);
     if (rt.CPU_C and !rt.CPU_Z) {
         abi.fetches(3);
-        mem.writeU32(rt.r[2] +% @offsetOf(types.UnitEntity, "gold"), rt.r[1]);
+        mem.writeU32(rt.r[2] +% @offsetOf(types.UnitEntity, "gold"), clamped);
     }
     abi.fetches(3);
     abi.retLr();

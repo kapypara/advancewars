@@ -11,11 +11,13 @@ const mem = @import("mem.zig");
 const types = @import("types.zig");
 const unit = @import("unit.zig");
 
+/// [Phase 4 API — uncalled while GBA_VALIDATE requires bios.func_080796C8 SWI 0x06 Div]
 /// Compute raw scaled battle HP damage: `((100 - defense_pct) * base_damage) / 100`.
 pub inline fn computeScaledDamage(defense_pct: i32, base_damage: i32) i32 {
     return @divTrunc((100 - defense_pct) * base_damage, 100);
 }
 
+/// [Phase 4 API — uncalled while GBA_VALIDATE requires bios.func_080796C8 SWI 0x06 Div]
 /// Compute scaled counterattack power from defender remaining HP and `counter_power`: `(max(remaining_hp, 0) * counter_power) / 100`.
 pub inline fn computeCounterAttackPower(remaining_hp: i16, counter_power: i16) i16 {
     const eff_hp: i32 = if (remaining_hp < 0) 0 else remaining_hp;
@@ -120,7 +122,7 @@ pub fn func_080234CC() callconv(.c) void {
 
     abi.fetches(7);
     const rem_off = @offsetOf(types.BattleSideCtx, "remaining_hp");
-    const rem_hp: i32 = abi.signExtend16(mem.readU16(def +% rem_off));
+    const rem_hp: i32 = mem.readI16(def +% rem_off);
     var eff_hp: i32 = 0;
     rt.cpuSub(null, @bitCast(rem_hp), 0, true);
     if (rt.CPU_N == rt.CPU_V) {
@@ -130,7 +132,7 @@ pub fn func_080234CC() callconv(.c) void {
 
     abi.fetches(10);
     const cp_off = @offsetOf(types.BattleSideCtx, "counter_power");
-    const cpower: i32 = abi.signExtend16(mem.readU16(def +% cp_off));
+    const cpower: i32 = mem.readI16(def +% cp_off);
     abi.setRegNz(&rt.r[0], @bitCast(eff_hp *% cpower));
     abi.setRegNz(&rt.r[1], 100);
     if (!abi.call(bios.func_080796C8, 0x080234F7)) return;
@@ -167,7 +169,11 @@ pub fn func_08023508() callconv(.c) void {
     rt.r[2] = side_a;
     rt.r[3] = side_b;
     rt.r[1] = rem_off;
-    const a_hp: i32 = abi.signExtend16(mem.readU16(side_a +% rem_off));
+    const a_i16 = mem.readI16(side_a +% rem_off);
+    const a_hp: i32 = a_i16;
+    const b_i16 = mem.readI16(side_b +% rem_off);
+    const b_hp: i32 = b_i16;
+    const resolved = clampCombatRemainingHp(a_i16, b_i16);
     rt.r[0] = @bitCast(a_hp);
     rt.cpuSub(null, rt.r[0], 0, true);
 
@@ -177,7 +183,6 @@ pub fn func_08023508() callconv(.c) void {
     } else {
         abi.fetches(6);
         rt.r[4] = rem_off;
-        const b_hp: i32 = abi.signExtend16(mem.readU16(side_b +% rem_off));
         rt.r[1] = @bitCast(b_hp);
         rt.cpuSub(null, rt.r[1], 0, true);
         if (!rt.CPU_Z and rt.CPU_N == rt.CPU_V) {
@@ -186,7 +191,7 @@ pub fn func_08023508() callconv(.c) void {
             if (rt.CPU_N != rt.CPU_V) {
                 abi.fetches(4);
                 abi.setRegNz(&rt.r[0], 0);
-                mem.writeU16(side_a +% rem_off, 0);
+                mem.writeI16(side_a +% rem_off, resolved.a);
             }
             check_b_neg = true;
         } else {
@@ -195,26 +200,20 @@ pub fn func_08023508() callconv(.c) void {
             abi.fetches(7);
             abi.setRegNz(&rt.r[1], 0);
             abi.setRegNz(&rt.r[0], 1);
-            if (rt.CPU_N == rt.CPU_V) {
-                mem.writeU16(side_a +% rem_off, 1);
-                mem.writeU16(side_b +% rem_off, 0);
-            } else {
-                mem.writeU16(side_b +% rem_off, 1);
-                mem.writeU16(side_a +% rem_off, 0);
-            }
+            mem.writeI16(side_a +% rem_off, resolved.a);
+            mem.writeI16(side_b +% rem_off, resolved.b);
         }
     }
 
     if (check_b_neg) {
         abi.fetches(6);
         rt.r[1] = rem_off;
-        const b_hp: i32 = abi.signExtend16(mem.readU16(side_b +% rem_off));
         rt.r[0] = @bitCast(b_hp);
         rt.cpuSub(null, rt.r[0], 0, true);
         if (rt.CPU_N != rt.CPU_V) {
             abi.fetches(4);
             abi.setRegNz(&rt.r[0], 0);
-            mem.writeU16(side_b +% rem_off, 0);
+            mem.writeI16(side_b +% rem_off, resolved.b);
         }
     }
 

@@ -122,6 +122,7 @@ pub fn func_0807AF30() callconv(.c) void {
     rt.recompReturn(lr_val);
 }
 
+/// [Reference/Test-only — native Zig callers use `@divTrunc` directly]
 /// Signed 32-bit truncating division matching libgcc `__divsi3` (returns `0` on divide-by-zero
 /// and wraps `minInt(i32) / -1` to `minInt(i32)`).
 pub fn divSigned32(num: i32, den: i32) i32 {
@@ -211,12 +212,14 @@ const Radix16ModResult = struct {
     r12: u32,
 };
 
+/// [Reference/Test-only — native Zig callers use `%` directly]
 /// Unsigned 32-bit modulo (`returns 0` on divide-by-zero).
 pub fn modUnsigned32(num: u32, den: u32) u32 {
     if (den == 0) return 0;
     return num % den;
 }
 
+/// [Reference/Test-only — native Zig callers use `@rem` directly]
 /// Signed 32-bit truncating modulo matching libgcc `__modsi3` (`returns 0` on divide-by-zero).
 pub fn modSigned32(num: i32, den: i32) i32 {
     if (den == 0) return 0;
