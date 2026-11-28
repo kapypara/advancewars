@@ -50,7 +50,7 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
   - [x] **3B.5 — Battle Combat Exchange & Remaining-HP Resolution (`battle.zig`, `types.zig`, `low_peel_7.zig`):** Name `BattleSideCtx.counter_power` (`+0x10`), add `computeCounterAttackPower` and `clampCombatRemainingHp` (`CombatHpPair`) with unit tests, and lift `func_080234CC` (full attack + counterattack exchange calling local `func_080234A0`) and `func_08023508` (post-combat HP normalization) out of [low_peel_7.zig](../src/game/low_peel_7.zig) into [battle.zig](../src/game/battle.zig).
 - **3C — Engine, Task Scheduler & Hardware (`proc.zig`, `hw.zig`, `sprite_anim.zig`, `sound.zig`, `state.zig`):**
   - [x] **3C.1 — Proc & Script Scheduler Helpers (`proc.zig`, `mem.zig`, `types.zig`):** Lift core proc/script slot allocation, lookup, and timer helpers and wire `mem.scriptSlotAddr`.
-  - [ ] **3C.2 — Sprite Animator & OAM Queue Helpers (`sprite_anim.zig`, `mem.zig`):** Lift core animator/OAM queue builders and wire `mem.animSlotAddr`, `mem.oamAttrAddr`, `mem.oamQueueAddr`.
+  - [x] **3C.2 — Sprite Animator & OAM Queue Helpers (`sprite_anim.zig`, `mem.zig`):** Lift core animator/OAM queue builders and wire `mem.animSlotAddr`, `mem.oamAttrAddr`, `mem.oamQueueAddr`.
   - [ ] **3C.3 — Hardware Input, Display & IRQ Helpers (`hw.zig`, `main_loop.zig`):** Lift key polling (`func_0801122C`) and hardware register sync helpers into `hw.zig`.
   - [ ] **3C.4 — Audio Triggers & Game State Helpers (`sound.zig`, `state.zig`):** Lift core SFX/BGM trigger wrappers and top-level game state transition helpers.
 - **3D — Gameplay, UI, Turns & AI (`turn.zig`, `menu.zig`, `ui.zig`, `campaign.zig`, `overlay*.zig`, hot `low_peel_*` / `clusters_low*`):**

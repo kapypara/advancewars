@@ -6122,65 +6122,6 @@ fn func_08014980() callconv(.c) void {
     }
 }
 
-fn func_08014BA8() callconv(.c) void {
-    if (!abi.enter(0x08014BA8)) return;
-    blk: switch (@as(u32, 0)) {
-        0 => {
-            abi.fetches(8);
-            pushRegs(&.{ 4, 5, 6, 14 });
-            abi.setRegNz(&rt.r[4], 0x0);
-            rt.r[5] = abi.read32(0x08014BCC);
-            abi.setRegNz(&rt.r[6], 0x1);
-            rt.r[0] = abi.read32(0x08014BD0);
-            rt.cpuAdd(&rt.r[3], rt.r[0], 0x6, true);
-            continue :blk 1;
-        },
-        1 => {
-            abi.fetches(7);
-            rt.cpuAdd(&rt.r[2], rt.r[4], rt.r[5], true);
-            rt.r[0] = abi.read8(rt.r[2] +% 0x0);
-            rt.cpuAdd(&rt.r[1], rt.r[0], 0x0, true);
-            rt.cpuSub(null, rt.r[1], 0x0, true);
-            if (!rt.CPU_Z) {
-                continue :blk 3;
-            }
-            continue :blk 2;
-        },
-        2 => {
-            abi.fetches(8);
-            rt.r[0] = abi.read8(rt.r[2] +% 0x0);
-            abi.write8(rt.r[2] +% 0x0, @truncate(rt.r[6]));
-            abi.write16(rt.r[3] +% 0x0, @truncate(rt.r[1]));
-            abi.write16(rt.r[3] +% 0x6, @truncate(rt.r[1]));
-            rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
-            continue :blk 4;
-        },
-        3 => {
-            abi.fetches(6);
-            rt.cpuAdd(&rt.r[3], rt.r[3], 0x10, true);
-            rt.cpuAdd(&rt.r[4], rt.r[4], 0x1, true);
-            rt.cpuSub(null, rt.r[4], 0x1F, true);
-            if ((rt.CPU_Z or rt.CPU_N != rt.CPU_V)) {
-                continue :blk 1;
-            }
-            continue :blk 5;
-        },
-        4 => {
-            abi.fetches(5);
-            popRegsSeq(&.{ 4, 5, 6 });
-            popRegsSeq(&.{ 1 });
-            rt.r[15] = rt.r[1]; rt.recompReturn(rt.r[1]); return;
-        },
-        5 => {
-            abi.fetches(4);
-            abi.setRegNz(&rt.r[0], 0x1);
-            rt.cpuSub(&rt.r[0], 0, rt.r[0], true);
-            continue :blk 4;
-        },
-        else => unreachable,
-    }
-}
-
 fn func_08014E20() callconv(.c) void {
     if (!abi.enter(0x08014E20)) return;
     blk: switch (@as(u32, 0)) {
@@ -9875,7 +9816,6 @@ comptime {
         @export(&func_08014030, .{ .name = "func_08014030", .linkage = .strong });
         @export(&func_0801493C, .{ .name = "func_0801493C", .linkage = .strong });
         @export(&func_08014980, .{ .name = "func_08014980", .linkage = .strong });
-        @export(&func_08014BA8, .{ .name = "func_08014BA8", .linkage = .strong });
         @export(&func_08014E20, .{ .name = "func_08014E20", .linkage = .strong });
         @export(&func_08015A88, .{ .name = "func_08015A88", .linkage = .strong });
         @export(&func_08015DA8, .{ .name = "func_08015DA8", .linkage = .strong });

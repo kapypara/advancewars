@@ -30,6 +30,7 @@ pub const addr = struct {
     pub const camera_scroll_x_off: u32 = 0x0300_1D48;
     pub const script_pool: u32 = 0x0300_1D50;
     pub const anim_pool: u32 = 0x0300_2320;
+    pub const oam_queue_used: u32 = 0x0300_2F00;
     pub const hw_init_flag_2f24: u32 = 0x0300_2F24;
     pub const script_flag_2f44: u32 = 0x0300_2F44;
     pub const script_var_31f8: u32 = 0x0300_31F8;
@@ -169,6 +170,7 @@ pub const OamAttr = extern struct {
 };
 
 /// OAM queue entry stride at `addr.oam_queue` (`0x0201_1D24`, stride `0x10` bytes).
+pub const oam_queue_count: usize = 32;
 pub const oam_queue_stride: usize = 0x10;
 
 pub const OamQueueEntry = extern struct {

@@ -5,12 +5,14 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
 const types = @import("types.zig");
 
 /// Compute address of animator struct owned by proc `proc_idx` (`(proc.anim_slot) * 0x4C`).
 pub inline fn resolveAnimAddr(proc_base: u32, anim_base: u32, proc_idx: i16) u32 {
     const proc_off: u32 = @bitCast(@as(i32, proc_idx) *% @as(i32, types.proc_slot_stride));
     const slot_idx = abi.read16(proc_base +% proc_off +% @offsetOf(types.ProcSlot, "anim_slot"));
+    if (anim_base == types.addr.anim_pool) return mem.animSlotAddr(slot_idx);
     return anim_base +% @as(u32, slot_idx) *% @as(u32, types.anim_slot_stride);
 }
 
@@ -26,12 +28,11 @@ inline fn finishPoppedLr(comptime dst_reg: u2) void {
 pub fn func_08013598() callconv(.c) void {
     if (!abi.enter(0x08013598)) return;
     abi.fetches(21);
-    const anim_base = abi.read32(0x080135C0);
     const proc_base = abi.read32(0x080135C4);
     const proc_idx: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
     const proc_off: u32 = @bitCast(@as(i32, proc_idx) *% 0x60);
     const slot_idx = abi.read16(proc_base +% proc_off +% 0x26);
-    const anim = anim_base +% @as(u32, slot_idx) *% @as(u32, types.anim_slot_stride);
+    const anim = mem.animSlotAddr(slot_idx);
     const target = anim +% 0x30;
     abi.write32(target, rt.r[1]);
     abi.write32(target +% 4, rt.r[2]);
@@ -197,13 +198,68 @@ pub fn func_080138CC() callconv(.c) void {
 pub fn func_08014CE8() callconv(.c) void {
     if (!abi.enter(0x08014CE8)) return;
     abi.fetches(12);
-    const queue_base = abi.read32(0x08014CFC);
-    const entry = queue_base +% (rt.r[0] << 4);
+    const entry = mem.oamQueueAddr(@as(usize, @as(u16, @truncate(rt.r[0]))));
     abi.write16(entry +% 0x6, @truncate(rt.r[1]));
     abi.write16(entry +% 0x8, @truncate(rt.r[2]));
     abi.write16(entry +% 0xA, @truncate(rt.r[3]));
     rt.r[0] = rt.r[14];
     rt.recompReturn(rt.r[14]);
+}
+
+/// Set OAM queue entry halfwords `+0xC` and `+0xE` at `0x0201_1D24[r0 * 16]` (`0x08014D00`).
+pub fn func_08014D00() callconv(.c) void {
+    if (!abi.enter(0x08014D00)) return;
+    abi.fetches(8);
+    const idx: usize = @as(u16, @truncate(rt.r[0]));
+    const entry = mem.oamQueueAddr(idx);
+    rt.r[3] = types.addr.oam_queue;
+    abi.setRegNz(&rt.r[0], rt.r[0] << 4);
+    rt.cpuAdd(&rt.r[0], rt.r[0], rt.r[3], true);
+    abi.write16(entry +% 0xC, @truncate(rt.r[1]));
+    abi.write16(entry +% 0xE, @truncate(rt.r[2]));
+    abi.retLr();
+}
+
+/// Read halfword at `[r0]` (`0x08014DA0`).
+pub fn func_08014DA0() callconv(.c) void {
+    if (!abi.enter(0x08014DA0)) return;
+    abi.fetches(4);
+    rt.r[0] = abi.read16(rt.r[0]);
+    abi.retLr();
+}
+
+/// Allocate first free OAM queue slot in `0..31` and zero its `+0x6` and `+0xC` halfwords (`0x08014BA8`).
+pub fn func_08014BA8() callconv(.c) void {
+    if (!abi.enter(0x08014BA8)) return;
+    abi.fetches(8);
+    var idx: u32 = 0;
+    while (idx < types.oam_queue_count) : (idx += 1) {
+        abi.fetches(7);
+        const flag_addr = types.addr.oam_queue_used +% idx;
+        const used = abi.read8(flag_addr);
+        rt.cpuSub(null, used, 0, true);
+        if (used == 0) {
+            abi.fetches(13);
+            abi.write8(flag_addr, 1);
+            const entry = mem.oamQueueAddr(@intCast(idx));
+            abi.write16(entry +% 0x6, 0);
+            abi.write16(entry +% 0xC, 0);
+            rt.r[1] = rt.r[14];
+            rt.r[2] = flag_addr;
+            rt.r[3] = entry +% 0x6;
+            rt.cpuAdd(&rt.r[0], idx, 0, true);
+            abi.retLr();
+            return;
+        }
+        abi.fetches(6);
+    }
+    abi.fetches(9);
+    rt.r[1] = rt.r[14];
+    rt.r[2] = types.addr.oam_queue_used +% (types.oam_queue_count - 1);
+    rt.r[3] = mem.oamQueueAddr(types.oam_queue_count) +% 0x6;
+    abi.setRegNz(&rt.r[0], 1);
+    rt.cpuSub(&rt.r[0], 0, rt.r[0], true);
+    abi.retLr();
 }
 
 /// Clear sprite entry `+0x3A = 0` and reset flag `+0x39 = 0xFE` (`0x08011CF0`).
@@ -235,15 +291,16 @@ pub fn func_08014B54() callconv(.c) void {
     abi.write32(rt.r[13], rt.r[8]);
 
     const arg3: u16 = @truncate(abi.read32(rt.r[13] +% 0x18));
-    const table_base = abi.read32(0x08014BA4);
     const base_slot = rt.r[0] << 4;
+    const affine_base: usize = @as(usize, @as(u16, @truncate(rt.r[0]))) * 4;
+    const pad_off = @offsetOf(types.OamAttr, "affine_pad");
 
-    abi.write16(table_base +% ((base_slot +% 3) << 1), @truncate(rt.r[1]));
-    abi.write16(table_base +% ((base_slot +% 7) << 1), @truncate(rt.r[2]));
-    const old2 = abi.read16(table_base +% ((base_slot +% 11) << 1));
-    abi.write16(table_base +% ((base_slot +% 11) << 1), @truncate(rt.r[3]));
-    const old3 = abi.read16(table_base +% ((base_slot +% 15) << 1));
-    abi.write16(table_base +% ((base_slot +% 15) << 1), arg3);
+    abi.write16(mem.oamAttrAddr(affine_base + 0) +% pad_off, @truncate(rt.r[1]));
+    abi.write16(mem.oamAttrAddr(affine_base + 1) +% pad_off, @truncate(rt.r[2]));
+    const old2 = abi.read16(mem.oamAttrAddr(affine_base + 2) +% pad_off);
+    abi.write16(mem.oamAttrAddr(affine_base + 2) +% pad_off, @truncate(rt.r[3]));
+    const old3 = abi.read16(mem.oamAttrAddr(affine_base + 3) +% pad_off);
+    abi.write16(mem.oamAttrAddr(affine_base + 3) +% pad_off, arg3);
 
     rt.r[1] = old3;
     rt.r[2] = old2;
@@ -271,8 +328,8 @@ pub fn func_08014B54() callconv(.c) void {
 pub fn func_0801A0EC() callconv(.c) void {
     if (!abi.enter(0x0801A0EC)) return;
     abi.fetches(13);
-    const anim_base = abi.read32(0x0801A104);
-    const slot = (rt.r[0] *% @as(u32, types.anim_slot_stride)) +% anim_base;
+    const anim_base = types.addr.anim_pool;
+    const slot = mem.animSlotAddr(@as(usize, @as(u16, @truncate(rt.r[0]))));
     const fx1: i32 = @as(i32, @as(i16, @bitCast(@as(u16, @truncate(rt.r[1]))))) << 8;
     const fx2: i32 = @as(i32, @as(i16, @bitCast(@as(u16, @truncate(rt.r[2]))))) << 8;
     const val_x: u32 = @bitCast(fx1);
@@ -290,9 +347,8 @@ pub fn func_0801A0EC() callconv(.c) void {
 pub fn func_0801A1AC() callconv(.c) void {
     if (!abi.enter(0x0801A1AC)) return;
     abi.fetches(8);
-    const anim_base = abi.read32(0x0801A1B8);
-    const slot = (rt.r[0] *% @as(u32, types.anim_slot_stride)) +% anim_base;
-    rt.r[1] = anim_base;
+    const slot = mem.animSlotAddr(@as(usize, @as(u16, @truncate(rt.r[0]))));
+    rt.r[1] = types.addr.anim_pool;
     rt.r[0] = abi.read32(slot +% 0x2C);
     abi.retLr();
 }
@@ -301,8 +357,7 @@ pub fn func_0801A1AC() callconv(.c) void {
 pub fn func_0801A1BC() callconv(.c) void {
     if (!abi.enter(0x0801A1BC)) return;
     abi.fetches(10);
-    const anim_base = abi.read32(0x0801A1CC);
-    const slot = (rt.r[0] *% @as(u32, types.anim_slot_stride)) +% anim_base;
+    const slot = mem.animSlotAddr(@as(usize, @as(u16, @truncate(rt.r[0]))));
     const prev = abi.read32(slot +% 0x2C);
     abi.write32(slot +% 0x2C, 0);
     rt.r[0] = prev;
@@ -1055,7 +1110,7 @@ pub fn func_080153BC() callconv(.c) void {
 
     rt.r[4] = rt.r[0];
     rt.r[0] = rt.r[1];
-    if (!abi.call(decls.func_08014DA0, 0x080153C7)) return;
+    if (!abi.call(func_08014DA0, 0x080153C7)) return;
 
     abi.fetches(6);
     rt.r[1] = rt.r[0];
@@ -1341,7 +1396,10 @@ comptime {
         @export(&func_08013878, .{ .name = "func_08013878", .linkage = .strong });
         @export(&func_080138CC, .{ .name = "func_080138CC", .linkage = .strong });
         @export(&func_08014B54, .{ .name = "func_08014B54", .linkage = .strong });
+        @export(&func_08014BA8, .{ .name = "func_08014BA8", .linkage = .strong });
         @export(&func_08014CE8, .{ .name = "func_08014CE8", .linkage = .strong });
+        @export(&func_08014D00, .{ .name = "func_08014D00", .linkage = .strong });
+        @export(&func_08014DA0, .{ .name = "func_08014DA0", .linkage = .strong });
         @export(&func_0801A0EC, .{ .name = "func_0801A0EC", .linkage = .strong });
         @export(&func_0801A1AC, .{ .name = "func_0801A1AC", .linkage = .strong });
         @export(&func_0801A1BC, .{ .name = "func_0801A1BC", .linkage = .strong });
@@ -1359,4 +1417,10 @@ test "animator and OAM queue strides match GBA pool layout" {
     try std.testing.expectEqual(@as(usize, 0x10), types.oam_queue_stride);
     try std.testing.expectEqual(@as(u32, 0x0300_2320), types.addr.anim_pool);
     try std.testing.expectEqual(@as(u32, 0x0201_1D24), types.addr.oam_queue);
+    try std.testing.expectEqual(@as(u32, 0x0300_2320), mem.animSlotAddr(0));
+    try std.testing.expectEqual(@as(u32, 0x0300_236C), mem.animSlotAddr(1));
+    try std.testing.expectEqual(@as(u32, 0x0201_1924), mem.oamAttrAddr(0));
+    try std.testing.expectEqual(@as(u32, 0x0201_192C), mem.oamAttrAddr(1));
+    try std.testing.expectEqual(@as(u32, 0x0201_1D24), mem.oamQueueAddr(0));
+    try std.testing.expectEqual(@as(u32, 0x0201_1D34), mem.oamQueueAddr(1));
 }
