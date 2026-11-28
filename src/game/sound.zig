@@ -618,6 +618,46 @@ pub fn func_080521A4() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Dispatch 7 BGM/SFX track slot updates via `0x080791DC` from pool `[0x0803D80C..0x0803D82C]` (`0x0803D7B8`).
+pub fn func_0803D7B8() callconv(.c) void {
+    if (!abi.enter(0x0803D7B8)) return;
+    abi.fetches(10);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const player_ptr = abi.read32(0x0803D810);
+    const param_ptr = abi.read32(0x0803D814);
+    rt.r[5] = player_ptr;
+    rt.r[4] = param_ptr;
+
+    const entries = [_]struct { pool: u32, ret: u32 }{
+        .{ .pool = 0x0803D80C, .ret = 0x0803D7C9 },
+        .{ .pool = 0x0803D818, .ret = 0x0803D7D3 },
+        .{ .pool = 0x0803D81C, .ret = 0x0803D7DD },
+        .{ .pool = 0x0803D820, .ret = 0x0803D7E7 },
+        .{ .pool = 0x0803D824, .ret = 0x0803D7F1 },
+        .{ .pool = 0x0803D828, .ret = 0x0803D7FB },
+        .{ .pool = 0x0803D82C, .ret = 0x0803D805 },
+    };
+    inline for (entries, 0..) |e, i| {
+        if (i != 0) abi.fetches(7);
+        rt.r[0] = abi.read32(e.pool);
+        rt.r[2] = abi.read16(param_ptr);
+        rt.r[1] = player_ptr;
+        if (!abi.call(decls.func_080791DC, e.ret)) return;
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038028, .{ .name = "func_08038028", .linkage = .strong });
@@ -668,6 +708,7 @@ comptime {
         @export(&func_0804E650, .{ .name = "func_0804E650", .linkage = .strong });
         @export(&func_08051C90, .{ .name = "func_08051C90", .linkage = .strong });
         @export(&func_080521A4, .{ .name = "func_080521A4", .linkage = .strong });
+        @export(&func_0803D7B8, .{ .name = "func_0803D7B8", .linkage = .strong });
     }
 }
 

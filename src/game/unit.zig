@@ -1519,6 +1519,220 @@ pub fn func_0805E930() callconv(.c) void {
     abi.popReturn();
 }
 
+const UnitDetailRowCfg = struct {
+    x_pool: u32,
+    lut_pool: u32,
+    state_pool: u32,
+    pal_pool: u32,
+    tile_pool: u32,
+    flag_pool: u32,
+    state_off: u32,
+    lut_x_off: u32,
+    pal_off: u32,
+    x_mul2_add1: bool,
+    step0_is_offset8: bool,
+    ret_addrs: [16]u32,
+};
+
+fn drawUnitDetailRowPairs(comptime cfg: UnitDetailRowCfg) void {
+    abi.fetches(if (cfg.step0_is_offset8) 46 else 42);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const saved_r8 = rt.r[8];
+    const saved_r9 = rt.r[9];
+    const saved_r10 = rt.r[10];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r10);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r9);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+
+    const a0 = rt.r[0] & 0xFFFF;
+    const base_slot: u32 = if (cfg.step0_is_offset8)
+        (((a0 >> 1) << 4) +% 8) & 0xFFFF
+    else
+        ((a0 >> 1) & 0xFFF) << 4;
+
+    const x_base = abi.read32(cfg.x_pool);
+    const lut_base = abi.read32(cfg.lut_pool);
+    const state_val = abi.read16(abi.read32(cfg.state_pool) +% cfg.state_off);
+    const lut_idx = abi.read16(lut_base +% (state_val *% 20) +% cfg.lut_x_off);
+    var cur_x: u32 = abi.read16(x_base +% (lut_idx << 2) +% @as(u32, if (cfg.x_mul2_add1) 2 else 0));
+    const pal: u32 = abi.read16(abi.read32(cfg.pal_pool) +% cfg.pal_off);
+    const tile_base = abi.read32(cfg.tile_pool);
+
+    inline for (0..8) |iter| {
+        if (iter == 1) abi.fetches(18);
+        if (iter >= 2 and iter <= 6) abi.fetches(19);
+        if (iter == 7) abi.fetches(18);
+        const slot_idx: u32 = if (iter == 0) base_slot else ((base_slot +% @as(u32, @intCast(iter))) & 0xFFFF);
+        if (iter > 0) cur_x = (cur_x +% 1) & 0xFFFF;
+        const tile_ptr = tile_base +% (slot_idx << 1);
+        const flag: u32 = if (cfg.step0_is_offset8)
+            (if (iter < 7) 1 else 0)
+        else
+            (if (iter == 0) 1 else 0);
+
+        rt.r[0] = (abi.read16(tile_ptr) +% 0xDC) & 0xFFFF;
+        rt.r[1] = cur_x;
+        rt.r[2] = pal;
+        rt.r[3] = flag;
+        if (!abi.call(decls.func_0805E908, cfg.ret_addrs[iter * 2])) return;
+
+        abi.fetches(14);
+        rt.r[0] = (abi.read16(tile_ptr) +% 0xE5) & 0xFFFF;
+        rt.r[1] = (cur_x +% 0x20) & 0xFFFF;
+        rt.r[2] = pal;
+        rt.r[3] = flag;
+        if (!abi.call(decls.func_0805E908, cfg.ret_addrs[iter * 2 + 1])) return;
+    }
+
+    abi.fetches(12);
+    abi.write16(abi.read32(cfg.flag_pool), 1);
+
+    rt.r[3] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = rt.r[3];
+    rt.r[9] = rt.r[4];
+    rt.r[10] = rt.r[5];
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Update unit combat preview gauge, store active combat unit coords & HP/terrain counter (`0x08057E7C`).
+pub fn func_08057E7C() callconv(.c) void {
+    if (!abi.enter(0x08057E7C)) return;
+    abi.fetches(66);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[7]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[6]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+    const saved_r8 = rt.r[8];
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], saved_r8);
+    rt.r[13] -%= 4;
+
+    const side = rt.r[0] & 0xFFFF;
+    const col = rt.r[1] & 0xFFFF;
+    abi.write16(abi.read32(0x08057F24), @truncate(side));
+    abi.write16(abi.read32(0x08057F28), @truncate(col));
+
+    const val_idx = abi.read16(abi.read32(0x08057F2C) +% (((side *% 5) +% col) << 1));
+    const clamped_val = (val_idx *% 7 +% 1) & 0xFF;
+
+    const opp_side = side ^ 1;
+    const side_arr = abi.read32(0x08057F34) +% (opp_side << 4);
+    const stat_idx = abi.read16(side_arr +% 2);
+    const mult_w = abi.read16(side_arr +% 4);
+    const tbl_w = abi.read16(abi.read32(0x08057F38) +% (stat_idx *% 20) +% 0x10);
+    const obj_idx = abi.read16(abi.read32(0x08057F30) +% ((tbl_w *% mult_w) << 1));
+    const ptr_tbl = abi.read32(0x08057F40);
+
+    rt.r[0] = abi.read32(abi.read32(0x08057F3C) +% (obj_idx << 2));
+    rt.r[2] = abi.read32(ptr_tbl +% (opp_side << 3));
+    rt.r[3] = abi.read32(ptr_tbl +% 4 +% (opp_side << 3));
+    abi.write32(rt.r[13], clamped_val);
+    abi.setRegNz(&rt.r[1], 1);
+    if (!abi.call(decls.func_08013330, 0x08057EFD)) return;
+
+    abi.fetches(22);
+    const out_base = abi.read32(0x08057F44);
+    const side_off = side *% 0x90;
+    const slot_num = abi.read16(out_base +% side_off +% 0x16) -% 1;
+    const sx: i32 = abi.signExtend8(@truncate(rt.r[0]));
+    abi.write16(out_base +% side_off +% 2 +% (slot_num << 1), @truncate(@as(u32, @bitCast(sx))));
+
+    rt.r[13] +%= 4;
+    rt.r[3] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[8] = rt.r[3];
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[6] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[7] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    abi.popReturn();
+}
+
+/// Draw 8 dual-row unit detail tiles for primary panel (`0x0805DE84`).
+pub fn func_0805DE84() callconv(.c) void {
+    if (!abi.enter(0x0805DE84)) return;
+    drawUnitDetailRowPairs(.{
+        .x_pool = 0x0805E094,
+        .lut_pool = 0x0805E098,
+        .state_pool = 0x0805E09C,
+        .pal_pool = 0x0805E0A0,
+        .tile_pool = 0x0805E0A4,
+        .flag_pool = 0x0805E0A8,
+        .state_off = 2,
+        .lut_x_off = 2,
+        .pal_off = 0,
+        .x_mul2_add1 = false,
+        .step0_is_offset8 = false,
+        .ret_addrs = .{
+            0x0805DED5, 0x0805DEED,
+            0x0805DF0D, 0x0805DF25,
+            0x0805DF47, 0x0805DF5F,
+            0x0805DF81, 0x0805DF99,
+            0x0805DFBB, 0x0805DFD3,
+            0x0805DFF5, 0x0805E00D,
+            0x0805E02F, 0x0805E047,
+            0x0805E067, 0x0805E07F,
+        },
+    });
+}
+
+/// Draw 8 dual-row unit detail tiles for secondary panel (`0x0805E0AC`).
+pub fn func_0805E0AC() callconv(.c) void {
+    if (!abi.enter(0x0805E0AC)) return;
+    drawUnitDetailRowPairs(.{
+        .x_pool = 0x0805E2C4,
+        .lut_pool = 0x0805E2C8,
+        .state_pool = 0x0805E2CC,
+        .pal_pool = 0x0805E2D0,
+        .tile_pool = 0x0805E2D4,
+        .flag_pool = 0x0805E2D8,
+        .state_off = 0x12,
+        .lut_x_off = 2,
+        .pal_off = 2,
+        .x_mul2_add1 = true,
+        .step0_is_offset8 = true,
+        .ret_addrs = .{
+            0x0805E105, 0x0805E11D,
+            0x0805E13D, 0x0805E155,
+            0x0805E177, 0x0805E18F,
+            0x0805E1B1, 0x0805E1C9,
+            0x0805E1EB, 0x0805E203,
+            0x0805E225, 0x0805E23D,
+            0x0805E25F, 0x0805E277,
+            0x0805E297, 0x0805E2AF,
+        },
+    });
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08019970, .{ .name = "func_08019970", .linkage = .strong });
@@ -1594,6 +1808,9 @@ comptime {
         @export(&func_0805E808, .{ .name = "func_0805E808", .linkage = .strong });
         @export(&func_0805E848, .{ .name = "func_0805E848", .linkage = .strong });
         @export(&func_0805E930, .{ .name = "func_0805E930", .linkage = .strong });
+        @export(&func_08057E7C, .{ .name = "func_08057E7C", .linkage = .strong });
+        @export(&func_0805DE84, .{ .name = "func_0805DE84", .linkage = .strong });
+        @export(&func_0805E0AC, .{ .name = "func_0805E0AC", .linkage = .strong });
     }
 }
 
