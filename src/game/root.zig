@@ -28,6 +28,7 @@ pub const tail_hi = @import("tail_hi.zig");
 pub const tail_hi_2 = @import("tail_hi_2.zig");
 pub const tail_hi_3 = @import("tail_hi_3.zig");
 pub const clusters_low = @import("clusters_low.zig");
+pub const clusters_low_2 = @import("clusters_low_2.zig");
 pub const clusters_hi = @import("clusters_hi.zig");
 
 comptime {
@@ -57,6 +58,7 @@ comptime {
     _ = tail_hi_2;
     _ = tail_hi_3;
     _ = clusters_low;
+    _ = clusters_low_2;
     _ = clusters_hi;
 }
 
@@ -87,5 +89,6 @@ test {
     _ = tail_hi_2;
     _ = tail_hi_3;
     _ = clusters_low;
+    _ = clusters_low_2;
     _ = clusters_hi;
 }
