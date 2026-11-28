@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 64 — Low-ROM Block-Peeled Wave 14 (`86.66%`)
+- **Stage:** Stage 65 — Low-ROM Block-Peeled Wave 15 (`87.81%`)
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 6,566 / 7,577 (86.66%)
+- **Lifted to Clean Zig (`src/game/`):** 6,653 / 7,577 (87.81%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
@@ -48,6 +48,7 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/low_peel_12.zig` (168): `0x0803F9F6..0x08063A1C` (low-ROM block-peeled wave 12: next 168 functions `121..250` reachable lines)
 - `src/game/low_peel_13.zig` (168): `0x08063ADC..0x0807FFFC` (low-ROM block-peeled wave 13: remaining 168 functions `121..250` reachable lines)
 - `src/game/low_peel_14.zig` (87): `0x08000340..0x08026178` (low-ROM block-peeled wave 14: first 87 functions `251..500` reachable lines)
+- `src/game/low_peel_15.zig` (87): `0x0802649C..0x0804B554` (low-ROM block-peeled wave 15: next 87 functions `251..500` reachable lines)
 - `src/game/clusters_hi.zig` (109): `0x0808F5F2..0x083D8BCC` (46 closed hi-ROM shared-body `enter_*` clusters; 3 large ASCII/data clusters `COMP[28..30]` / 6 funcs deferred alongside 3 non-`enter` data blobs)
 - `src/game/hi_peel_1.zig` (270): `0x08080908..0x083E9F6C` (hi-ROM block-peeled wave 1: all 270 hi-ROM functions `<= 30` reachable lines)
 - `src/game/hi_peel_2.zig` (192): `0x08080906..0x08316EA6` (hi-ROM block-peeled wave 2: first 192 functions `31..60` reachable lines)
@@ -124,7 +125,8 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 61:** Hi-ROM block-peeled wave 7 (`b11e081`, `6,206 total`, first 136 `121..250L` hi-ROM functions).
 - [x] **Stage 62:** Hi-ROM block-peeled wave 8 (`f96d14c`, `6,342 total`, next 136 `121..250L` hi-ROM functions).
 - [x] **Stage 63:** Hi-ROM block-peeled wave 9 (`13e74af`, `6,479 total`, remaining 137 `121..250L` hi-ROM functions).
-- [x] **Stage 64:** Low-ROM block-peeled wave 14 (`6,566 total`, first 87 `251..500L` functions).
+- [x] **Stage 64:** Low-ROM block-peeled wave 14 (`4ef04a4`, `6,566 total`, first 87 `251..500L` functions).
+- [x] **Stage 65:** Low-ROM block-peeled wave 15 (`6,653 total`, next 87 `251..500L` functions).
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`
