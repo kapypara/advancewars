@@ -25,6 +25,7 @@ pub const overlay_ext = @import("overlay_ext.zig");
 pub const overlay_mid = @import("overlay_mid.zig");
 pub const tail_low = @import("tail_low.zig");
 pub const tail_hi = @import("tail_hi.zig");
+pub const tail_hi_2 = @import("tail_hi_2.zig");
 pub const clusters_low = @import("clusters_low.zig");
 
 comptime {
@@ -51,6 +52,7 @@ comptime {
     _ = overlay_mid;
     _ = tail_low;
     _ = tail_hi;
+    _ = tail_hi_2;
     _ = clusters_low;
 }
 
@@ -78,5 +80,6 @@ test {
     _ = overlay_mid;
     _ = tail_low;
     _ = tail_hi;
+    _ = tail_hi_2;
     _ = clusters_low;
 }
