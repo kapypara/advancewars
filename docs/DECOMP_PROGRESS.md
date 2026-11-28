@@ -4,9 +4,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 
 ## Summary
 - **Baseline Tag:** `zig-recomp-v1`
-- **Stage:** Stage 28 — Overlay Straight-Line Wrappers (`19.98%`)
+- **Stage:** Stage 29 — Overlay Field Accessors & Multi-Step Calls (`20.77%`)
 - **Total ROM Functions (`gen/`):** 7,577 (`funcs_*` + `stubs_*`)
-- **Lifted to Clean Zig (`src/game/`):** 1,514 / 7,577 (19.98%)
+- **Lifted to Clean Zig (`src/game/`):** 1,574 / 7,577 (20.77%)
 
 ## Lifted Modules
 - `src/game/bios.zig` (11): `0x080796A0` (`noop`), `0x080796BC` (`bgAffineSet`), `0x080796C0` (`cpuFastSet`), `0x080796C4` (`cpuSet`), `0x080796C8` (`div`), `0x080796CC` (`mod`), `0x080796D4` (`huffUnComp`), `0x080796D8` (`lz77UnCompVram`), `0x080796DC` (`lz77UnCompWram`), `0x080796E8` (`rlUnCompVram`), `0x080796EC` (`rlUnCompWram`)
@@ -25,7 +25,7 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - `src/game/unit.zig` (76): `0x08017B20`, `0x08019970..0x0805E930` (unit palette upload, card tiles, action flags, camera focus, marker/badge/overlay helpers & spawners)
 - `src/game/battle.zig` (131): `0x08022220..0x08030DC8`, `0x08052410..0x0806C90C` (`computeScaledDamage`, battle previews/icons, action dispatchers & combat overlays)
 - `src/game/turn.zig` (61): `0x0802FCBC..0x080378B8` (turn transitions, day/CO phase state setters, proc slot panel lifecycle & prompt centering)
-- `src/game/overlay.zig` (120): `0x083BD7BC..0x083D91E8` (secondary ROM segment thunks, BIOS/SWI leaves, RNG, DMA/LZ setup wrappers & UI sub-handlers)
+- `src/game/overlay.zig` (180): `0x083BD7BC..0x083D91E8` (secondary ROM segment thunks, BIOS/SWI leaves, RNG, DMA/LZ wrappers, slot record accessors & multi-step sub-handlers)
 
 ## Subsystem Roadmap
 - [x] **Stage 0:** Weak-linkage generator, `src/game/` scaffold, native + WASM + test wiring, baseline verified (`bd32afd`).
@@ -56,8 +56,9 @@ Clean native Zig source in `src/game/` runs side-by-side with the weak-linked fa
 - [x] **Stage 25:** Campaign, UI Animator Spawners & Combat HUD Builders `< 0x08080000` (`ff4e63c`, `1,334 total`).
 - [x] **Stage 26:** Remaining Straight-Line, Flash/Menu Screen & Tail Thunks (`3b4c6d9`, `1,394 total`).
 - [x] **Stage 27:** Overlay Tail Thunks & Argument Wrappers (`91aa0f4`, `1,454 total`).
-- [x] **Stage 28:** Overlay Straight-Line Wrappers (`1,514 total`).
-- [ ] **Stage 29:** Next 60 `0x083B..0x083D` straight-line overlay functions toward `7,577`.
+- [x] **Stage 28:** Overlay Straight-Line Wrappers (`25dd790`, `1,514 total`).
+- [x] **Stage 29:** Overlay Field Accessors & Multi-Step Calls (`1,574 total`).
+- [ ] **Stage 30:** Next 60 `0x083B..0x083D` straight-line overlay functions toward `7,577`.
 
 ## Verification Gate (Every Milestone)
 1. `zig build test --summary all`
