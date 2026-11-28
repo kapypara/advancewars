@@ -3,7 +3,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const campaign = @import("campaign.zig");
@@ -15,6 +14,8 @@ const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_11 = @import("low_peel_11.zig");
+const low_peel_14 = @import("low_peel_14.zig");
+const low_peel_19 = @import("low_peel_19.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_4 = @import("low_peel_4.zig");
@@ -1366,7 +1367,7 @@ pub fn func_08015F8C() callconv(.c) void {
     rt.r[2] = rt.r[0];
     abi.setRegNz(&rt.r[0], 0);
     abi.copyRegFlags(&rt.r[1], tbl);
-    if (!abi.call(decls.func_0801A7A4, 0x08015FA5)) return;
+    if (!abi.call(low_peel_19.func_0801A7A4, 0x08015FA5)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_4.func_0803F87C, 0x08015FA9)) return;
@@ -1427,7 +1428,7 @@ pub fn func_0803ABB8() callconv(.c) void {
     rt.r[0] = abi.read16(pair_ptr);
     rt.r[1] = abi.read16(pair_ptr +% 2);
     rt.r[2] = abi.read32(0x0803ABDC);
-    if (!abi.call(decls.func_0801DC38, 0x0803ABD1)) return;
+    if (!abi.call(low_peel_14.func_0801DC38, 0x0803ABD1)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_11.func_0803A9B8, 0x0803ABD5)) return;

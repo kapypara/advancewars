@@ -13,6 +13,7 @@ const hw = @import("hw.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_13 = @import("low_peel_13.zig");
+const low_peel_14 = @import("low_peel_14.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_4 = @import("low_peel_4.zig");
@@ -203,7 +204,7 @@ fn run0801A78A() void {
 fn run0801A784() void {
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 0x0);
-    if (!abi.call(decls.func_0801B2B8, 0x0801A78B)) return;
+    if (!abi.call(low_peel_14.func_0801B2B8, 0x0801A78B)) return;
     run0801A78A();
 }
 
@@ -1444,7 +1445,7 @@ fn run0802FCBC(start_block: u32) void {
     if (!abi.call(clusters_low_2.func_08042E24, 0x0802FD03)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0802FD24);
-    if (!abi.call(decls.func_08010D00, 0x0802FD09)) return;
+    if (!abi.call(low_peel_14.func_08010D00, 0x0802FD09)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0802FD28);
     if (!abi.call(low_peel_5.func_0806CBE8, 0x0802FD0F)) return;

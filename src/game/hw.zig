@@ -3,7 +3,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const clusters_low = @import("clusters_low.zig");
@@ -11,6 +10,7 @@ const dma = @import("dma.zig");
 const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_11 = @import("low_peel_11.zig");
 const low_peel_13 = @import("low_peel_13.zig");
+const low_peel_15 = @import("low_peel_15.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_5 = @import("low_peel_5.zig");
@@ -48,11 +48,11 @@ pub fn func_0801122C() callconv(.c) void {
         rt.cpuSub(null, is_replay, 1, true);
         if (is_replay == 1) {
             abi.fetches(4);
-            if (!abi.call(decls.func_080316CC, 0x08011249)) return;
+            if (!abi.call(low_peel_15.func_080316CC, 0x08011249)) return;
             abi.fetches(6);
             abi.setRegNz(&rt.r[0], rt.r[0] << 16);
             abi.setRegNz(&rt.r[4], rt.r[0] >> 16);
-            if (!abi.call(decls.func_08031544, 0x08011251)) return;
+            if (!abi.call(low_peel_15.func_08031544, 0x08011251)) return;
             abi.fetches(3);
             poll_hw = false;
         } else {

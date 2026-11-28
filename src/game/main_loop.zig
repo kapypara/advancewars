@@ -3,12 +3,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const hw = @import("hw.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_11 = @import("low_peel_11.zig");
+const low_peel_14 = @import("low_peel_14.zig");
 const low_peel_6 = @import("low_peel_6.zig");
 const mem = @import("mem.zig");
 const sound = @import("sound.zig");
@@ -21,7 +21,7 @@ pub fn isSoftResetComboPressed(keyinput: u16) bool {
 }
 
 /// Check `KEYINPUT` for A+B+Select+Start soft-reset combo and trigger soft reset (`0x08038824`).
-fn func_08038824() callconv(.c) void {
+pub fn func_08038824() callconv(.c) void {
     if (!abi.enter(0x08038824)) return;
     abi.fetches(12);
     abi.pushLr();
@@ -43,7 +43,7 @@ fn func_08038824() callconv(.c) void {
 }
 
 /// Execute the 8 per-frame engine subsystems once per VBlank tick (`0x080383F8`).
-fn func_080383F8() callconv(.c) void {
+pub fn func_080383F8() callconv(.c) void {
     if (!abi.enter(0x080383F8)) return;
     abi.fetches(7);
     abi.pushLr();
@@ -80,7 +80,7 @@ fn func_080383F8() callconv(.c) void {
 }
 
 /// Snapshot frame input state (`0x0300_1E70`) halfwords `+0x54` and `+0x50` into shadow slots (`0x0805BA34`).
-fn func_0805BA34() callconv(.c) void {
+pub fn func_0805BA34() callconv(.c) void {
     if (!abi.enter(0x0805BA34)) return;
     abi.fetches(15);
     _ = mem.readU16(types.addr.reg_keyinput);
@@ -96,7 +96,7 @@ fn func_0805BA34() callconv(.c) void {
 }
 
 /// Secondary per-frame gated engine tick dispatcher (`0x0803849C`).
-fn func_0803849C() callconv(.c) void {
+pub fn func_0803849C() callconv(.c) void {
     if (!abi.enter(0x0803849C)) return;
     abi.fetches(7);
     abi.pushLr();
@@ -142,7 +142,7 @@ fn func_0803849C() callconv(.c) void {
 
             const post_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
                 .{ .func = low_peel_6.func_080138F8, .ret = 0x080384D9 },
-                .{ .func = decls.func_0802196C, .ret = 0x080384DD },
+                .{ .func = low_peel_14.func_0802196C, .ret = 0x080384DD },
                 .{ .func = battle.func_080224C8, .ret = 0x080384E1 },
                 .{ .func = hw.func_080134E0, .ret = 0x080384E5 },
                 .{ .func = low_peel_6.func_08015874, .ret = 0x080384E9 },

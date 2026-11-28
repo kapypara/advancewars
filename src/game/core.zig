@@ -34,6 +34,12 @@ pub const low_peel_10 = @import("low_peel_10.zig");
 pub const low_peel_11 = @import("low_peel_11.zig");
 pub const low_peel_12 = @import("low_peel_12.zig");
 pub const low_peel_13 = @import("low_peel_13.zig");
+pub const low_peel_14 = @import("low_peel_14.zig");
+pub const low_peel_15 = @import("low_peel_15.zig");
+pub const low_peel_16 = @import("low_peel_16.zig");
+pub const low_peel_17 = @import("low_peel_17.zig");
+pub const low_peel_18 = @import("low_peel_18.zig");
+pub const low_peel_19 = @import("low_peel_19.zig");
 
 comptime {
     _ = bios;
@@ -69,4 +75,10 @@ comptime {
     _ = low_peel_11;
     _ = low_peel_12;
     _ = low_peel_13;
+    _ = low_peel_14;
+    _ = low_peel_15;
+    _ = low_peel_16;
+    _ = low_peel_17;
+    _ = low_peel_18;
+    _ = low_peel_19;
 }

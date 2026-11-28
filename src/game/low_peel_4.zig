@@ -15,6 +15,9 @@ const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_11 = @import("low_peel_11.zig");
 const low_peel_13 = @import("low_peel_13.zig");
+const low_peel_14 = @import("low_peel_14.zig");
+const low_peel_15 = @import("low_peel_15.zig");
+const low_peel_18 = @import("low_peel_18.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_5 = @import("low_peel_5.zig");
@@ -2829,7 +2832,7 @@ pub fn func_0802F902() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0802F948);
             abi.write16(rt.r[0] +% 0x0, @truncate(rt.r[6]));
-            if (!abi.call(decls.func_0803AC5C, 0x0802F921)) return;
+            if (!abi.call(low_peel_15.func_0803AC5C, 0x0802F921)) return;
             continue :blk 3;
         },
         3 => {
@@ -2886,7 +2889,7 @@ pub fn func_0802FA08() callconv(.c) void {
         },
         4 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08023EDC, 0x0802FA1B)) return;
+            if (!abi.call(low_peel_14.func_08023EDC, 0x0802FA1B)) return;
             continue :blk 5;
         },
         5 => {
@@ -2895,7 +2898,7 @@ pub fn func_0802FA08() callconv(.c) void {
             rt.r[1] = abi.read32(rt.r[0] +% 0x0);
             rt.r[0] = abi.read8(rt.r[1] +% 0x2);
             rt.r[1] = abi.read8(rt.r[1] +% 0x3);
-            if (!abi.call(decls.func_0802F7E4, 0x0802FA27)) return;
+            if (!abi.call(low_peel_15.func_0802F7E4, 0x0802FA27)) return;
             continue :blk 6;
         },
         6 => {
@@ -3987,7 +3990,7 @@ pub fn func_080349EC() callconv(.c) void {
         },
         2 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08021398, 0x080349FB)) return;
+            if (!abi.call(low_peel_14.func_08021398, 0x080349FB)) return;
             continue :blk 3;
         },
         3 => {
@@ -7986,7 +7989,7 @@ pub fn func_08040A3E() callconv(.c) void {
         },
         4 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08040328, 0x08040A6D)) return;
+            if (!abi.call(low_peel_18.func_08040328, 0x08040A6D)) return;
             continue :blk 5;
         },
         5 => {

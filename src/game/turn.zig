@@ -3,7 +3,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const battle = @import("battle.zig");
 const clusters_low = @import("clusters_low.zig");
@@ -13,6 +12,8 @@ const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_11 = @import("low_peel_11.zig");
 const low_peel_12 = @import("low_peel_12.zig");
+const low_peel_14 = @import("low_peel_14.zig");
+const low_peel_19 = @import("low_peel_19.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_4 = @import("low_peel_4.zig");
@@ -183,7 +184,7 @@ pub fn func_080334C4() callconv(.c) void {
         abi.setRegNz(&rt.r[0], idx);
         rt.r[1] = 0x0202_D000;
         abi.setRegNz(&rt.r[2], @as(u32, 0xE5) << 3);
-        if (!abi.call(decls.func_0801A7A4, 0x080334E5)) return;
+        if (!abi.call(low_peel_19.func_0801A7A4, 0x080334E5)) return;
     }
     abi.fetches(4);
     abi.popReturn();
@@ -515,7 +516,7 @@ fn enterTurnDayPhase(
     if (!abi.call(sprite_anim.func_08012A30, ret2)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080322EC, ret3)) return;
+    if (!abi.call(low_peel_19.func_080322EC, ret3)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -1527,7 +1528,7 @@ pub fn func_0802FCBC() callconv(.c) void {
     if (!abi.call(clusters_low_2.func_08042E24, 0x0802FD03)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0802FD24);
-    if (!abi.call(decls.func_08010D00, 0x0802FD09)) return;
+    if (!abi.call(low_peel_14.func_08010D00, 0x0802FD09)) return;
     abi.fetches(5);
     rt.r[0] = abi.read32(0x0802FD28);
     if (!abi.call(low_peel_5.func_0806CBE8, 0x0802FD0F)) return;

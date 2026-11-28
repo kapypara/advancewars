@@ -3,11 +3,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const hw = @import("hw.zig");
 const low_peel_13 = @import("low_peel_13.zig");
+const low_peel_17 = @import("low_peel_17.zig");
+const low_peel_18 = @import("low_peel_18.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const types = @import("types.zig");
 
@@ -712,7 +713,7 @@ fn softfpDoubleAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
     rt.r[2] = rt.r[13] +% 0x28;
     rt.r[0] = rt.r[13];
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807B98C, r3)) return;
+    if (!abi.call(low_peel_18.func_0807B98C, r3)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_13.func_0807B76C, r4)) return;
@@ -761,7 +762,7 @@ pub fn func_0807C190() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = rt.r[13];
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807C090, 0x0807C1B7)) return;
+    if (!abi.call(low_peel_17.func_0807C090, 0x0807C1B7)) return;
 
     abi.fetches(4);
     rt.r[13] +%= 0x38;
@@ -795,7 +796,7 @@ fn softfpFloatAddSub(sub: bool, r1: u32, r2: u32, r3: u32, r4: u32) void {
     rt.r[2] = rt.r[13] +% 0x20;
     rt.r[0] = rt.r[13];
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807C63C, r3)) return;
+    if (!abi.call(low_peel_17.func_0807C63C, r3)) return;
 
     abi.fetches(4);
     if (!abi.call(low_peel_13.func_0807C508, r4)) return;
@@ -842,7 +843,7 @@ pub fn func_0807CB4C() callconv(.c) void {
     abi.fetches(6);
     rt.r[0] = rt.r[13];
     rt.r[1] = rt.r[4];
-    if (!abi.call(decls.func_0807CA68, 0x0807CB6F)) return;
+    if (!abi.call(low_peel_17.func_0807CA68, 0x0807CB6F)) return;
 
     abi.fetches(4);
     rt.r[13] +%= 0x28;

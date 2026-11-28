@@ -15,6 +15,9 @@ const low_peel_1 = @import("low_peel_1.zig");
 const low_peel_10 = @import("low_peel_10.zig");
 const low_peel_11 = @import("low_peel_11.zig");
 const low_peel_13 = @import("low_peel_13.zig");
+const low_peel_14 = @import("low_peel_14.zig");
+const low_peel_15 = @import("low_peel_15.zig");
+const low_peel_19 = @import("low_peel_19.zig");
 const low_peel_2 = @import("low_peel_2.zig");
 const low_peel_3 = @import("low_peel_3.zig");
 const low_peel_4 = @import("low_peel_4.zig");
@@ -204,7 +207,7 @@ pub fn func_0801FEFC() callconv(.c) void {
             rt.r[1] = rt.r[8];
             rt.cpuAdd(&rt.r[2], rt.r[3], 0x0, true);
             rt.cpuAdd(&rt.r[3], rt.r[7], 0x0, true);
-            if (!abi.call(decls.func_0801FB14, 0x0801FF63)) return;
+            if (!abi.call(low_peel_14.func_0801FB14, 0x0801FF63)) return;
             continue :blk 5;
         },
         5 => {
@@ -272,7 +275,7 @@ pub fn func_0801FF08() callconv(.c) void {
             rt.r[1] = rt.r[8];
             rt.cpuAdd(&rt.r[2], rt.r[3], 0x0, true);
             rt.cpuAdd(&rt.r[3], rt.r[7], 0x0, true);
-            if (!abi.call(decls.func_0801FB14, 0x0801FF63)) return;
+            if (!abi.call(low_peel_14.func_0801FB14, 0x0801FF63)) return;
             continue :blk 4;
         },
         4 => {
@@ -320,7 +323,7 @@ pub fn func_0801FF70() callconv(.c) void {
             rt.cpuAdd(&rt.r[1], rt.r[5], rt.r[1], true);
             abi.setRegNz(&rt.r[1], rt.r[1] << 16);
             abi.setRegNz(&rt.r[1], rt.r[1] >> 16);
-            if (!abi.call(decls.func_0801FDE8, 0x0801FF99)) return;
+            if (!abi.call(low_peel_14.func_0801FDE8, 0x0801FF99)) return;
             continue :blk 3;
         },
         3 => {
@@ -930,7 +933,7 @@ pub fn func_08020190() callconv(.c) void {
             rt.cpuAdd(&rt.r[1], rt.r[5], rt.r[1], true);
             abi.setRegNz(&rt.r[1], rt.r[1] << 16);
             abi.setRegNz(&rt.r[1], rt.r[1] >> 16);
-            if (!abi.call(decls.func_0802000C, 0x080201B9)) return;
+            if (!abi.call(low_peel_14.func_0802000C, 0x080201B9)) return;
             continue :blk 3;
         },
         3 => {
@@ -1406,7 +1409,7 @@ pub fn func_08020B48() callconv(.c) void {
             abi.setRegNz(&rt.r[1], rt.asrConst(rt.r[1], 16));
             abi.setRegNz(&rt.r[2], rt.r[6] << 16);
             abi.setRegNz(&rt.r[2], rt.asrConst(rt.r[2], 16));
-            if (!abi.call(decls.func_08020868, 0x08020B75)) return;
+            if (!abi.call(low_peel_19.func_08020868, 0x08020B75)) return;
             continue :blk 2;
         },
         else => unreachable,
@@ -1518,14 +1521,14 @@ pub fn func_08021794() callconv(.c) void {
             abi.setRegNz(&rt.r[4], rt.r[4] >> 16);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[6], 0x0, true);
-            if (!abi.call(decls.func_0801FDE8, 0x080217AF)) return;
+            if (!abi.call(low_peel_14.func_0801FDE8, 0x080217AF)) return;
             continue :blk 2;
         },
         2 => {
             abi.fetches(6);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[6], 0x0, true);
-            if (!abi.call(decls.func_0802000C, 0x080217B7)) return;
+            if (!abi.call(low_peel_14.func_0802000C, 0x080217B7)) return;
             continue :blk 3;
         },
         3 => {
@@ -1569,14 +1572,14 @@ pub fn func_080217C8() callconv(.c) void {
             abi.setRegNz(&rt.r[4], rt.r[4] >> 16);
             rt.cpuAdd(&rt.r[0], rt.r[6], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[4], 0x0, true);
-            if (!abi.call(decls.func_0801FDE8, 0x080217E3)) return;
+            if (!abi.call(low_peel_14.func_0801FDE8, 0x080217E3)) return;
             continue :blk 2;
         },
         2 => {
             abi.fetches(6);
             rt.cpuAdd(&rt.r[0], rt.r[6], 0x0, true);
             rt.cpuAdd(&rt.r[1], rt.r[4], 0x0, true);
-            if (!abi.call(decls.func_0802000C, 0x080217EB)) return;
+            if (!abi.call(low_peel_14.func_0802000C, 0x080217EB)) return;
             continue :blk 3;
         },
         3 => {
@@ -4278,7 +4281,7 @@ pub fn func_08026060() callconv(.c) void {
         },
         7 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08023EDC, 0x080260B1)) return;
+            if (!abi.call(low_peel_14.func_08023EDC, 0x080260B1)) return;
             continue :blk 8;
         },
         8 => {
@@ -6534,7 +6537,7 @@ pub fn func_08028B9C() callconv(.c) void {
         0 => {
             abi.fetches(5);
             abi.pushLr();
-            if (!abi.call(decls.func_08028A8C, 0x08028BA3)) return;
+            if (!abi.call(low_peel_15.func_08028A8C, 0x08028BA3)) return;
             continue :blk 1;
         },
         1 => {
@@ -7013,7 +7016,7 @@ pub fn func_08029F34() callconv(.c) void {
             rt.r[0] = rt.sext16(abi.read16(rt.r[4] +% rt.r[1]));
             abi.setRegNz(&rt.r[2], 0x22);
             rt.r[1] = rt.sext16(abi.read16(rt.r[4] +% rt.r[2]));
-            if (!abi.call(decls.func_0802928C, 0x08029F45)) return;
+            if (!abi.call(low_peel_15.func_0802928C, 0x08029F45)) return;
             continue :blk 1;
         },
         1 => {
@@ -7599,12 +7602,12 @@ pub fn func_0802AA3C() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read8(rt.r[4] +% 0x2);
             rt.r[1] = abi.read8(rt.r[4] +% 0x3);
-            if (!abi.call(decls.func_0802928C, 0x0802AA81)) return;
+            if (!abi.call(low_peel_15.func_0802928C, 0x0802AA81)) return;
             continue :blk 6;
         },
         5 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08023EDC, 0x0802AA73)) return;
+            if (!abi.call(low_peel_14.func_08023EDC, 0x0802AA73)) return;
             continue :blk 7;
         },
         6 => {
@@ -8580,7 +8583,7 @@ pub fn func_0802C7AC() callconv(.c) void {
         },
         2 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08021398, 0x0802C7BB)) return;
+            if (!abi.call(low_peel_14.func_08021398, 0x0802C7BB)) return;
             continue :blk 3;
         },
         3 => {
@@ -9939,7 +9942,7 @@ pub fn func_0802E1B0() callconv(.c) void {
         },
         2 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08026178, 0x0802E1C5)) return;
+            if (!abi.call(low_peel_14.func_08026178, 0x0802E1C5)) return;
             continue :blk 3;
         },
         3 => {
@@ -10084,7 +10087,7 @@ pub fn func_0802E238() callconv(.c) void {
         },
         4 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_0802649C, 0x0802E281)) return;
+            if (!abi.call(low_peel_15.func_0802649C, 0x0802E281)) return;
             continue :blk 7;
         },
         5 => {
@@ -10217,7 +10220,7 @@ pub fn func_0802E384() callconv(.c) void {
         },
         8 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08023EDC, 0x0802E3EF)) return;
+            if (!abi.call(low_peel_14.func_08023EDC, 0x0802E3EF)) return;
             continue :blk 9;
         },
         9 => {
@@ -10836,7 +10839,7 @@ pub fn func_0802E778() callconv(.c) void {
         1 => {
             abi.fetches(5);
             rt.cpuAdd(&rt.r[0], rt.r[4], 0x0, true);
-            if (!abi.call(decls.func_0802E818, 0x0802E801)) return;
+            if (!abi.call(low_peel_15.func_0802E818, 0x0802E801)) return;
             continue :blk 3;
         },
         2 => {
@@ -11038,7 +11041,7 @@ pub fn func_0802ECDC() callconv(.c) void {
             abi.fetches(6);
             abi.setRegNz(&rt.r[2], 0x1E);
             rt.r[0] = rt.sext16(abi.read16(rt.r[4] +% rt.r[2]));
-            if (!abi.call(decls.func_0802EA80, 0x0802ED21)) return;
+            if (!abi.call(low_peel_15.func_0802EA80, 0x0802ED21)) return;
             continue :blk 9;
         },
         9 => {
@@ -11129,7 +11132,7 @@ pub fn func_0802ECE6() callconv(.c) void {
             abi.fetches(6);
             abi.setRegNz(&rt.r[2], 0x1E);
             rt.r[0] = rt.sext16(abi.read16(rt.r[4] +% rt.r[2]));
-            if (!abi.call(decls.func_0802EA80, 0x0802ED21)) return;
+            if (!abi.call(low_peel_15.func_0802EA80, 0x0802ED21)) return;
             continue :blk 8;
         },
         8 => {
@@ -11194,7 +11197,7 @@ pub fn func_0802EF60() callconv(.c) void {
         },
         3 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_0802EFE8, 0x0802EFA5)) return;
+            if (!abi.call(low_peel_15.func_0802EFE8, 0x0802EFA5)) return;
             continue :blk 12;
         },
         4 => {
@@ -11289,7 +11292,7 @@ pub fn func_0802F340() callconv(.c) void {
         },
         2 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08021398, 0x0802F34F)) return;
+            if (!abi.call(low_peel_14.func_08021398, 0x0802F34F)) return;
             continue :blk 3;
         },
         3 => {
@@ -11326,7 +11329,7 @@ pub fn func_0802F340() callconv(.c) void {
         },
         7 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08023EDC, 0x0802F36F)) return;
+            if (!abi.call(low_peel_14.func_08023EDC, 0x0802F36F)) return;
             continue :blk 8;
         },
         8 => {
@@ -11360,7 +11363,7 @@ pub fn func_0802F5EC() callconv(.c) void {
         },
         2 => {
             abi.fetches(4);
-            if (!abi.call(decls.func_08021398, 0x0802F5FB)) return;
+            if (!abi.call(low_peel_14.func_08021398, 0x0802F5FB)) return;
             continue :blk 3;
         },
         3 => {
@@ -11465,7 +11468,7 @@ pub fn func_0802F8F4() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0802F948);
             abi.write16(rt.r[0] +% 0x0, @truncate(rt.r[6]));
-            if (!abi.call(decls.func_0803AC5C, 0x0802F921)) return;
+            if (!abi.call(low_peel_15.func_0803AC5C, 0x0802F921)) return;
             continue :blk 7;
         },
         7 => {
@@ -11530,7 +11533,7 @@ pub fn func_0802F8F6() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0802F948);
             abi.write16(rt.r[0] +% 0x0, @truncate(rt.r[6]));
-            if (!abi.call(decls.func_0803AC5C, 0x0802F921)) return;
+            if (!abi.call(low_peel_15.func_0803AC5C, 0x0802F921)) return;
             continue :blk 6;
         },
         6 => {
@@ -11590,7 +11593,7 @@ pub fn func_0802F8F8() callconv(.c) void {
             abi.fetches(6);
             rt.r[0] = abi.read32(0x0802F948);
             abi.write16(rt.r[0] +% 0x0, @truncate(rt.r[6]));
-            if (!abi.call(decls.func_0803AC5C, 0x0802F921)) return;
+            if (!abi.call(low_peel_15.func_0803AC5C, 0x0802F921)) return;
             continue :blk 5;
         },
         5 => {
