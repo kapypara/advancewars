@@ -1,6 +1,9 @@
 const std = @import("std");
 const build_options = @import("build_options");
 
+pub const enable_trace: bool = build_options.enable_trace;
+pub const native_hal: bool = build_options.native_hal;
+
 // External CPU/memory/runtime symbols exported from `src/runtime.zig`
 // so each generated `gen/funcs_*.zig` shard compiles as an independent `.o`.
 pub extern var r: [16]u32;

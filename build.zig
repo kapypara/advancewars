@@ -64,6 +64,11 @@ pub fn build(b: *std.Build) void {
         "trace",
         "Enable GBA_VALIDATE / tracing hooks in shards (default: true on native hosts, false on freestanding)",
     ) orelse (target.result.os.tag != .freestanding);
+    const native_hal = b.option(
+        bool,
+        "native-hal",
+        "Use native Zig HAL fast paths instead of GBA cycle-exact SWI/DMA/MMIO validation shims (default: false on native hosts, true on freestanding)",
+    ) orelse (target.result.os.tag == .freestanding);
     const embed_rom_opt = b.option(
         bool,
         "embed-rom",
@@ -110,6 +115,7 @@ pub fn build(b: *std.Build) void {
 
     const shard_opts = b.addOptions();
     shard_opts.addOption(bool, "enable_trace", enable_trace);
+    shard_opts.addOption(bool, "native_hal", native_hal);
 
     const rt_shard_mod = b.createModule(.{
         .root_source_file = b.path("src/shard.zig"),
@@ -349,6 +355,7 @@ pub fn build(b: *std.Build) void {
 
     const wasm_shard_opts = b.addOptions();
     wasm_shard_opts.addOption(bool, "enable_trace", false);
+    wasm_shard_opts.addOption(bool, "native_hal", true);
 
     const wasm_rt_shard_mod = b.createModule(.{
         .root_source_file = b.path("src/shard.zig"),

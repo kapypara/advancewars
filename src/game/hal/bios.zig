@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const rt = @import("runtime");
+const config = @import("config.zig");
 
 /// GBA BIOS software interrupt opcodes invoked by Advance Wars.
 pub const Swi = enum(u8) {
@@ -38,8 +39,15 @@ pub fn divPure(num: i32, den: i32) DivResult {
     };
 }
 
-/// Invoke the centralized BIOS SWI backend for exact cycle/validator parity.
+/// Invoke the BIOS SWI backend (native pure Zig fast path for `.div` when `config.is_native`, otherwise centralized `rt.gba_swi`).
 pub inline fn invoke(comptime op: Swi) void {
+    if (comptime config.is_native and op == .div) {
+        const res = divPure(@bitCast(rt.r[0]), @bitCast(rt.r[1]));
+        rt.r[0] = @bitCast(res.quot);
+        rt.r[1] = @bitCast(res.rem);
+        rt.r[3] = res.abs_quot;
+        return;
+    }
     rt.gba_swi(@intFromEnum(op));
 }
 
@@ -53,6 +61,9 @@ pub inline fn registerRamReset(flags: u32) void {
 }
 
 pub inline fn div(num: i32, den: i32) DivResult {
+    if (comptime config.is_native) {
+        return divPure(num, den);
+    }
     rt.r[0] = @bitCast(num);
     rt.r[1] = @bitCast(den);
     invoke(.div);

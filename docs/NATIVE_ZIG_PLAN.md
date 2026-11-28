@@ -101,7 +101,7 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
 
 ## Phase 7 — Comptime Dual-Backend HAL (`Native` vs `GBA_VALIDATE`)
 - **Objective:** Add a compile-time backend switch so native release builds run fast, zero-overhead Zig hardware abstractions while `GBA_VALIDATE=1` builds preserve bit-exact differential validation.
-  - [ ] **7A — Comptime `abi.fetches` Elision & Native BIOS Math (`-Dtrace=false`):** Make `abi.fetches` zero-cost when validation/tracing is off and route `hal.bios.div` to `hal.divPure` in native non-validating builds.
+  - [x] **7A — Comptime Dual-Backend HAL & Native BIOS Math ([config.zig](file:///home/moon/Projects/zig/advancewars/src/game/hal/config.zig), [bios.zig](file:///home/moon/Projects/zig/advancewars/src/game/hal/bios.zig)):** Added `-Dnative-hal` build option (`false` on native hosts for `GBA_VALIDATE=1` parity, `true` on WASM/freestanding), exported `hal.config` (`Backend.gba_validate` / `Backend.native`), and specialized `hal.bios.div` and `hal.bios.invoke(.div)` to run `hal.bios.divPure` natively when `-Dnative-hal=true`. Kept `abi.fetches` active because `cpu_fetches` drives VBlank/HBlank scanline cycle progression when ROM prefetch zeroes RAM access cycles; only `abi.enter` tracing elides via `-Dtrace=false`.
   - [ ] **7B — Native Direct Transfer, Input & Save Backends:** Route `hal.dma.copy*` to native `@memcpy`, `hal.input` to direct platform button state, and `hal.save` to a direct `64 KB` save buffer in native mode while keeping `GBA_VALIDATE=1` bit-exact.
 
 ## Phase 8 — Semantic Naming & Incremental Subsystem De-recompilation
