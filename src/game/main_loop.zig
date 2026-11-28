@@ -52,7 +52,7 @@ fn func_080383F8() callconv(.c) void {
         const frame_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
             .{ .func = decls.func_080159CC, .ret = 0x08038407 },
             .{ .func = decls.func_0801122C, .ret = 0x0803840B },
-            .{ .func = decls.func_0805BA34, .ret = 0x0803840F },
+            .{ .func = func_0805BA34, .ret = 0x0803840F },
             .{ .func = decls.func_08018530, .ret = 0x08038413 },
             .{ .func = decls.func_080138F8, .ret = 0x08038417 },
             .{ .func = decls.func_080134E0, .ret = 0x0803841B },
@@ -73,10 +73,97 @@ fn func_080383F8() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Snapshot frame input state (`0x0300_1E70`) halfwords `+0x54` and `+0x50` into shadow slots (`0x0805BA34`).
+fn func_0805BA34() callconv(.c) void {
+    if (!abi.enter(0x0805BA34)) return;
+    abi.fetches(15);
+    _ = mem.readU16(types.addr.reg_keyinput);
+    const val_a = mem.readU16(types.addr.frame_input_state +% 0x54);
+    mem.writeU16(types.addr.frame_input_shadow_a, val_a);
+    const val_b = mem.readU16(types.addr.frame_input_state +% 0x50);
+    mem.writeU16(types.addr.frame_input_shadow_b, val_b);
+
+    rt.r[2] = types.addr.frame_input_shadow_b;
+    rt.cpuAdd(&rt.r[1], types.addr.frame_input_state, 0x50, true);
+    rt.r[0] = val_b;
+    abi.retLr();
+}
+
+/// Secondary per-frame gated engine tick dispatcher (`0x0803849C`).
+fn func_0803849C() callconv(.c) void {
+    if (!abi.enter(0x0803849C)) return;
+    abi.fetches(7);
+    abi.pushLr();
+
+    const done = mem.readU8(types.addr.frame_tick_done);
+    rt.r[0] = done;
+    rt.cpuSub(null, done, 0, true);
+
+    if (done == 0) {
+        abi.fetches(9);
+        const mask = mem.readU32(types.addr.frame_gate_mask);
+        const flags = mem.readU16(types.addr.frame_gate_flags);
+        const gated = mask & flags;
+        rt.r[2] = types.addr.frame_gate_mask;
+        rt.r[1] = flags;
+        abi.setRegNz(&rt.r[0], gated);
+        rt.cpuSub(null, gated, 0, true);
+
+        if (gated == 0) {
+            const pre_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
+                .{ .func = decls.func_080159F0, .ret = 0x080384B9 },
+                .{ .func = decls.func_0801122C, .ret = 0x080384BD },
+                .{ .func = func_0805BA34, .ret = 0x080384C1 },
+                .{ .func = decls.func_08018530, .ret = 0x080384C5 },
+            };
+            inline for (pre_steps) |step| {
+                abi.fetches(4);
+                if (!abi.call(step.func, step.ret)) return;
+            }
+
+            abi.fetches(6);
+            const submode = mem.readU32(types.addr.frame_submode);
+            rt.r[0] = submode;
+            rt.cpuSub(null, submode, 0, true);
+            if (submode != 0) {
+                abi.fetches(4);
+                rt.cpuSub(null, submode, 1, true);
+                if (submode == 1) {
+                    abi.fetches(4);
+                    if (!abi.call(decls.func_08034A1C, 0x080384D5)) return;
+                }
+            }
+
+            const post_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
+                .{ .func = decls.func_080138F8, .ret = 0x080384D9 },
+                .{ .func = decls.func_0802196C, .ret = 0x080384DD },
+                .{ .func = decls.func_080224C8, .ret = 0x080384E1 },
+                .{ .func = decls.func_080134E0, .ret = 0x080384E5 },
+                .{ .func = decls.func_08015874, .ret = 0x080384E9 },
+                .{ .func = decls.func_0803D7A8, .ret = 0x080384ED },
+            };
+            inline for (post_steps) |step| {
+                abi.fetches(4);
+                if (!abi.call(step.func, step.ret)) return;
+            }
+
+            abi.fetches(5);
+            rt.r[1] = types.addr.frame_tick_done;
+            abi.setRegNz(&rt.r[0], 1);
+            mem.writeU8(types.addr.frame_tick_done, 1);
+        }
+    }
+
+    abi.fetches(4);
+    abi.popReturn();
+}
+
 comptime {
     if (!builtin.is_test) {
         @export(&func_08038824, .{ .name = "func_08038824", .linkage = .strong });
         @export(&func_080383F8, .{ .name = "func_080383F8", .linkage = .strong });
+        @export(&func_0803849C, .{ .name = "func_0803849C", .linkage = .strong });
+        @export(&func_0805BA34, .{ .name = "func_0805BA34", .linkage = .strong });
     }
 }
 

@@ -58,6 +58,13 @@ pub const addr = struct {
     pub const palette_synced_flag: u32 = 0x0300_0048;
     pub const palette_shadow_buf: u32 = 0x0300_1EF0;
     pub const pal_ram: u32 = 0x0500_0000;
+    pub const frame_gate_mask: u32 = 0x0300_4358;
+    pub const frame_gate_flags: u32 = 0x0300_47E4;
+    pub const frame_submode: u32 = 0x0300_41FC;
+    pub const task_queue_anchor: u32 = 0x0300_1ED8;
+    pub const frame_input_state: u32 = 0x0300_1E70;
+    pub const frame_input_shadow_a: u32 = 0x0300_4BF0;
+    pub const frame_input_shadow_b: u32 = 0x0300_4B54;
 };
 
 pub const key_mask_all: u32 = 0x0000_03FF;

@@ -6,6 +6,7 @@ const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
+const types = @import("types.zig");
 
 /// Convert a byte count (`u16`) to halfword transfer count (`>> 1`) for `CpuSet`.
 pub inline fn byteCountToHalfwords(byte_count: u32) u32 {
@@ -176,7 +177,7 @@ pub fn func_08011398() callconv(.c) void {
     if (!abi.call(func_0800FD94, 0x080113B7)) return;
 
     abi.fetches(10);
-    rt.r[5] +%= @as(u32, 0xA0) << 19;
+    rt.r[5] +%= types.addr.pal_ram;
     rt.r[0] = rt.r[6];
     rt.r[1] = rt.r[5];
     rt.r[2] = rt.r[4];

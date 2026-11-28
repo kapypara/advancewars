@@ -59,6 +59,27 @@ pub fn func_08013984() callconv(.c) void {
     abi.popReturn();
 }
 
+/// Pop the head task node from the singly-linked queue at `task_queue_anchor` (`0x0801A6D8`).
+pub fn func_0801A6D8() callconv(.c) void {
+    if (!abi.enter(0x0801A6D8)) return;
+    abi.fetches(6);
+    rt.r[2] = types.addr.task_queue_anchor;
+    const head = mem.readU32(types.addr.task_queue_anchor +% 4);
+    rt.r[1] = head;
+    rt.cpuSub(null, head, 0, true);
+    if (head == 0) {
+        abi.fetches(3);
+        abi.setRegNz(&rt.r[0], 0);
+    } else {
+        abi.fetches(6);
+        const next = mem.readU32(head +% 4);
+        mem.writeU32(types.addr.task_queue_anchor +% 4, next);
+        rt.r[0] = mem.readU32(head);
+    }
+    abi.fetches(3);
+    abi.retLr();
+}
+
 /// Compute EWRAM/IWRAM address of proc slot `idx` (`u8`, stride `0x60`).
 pub inline fn procSlotAddr(slot_idx: u8) u32 {
     return types.addr.proc_table +% @as(u32, slot_idx) *% @as(u32, types.proc_slot_stride);
@@ -1621,6 +1642,7 @@ comptime {
         @export(&func_08014850, .{ .name = "func_08014850", .linkage = .strong });
         @export(&func_080147B8, .{ .name = "func_080147B8", .linkage = .strong });
         @export(&func_08013984, .{ .name = "func_08013984", .linkage = .strong });
+        @export(&func_0801A6D8, .{ .name = "func_0801A6D8", .linkage = .strong });
     }
 }
 
