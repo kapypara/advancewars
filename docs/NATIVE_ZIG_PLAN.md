@@ -89,6 +89,28 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
   - [x] **5C — Native Audio (`m4a`) & DMA Queue Interface ([hal.zig](file:///home/moon/Projects/zig/advancewars/src/game/hal.zig), [sound.zig](file:///home/moon/Projects/zig/advancewars/src/game/sound.zig), [dma.zig](file:///home/moon/Projects/zig/advancewars/src/game/dma.zig)):** Added `hal.dma` (`QueueEntry`, `byteCountToHalfwords`, `byteCountToWords`, `isFastCopyAligned`, `copy16`, `fastCopy32`, `copyAuto`, immediate/queue accessors) and `hal.audio` (`TrackOffset`, `TrackStep`, `stepTrackByte`, `readLe32`, `readBgmEnabledFlag`, `deferPendingBgm`) and wired [dma.zig](file:///home/moon/Projects/zig/advancewars/src/game/dma.zig) and [sound.zig](file:///home/moon/Projects/zig/advancewars/src/game/sound.zig) through `hal.zig`.
   - [x] **5D — Native Display, Palette, Tilemap & OAM Renderer Interface ([hal.zig](file:///home/moon/Projects/zig/advancewars/src/game/hal.zig), [hw.zig](file:///home/moon/Projects/zig/advancewars/src/game/hw.zig), [map.zig](file:///home/moon/Projects/zig/advancewars/src/game/map.zig), [sprite_anim.zig](file:///home/moon/Projects/zig/advancewars/src/game/sprite_anim.zig), [ui.zig](file:///home/moon/Projects/zig/advancewars/src/game/ui.zig)):** Added `hal.video` (display/blend shadow helpers, palette sync/dirty flags, tilemap coordinate wrapping & 2x2 meta-tile writer, OAM queue accessors) and wired palette flush/sync, BG tilemap helpers, OAM queue slot allocation/updates, and blend shadow control through `hal.zig`.
 
+## Phase 6 — Proper Architectural Layering & Legacy Quarantine
+- **Objective:** Separate clean HAL, engine/runtime, gameplay, and quarantined legacy ARM-register shards into clear directories and focused modules.
+  - [x] **6A — Modular `src/game/hal/` Submodules ([hal.zig](file:///home/moon/Projects/zig/advancewars/src/game/hal.zig), `src/game/hal/{bios,input,save,dma,audio,video}.zig`):** Split monolithic `hal.zig` into 6 focused HAL submodules behind a clean barrel re-export (`hal.zig`) with per-module unit tests.
+  - [ ] **6B — Quarantine Legacy Recomp Shards (`src/game/legacy/`):** Move the `22` un-lifted recompilation shards (`low_peel_1..19`, `clusters_low*`, `tail_low`) into `src/game/legacy/` so clean engine/gameplay modules are architecturally separated from raw ARM-register code.
+  - [ ] **6C — Split `src/runtime.zig` into Focused Runtime Modules:** Separate CPU register state, memory bus, and frame/IRQ scheduler out of [runtime.zig](file:///home/moon/Projects/zig/advancewars/src/runtime.zig).
+
+## Phase 7 — Comptime Dual-Backend HAL (`Native` vs `GBA_VALIDATE`)
+- **Objective:** Add a compile-time backend switch so native release builds run fast, zero-overhead Zig hardware abstractions while `GBA_VALIDATE=1` builds preserve bit-exact differential validation.
+  - [ ] **7A — Comptime `abi.fetches` Elision & Native BIOS Math (`-Dtrace=false`):** Make `abi.fetches` zero-cost when validation/tracing is off and route `hal.bios.div` to `hal.divPure` in native non-validating builds.
+  - [ ] **7B — Native Direct Transfer, Input & Save Backends:** Route `hal.dma.copy*` to native `@memcpy`, `hal.input` to direct platform button state, and `hal.save` to a direct `64 KB` save buffer in native mode while keeping `GBA_VALIDATE=1` bit-exact.
+
+## Phase 8 — Semantic Naming & Incremental Subsystem De-recompilation
+- **Objective:** Incrementally rename hot domain functions to idiomatic Zig names and lift live gameplay algorithms out of `legacy/`.
+  - [ ] **8A — Semantic Naming for Hot Domain Subsystems:** Rename hot `func_08XXXXXX` functions in [main_loop.zig](file:///home/moon/Projects/zig/advancewars/src/game/main_loop.zig), [hw.zig](file:///home/moon/Projects/zig/advancewars/src/game/hw.zig), [dma.zig](file:///home/moon/Projects/zig/advancewars/src/game/dma.zig), [battle.zig](file:///home/moon/Projects/zig/advancewars/src/game/battle.zig), [map.zig](file:///home/moon/Projects/zig/advancewars/src/game/map.zig), [unit.zig](file:///home/moon/Projects/zig/advancewars/src/game/unit.zig), and [turn.zig](file:///home/moon/Projects/zig/advancewars/src/game/turn.zig) to idiomatic Zig names while keeping [dispatch.zig](file:///home/moon/Projects/zig/advancewars/src/game/dispatch.zig) mapped by ROM address.
+  - [ ] **8B — Lift Hot Gameplay Clusters Out of `legacy/low_peel_*`:** Lift pathfinding, AI scoring, CO powers, fog-of-war, and capture/supply logic into typed Zig structs & methods.
+  - [ ] **8C — Retire `rt.r[]` Register Shuffling Across Native Subsystems:** Convert lifted domain functions to native Zig parameter/return signatures and shrink `legacy/` incrementally.
+
+## Phase 9 — Native 2D Renderer & Native Audio Mixer (Optional Endgame)
+- **Objective:** Replace GBA PPU & `m4a` hardware emulation with direct native rendering and audio mixing driven by `hal`.
+  - [ ] **9A — Native 2D Tilemap, Sprite & Palette Renderer:** Feed `hal.video` state directly into a native 2D renderer independent of GBA PPU emulation.
+  - [ ] **9B — Native Audio Mixer:** Replace GBA `m4a` DMA mixing with a native audio mixer driven by `hal.audio`.
+
 ---
 
 ## Mandatory 5-Part Verification Gate (Every Milestone)
