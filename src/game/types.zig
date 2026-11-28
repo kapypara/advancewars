@@ -38,6 +38,7 @@ pub const addr = struct {
     pub const script_var_31f8: u32 = 0x0300_31F8;
     pub const script_var_31fc: u32 = 0x0300_31FC;
     pub const battle_cmd_flag: u32 = 0x0300_3200;
+    pub const unit_active_count: u32 = 0x0300_3570;
     pub const turn_phase: u32 = 0x0300_357C;
     pub const menu_selection: u32 = 0x0300_3580;
     pub const battle_substate: u32 = 0x0300_35EC;
@@ -49,6 +50,7 @@ pub const addr = struct {
     pub const active_cursor_state: u32 = 0x0300_36AC;
     pub const menu_guard: u32 = 0x0300_4280;
     pub const battle_ui_state: u32 = 0x0300_4310;
+    pub const army_alive_table: u32 = 0x0300_4348;
     pub const battle_lock_a: u32 = 0x0300_43C8;
     pub const battle_lock_b: u32 = 0x0300_4470;
     pub const battle_turn_counter: u32 = 0x0300_4474;
@@ -98,6 +100,7 @@ pub const reach_tile_tr: u16 = 0x8171;
 pub const reach_tile_bl: u16 = 0x8172;
 pub const reach_tile_br: u16 = 0x8173;
 pub const max_army_funds: u32 = 999_999;
+pub const unit_record_count: usize = 256;
 pub const unit_record_stride: usize = 12;
 
 /// Deferred VBlank DMA queue entry at `addr.dma_queue_buf` (`0x0201_0274`, stride 12 bytes).

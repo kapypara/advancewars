@@ -41,6 +41,96 @@ pub fn func_08024154() callconv(.c) void {
     abi.retLr();
 }
 
+/// Spawn unit at `(i16(r0), i16(r1), type=i16(r2))`, clear active-wait bit, and refresh board (`0x080242DC`).
+pub fn func_080242DC() callconv(.c) void {
+    if (!abi.enter(0x080242DC)) return;
+    abi.fetches(11);
+    abi.pushLr();
+    const x_s16: i16 = @bitCast(@as(u16, @truncate(rt.r[0])));
+    const y_s16: i16 = @bitCast(@as(u16, @truncate(rt.r[1])));
+    const id_s16: i16 = @bitCast(@as(u16, @truncate(rt.r[2])));
+    abi.setRegNz(&rt.r[0], @bitCast(@as(i32, x_s16)));
+    abi.setRegNz(&rt.r[1], @bitCast(@as(i32, y_s16)));
+    abi.setRegNz(&rt.r[2], @bitCast(@as(i32, id_s16)));
+    if (!abi.call(decls.func_0802425C, 0x080242EF)) return;
+
+    abi.fetches(5);
+    const unit_ptr = rt.r[0];
+    rt.r[1] = unit_ptr;
+    rt.cpuSub(null, unit_ptr, 0, true);
+    if (unit_ptr == 0) {
+        abi.fetches(3);
+        abi.setRegNz(&rt.r[0], 0);
+    } else {
+        abi.fetches(8);
+        const flags = mem.readU8(unit_ptr +% 1);
+        rt.r[2] = flags;
+        abi.setRegNz(&rt.r[0], flags & 0xFE);
+        mem.writeU8(unit_ptr +% 1, @truncate(rt.r[0]));
+        if (!abi.call(decls.func_08023EDC, 0x08024301)) return;
+        abi.fetches(4);
+        abi.setRegNz(&rt.r[0], 1);
+    }
+
+    abi.fetches(4);
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[1] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Clear all 256 unit slots (`status = 0`) and reset `unit_active_count` (`0x080244FC`).
+pub fn func_080244FC() callconv(.c) void {
+    if (!abi.enter(0x080244FC)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    abi.pushReg(5);
+    abi.pushReg(4);
+
+    const list_base = mem.unitListBase();
+    var idx: usize = 0;
+    while (idx < types.unit_record_count) : (idx += 1) {
+        abi.fetches(9);
+        mem.writeU8(mem.unitRecordAddr(list_base, idx), 0);
+    }
+
+    abi.fetches(7);
+    mem.writeU16(types.addr.unit_active_count, 0);
+    rt.r[1] = 0xFFFF_FFFF;
+    rt.r[2] = types.unit_record_count * types.unit_record_stride;
+    rt.r[3] = 0;
+    rt.cpuSub(null, 0xFFFF_FFFF, 0, true);
+    abi.setRegNz(&rt.r[0], 0);
+    rt.r[4] = abi.popReg();
+    rt.r[5] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Count active armies (`1..4`) with non-zero state in `army_alive_table` (`0x08024884`).
+pub fn func_08024884() callconv(.c) void {
+    if (!abi.enter(0x08024884)) return;
+    abi.fetches(5);
+    var count: u8 = 0;
+    var army: u8 = 1;
+    while (army <= 4) : (army += 1) {
+        abi.fetches(6);
+        const alive = mem.readU8(types.addr.army_alive_table +% army);
+        rt.cpuSub(null, alive, 0, true);
+        if (alive != 0) {
+            abi.fetches(5);
+            count +%= 1;
+        }
+        abi.fetches(7);
+    }
+    abi.fetches(4);
+    rt.r[1] = 5;
+    rt.r[2] = count;
+    rt.r[3] = types.addr.army_alive_table;
+    rt.cpuAdd(&rt.r[0], count, 0, true);
+    abi.retLr();
+}
+
 /// Read `u32` entry from unit descriptor table `addr.unit_data_table_9e88` indexed by `i16(r0)` (`0x08024CC0`).
 pub fn func_08024CC0() callconv(.c) void {
     if (!abi.enter(0x08024CC0)) return;
@@ -1916,6 +2006,9 @@ comptime {
         @export(&func_08057E7C, .{ .name = "func_08057E7C", .linkage = .strong });
         @export(&func_0805DE84, .{ .name = "func_0805DE84", .linkage = .strong });
         @export(&func_0805E0AC, .{ .name = "func_0805E0AC", .linkage = .strong });
+        @export(&func_080242DC, .{ .name = "func_080242DC", .linkage = .strong });
+        @export(&func_080244FC, .{ .name = "func_080244FC", .linkage = .strong });
+        @export(&func_08024884, .{ .name = "func_08024884", .linkage = .strong });
     }
 }
 
@@ -1924,4 +2017,7 @@ test "entity table stride matches unit palette offset math" {
     try std.testing.expectEqual(@as(u32, 5000), clampArmyFunds(2000, 3000));
     try std.testing.expectEqual(types.max_army_funds, clampArmyFunds(999_000, 999));
     try std.testing.expectEqual(types.max_army_funds, clampArmyFunds(999_500, 1000));
+    try std.testing.expectEqual(@as(usize, 256), types.unit_record_count);
+    try std.testing.expectEqual(@as(u32, 0x0300_3570), types.addr.unit_active_count);
+    try std.testing.expectEqual(@as(u32, 0x0300_4348), types.addr.army_alive_table);
 }
