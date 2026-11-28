@@ -179,9 +179,14 @@ pub const entity_stride: usize = 0x68;
 pub const UnitEntity = extern struct {
     _pad00: [0x1A]u8,
     army_id: u8,
-    _pad1b: [3]u8,
+    _pad1b: [2]u8,
+    co_id: u8,
     active_flag: u8,
-    _pad1f: [0x49]u8,
+    _pad1f: u8,
+    funds: u32,
+    _pad24: u8,
+    counter25: u8,
+    _pad26: [0x42]u8,
 };
 
 /// Compact unit status header addressed by `BattleSideCtx.unit_ptr`.
@@ -231,7 +236,10 @@ test "Advance Wars core extern struct sizes match GBA memory layout" {
     try std.testing.expectEqual(@as(usize, 0x0C), @offsetOf(CameraState, "cam_x"));
     try std.testing.expectEqual(@as(usize, entity_stride), @sizeOf(UnitEntity));
     try std.testing.expectEqual(@as(usize, 0x1A), @offsetOf(UnitEntity, "army_id"));
+    try std.testing.expectEqual(@as(usize, 0x1D), @offsetOf(UnitEntity, "co_id"));
     try std.testing.expectEqual(@as(usize, 0x1E), @offsetOf(UnitEntity, "active_flag"));
+    try std.testing.expectEqual(@as(usize, 0x20), @offsetOf(UnitEntity, "funds"));
+    try std.testing.expectEqual(@as(usize, 0x25), @offsetOf(UnitEntity, "counter25"));
     try std.testing.expectEqual(@as(usize, 5), @sizeOf(UnitRecord));
     try std.testing.expectEqual(@as(usize, 0x14), @sizeOf(BattleSideCtx));
     try std.testing.expectEqual(@as(usize, 0x0E), @offsetOf(BattleSideCtx, "defense_pct"));

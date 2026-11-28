@@ -126,8 +126,8 @@ pub fn func_0801C600() callconv(.c) void {
 
     const pos_tbl = abi.read32(0x0801C634);
     const cursor_idx = abi.read16(abi.read32(0x0801C638));
-    const entity_base = abi.read32(abi.read32(0x0801C63C));
-    const icon_id = abi.read8(entity_base +% (@as(u32, cursor_idx) *% entity_stride) +% 0x1D);
+    const slot_addr = mem.entitySlotAddr(mem.entityTableBase(), cursor_idx);
+    const icon_id = mem.readU8(slot_addr +% @offsetOf(types.UnitEntity, "co_id"));
     const entry = pos_tbl +% (@as(u32, icon_id) *% 12);
 
     rt.r[3] = pos_tbl;

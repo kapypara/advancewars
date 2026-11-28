@@ -5,6 +5,102 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
+const types = @import("types.zig");
+
+/// Normalize campaign/alias CO ID (`0x0B` -> `0x0A`, `0x0801BE04`).
+pub inline fn normalizeCoId(co_id: u8) u8 {
+    return if (co_id == 0x0B) 0x0A else co_id;
+}
+
+/// Remap CO alias `0x0B` to `0x0A` on `u8(r0)` (`0x0801BE04`).
+pub fn func_0801BE04() callconv(.c) void {
+    if (!abi.enter(0x0801BE04)) return;
+    abi.fetches(6);
+    const co_id: u8 = @truncate(rt.r[0]);
+    abi.setRegNz(&rt.r[0], co_id);
+    rt.cpuSub(null, rt.r[0], 0xB, true);
+    if (rt.CPU_Z) {
+        abi.fetches(3);
+        abi.setRegNz(&rt.r[0], 0xA);
+    }
+    abi.fetches(3);
+    abi.retLr();
+}
+
+/// Set `funds` (`+0x20`) on entity slot `u8(r0)` to `r1` (`0x0801BF50`).
+pub fn func_0801BF50() callconv(.c) void {
+    if (!abi.enter(0x0801BF50)) return;
+    abi.fetches(11);
+    const slot_idx: u8 = @truncate(rt.r[0]);
+    const entity_base = mem.entityTableBase();
+    const slot_addr = mem.entitySlotAddr(entity_base, slot_idx);
+    const stride: u32 = @intCast(types.entity_stride);
+    rt.r[2] = stride;
+    rt.r[3] = entity_base;
+    abi.setRegNz(&rt.r[0], @as(u32, slot_idx) *% stride);
+    rt.cpuAdd(&rt.r[0], rt.r[0], entity_base, true);
+    abi.write32(slot_addr +% @offsetOf(types.UnitEntity, "funds"), rt.r[1]);
+    abi.retLr();
+}
+
+/// Clear `active_flag` (`+0x1E`) on entity slot `u8(r0)` (`0x0801BFE8`).
+pub fn func_0801BFE8() callconv(.c) void {
+    if (!abi.enter(0x0801BFE8)) return;
+    abi.fetches(12);
+    const slot_idx: u8 = @truncate(rt.r[0]);
+    const entity_base = mem.entityTableBase();
+    const slot_addr = mem.entitySlotAddr(entity_base, slot_idx);
+    const stride: u32 = @intCast(types.entity_stride);
+    rt.r[2] = entity_base;
+    abi.setRegNz(&rt.r[0], @as(u32, slot_idx) *% stride);
+    rt.cpuAdd(&rt.r[0], rt.r[0], entity_base, true);
+    abi.setRegNz(&rt.r[1], 0);
+    abi.write8(slot_addr +% @offsetOf(types.UnitEntity, "active_flag"), 0);
+    abi.retLr();
+}
+
+/// Read `funds` (`+0x20`) from entity slot `u8(r0)` (`0x0801C000`).
+pub fn func_0801C000() callconv(.c) void {
+    if (!abi.enter(0x0801C000)) return;
+    abi.fetches(11);
+    const slot_idx: u8 = @truncate(rt.r[0]);
+    const entity_base = mem.entityTableBase();
+    const slot_addr = mem.entitySlotAddr(entity_base, slot_idx);
+    const stride: u32 = @intCast(types.entity_stride);
+    rt.r[1] = stride;
+    rt.r[2] = entity_base;
+    abi.setRegNz(&rt.r[0], @as(u32, slot_idx) *% stride);
+    rt.cpuAdd(&rt.r[0], rt.r[0], entity_base, true);
+    rt.r[0] = abi.read32(slot_addr +% @offsetOf(types.UnitEntity, "funds"));
+    abi.retLr();
+}
+
+/// Increment saturated `u8` `counter25` (`+0x25`) on entity slot `u8(r0)` (`0x0801C0E4`).
+pub fn func_0801C0E4() callconv(.c) void {
+    if (!abi.enter(0x0801C0E4)) return;
+    abi.fetches(15);
+    const slot_idx: u8 = @truncate(rt.r[0]);
+    const entity_base = mem.entityTableBase();
+    const slot_addr = mem.entitySlotAddr(entity_base, slot_idx);
+    const stride: u32 = @intCast(types.entity_stride);
+    const counter_addr = slot_addr +% @offsetOf(types.UnitEntity, "counter25");
+    rt.r[1] = stride;
+    abi.setRegNz(&rt.r[0], @as(u32, slot_idx) *% stride);
+    rt.cpuAdd(&rt.r[0], rt.r[0], entity_base, true);
+    rt.r[2] = counter_addr;
+    const prev = abi.read8(counter_addr);
+    rt.r[1] = prev;
+    rt.cpuAdd(&rt.r[0], prev, 0, true);
+    rt.cpuSub(null, rt.r[0], 0xFF, true);
+    if (!rt.CPU_Z) {
+        abi.fetches(4);
+        rt.cpuAdd(&rt.r[0], prev, 1, true);
+        abi.write8(counter_addr, @truncate(rt.r[0]));
+    }
+    abi.fetches(3);
+    abi.retLr();
+}
 
 /// Compute ROM address of large CO portrait tiles (`0x080C_931C + co_id * 0x100 + 0x540`).
 pub inline fn coPortraitTilesAddr(co_id: u8) u32 {
@@ -37,7 +133,7 @@ pub fn func_0801BE10() callconv(.c) void {
     abi.pushLr();
     rt.r[0] &= 0xFF;
     rt.updateNz(rt.r[0]);
-    if (!abi.call(decls.func_0801BE04, 0x0801BE1B)) return;
+    if (!abi.call(func_0801BE04, 0x0801BE1B)) return;
     abi.fetches(10);
     const tbl = abi.read32(0x0801BE2C);
     const res = (rt.r[0] << 8) +% 0x540 +% tbl;
@@ -56,7 +152,7 @@ pub fn func_0801BE30() callconv(.c) void {
     abi.pushLr();
     rt.r[0] &= 0xFF;
     rt.updateNz(rt.r[0]);
-    if (!abi.call(decls.func_0801BE04, 0x0801BE3B)) return;
+    if (!abi.call(func_0801BE04, 0x0801BE3B)) return;
     abi.fetches(9);
     const off = abi.read32(0x0801BE48);
     const tbl = abi.read32(0x0801BE4C);
@@ -76,7 +172,7 @@ pub fn func_0801BEA0() callconv(.c) void {
     abi.pushLr();
     rt.r[0] &= 0xFF;
     rt.updateNz(rt.r[0]);
-    if (!abi.call(decls.func_0801BE04, 0x0801BEAB)) return;
+    if (!abi.call(func_0801BE04, 0x0801BEAB)) return;
     abi.fetches(8);
     const co_idx: u8 = @truncate(rt.r[0]);
     const tbl = abi.read32(0x0801BEB8);
@@ -100,7 +196,7 @@ pub fn func_0801BEBC() callconv(.c) void {
     rt.r[0] &= 0xFF;
     rt.r[4] = sub;
     rt.updateNz(sub);
-    if (!abi.call(decls.func_0801BE04, 0x0801BECD)) return;
+    if (!abi.call(func_0801BE04, 0x0801BECD)) return;
     abi.fetches(12);
     const tbl = abi.read32(0x0801BEE0);
     const entry = ((rt.r[0] *% 5) +% sub) << 2;
@@ -124,7 +220,7 @@ pub fn func_0801BEE4() callconv(.c) void {
     abi.pushLr();
     rt.r[0] &= 0xFF;
     rt.updateNz(rt.r[0]);
-    if (!abi.call(decls.func_0801BE04, 0x0801BEEF)) return;
+    if (!abi.call(func_0801BE04, 0x0801BEEF)) return;
     abi.fetches(8);
     const co_idx: u8 = @truncate(rt.r[0]);
     const tbl = abi.read32(0x0801BEFC);
@@ -146,7 +242,7 @@ fn callCoPortrait1BF50(comptime pool_r1_ref: ?u32, comptime const_r1: u32, compt
     } else {
         rt.r[1] = const_r1;
     }
-    if (!abi.call(decls.func_0801BF50, ret_addr)) return;
+    if (!abi.call(func_0801BF50, ret_addr)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -160,9 +256,9 @@ pub fn func_0801BE50() callconv(.c) void {
     abi.write32(rt.r[13], rt.r[4]);
 
     rt.r[4] = abi.read32(0x0801BE80);
-    const entities = abi.read32(abi.read32(0x0801BE84));
-    rt.r[0] = abi.read8(entities +% ((rt.r[0] & 0xFF) *% 0x68) +% 0x1D);
-    if (!abi.call(decls.func_0801BE04, 0x0801BE69)) return;
+    const slot_addr = mem.entitySlotAddr(mem.entityTableBase(), @truncate(rt.r[0]));
+    rt.r[0] = mem.readU8(slot_addr +% @offsetOf(types.UnitEntity, "co_id"));
+    if (!abi.call(func_0801BE04, 0x0801BE69)) return;
 
     abi.fetches(14);
     const co_idx = rt.r[0] & 0xFF;
@@ -584,12 +680,17 @@ pub fn func_0803BC48() callconv(.c) void {
 comptime {
     if (!builtin.is_test) {
         @export(&func_0801BDDC, .{ .name = "func_0801BDDC", .linkage = .strong });
+        @export(&func_0801BE04, .{ .name = "func_0801BE04", .linkage = .strong });
         @export(&func_0801BE10, .{ .name = "func_0801BE10", .linkage = .strong });
         @export(&func_0801BE30, .{ .name = "func_0801BE30", .linkage = .strong });
         @export(&func_0801BE50, .{ .name = "func_0801BE50", .linkage = .strong });
         @export(&func_0801BEA0, .{ .name = "func_0801BEA0", .linkage = .strong });
         @export(&func_0801BEBC, .{ .name = "func_0801BEBC", .linkage = .strong });
         @export(&func_0801BEE4, .{ .name = "func_0801BEE4", .linkage = .strong });
+        @export(&func_0801BF50, .{ .name = "func_0801BF50", .linkage = .strong });
+        @export(&func_0801BFE8, .{ .name = "func_0801BFE8", .linkage = .strong });
+        @export(&func_0801C000, .{ .name = "func_0801C000", .linkage = .strong });
+        @export(&func_0801C0E4, .{ .name = "func_0801C0E4", .linkage = .strong });
         @export(&func_08038064, .{ .name = "func_08038064", .linkage = .strong });
         @export(&func_08038078, .{ .name = "func_08038078", .linkage = .strong });
         @export(&func_0803808C, .{ .name = "func_0803808C", .linkage = .strong });
@@ -613,6 +714,9 @@ comptime {
 }
 
 test "CO portrait ROM stride helpers align with GBA tables" {
+    try std.testing.expectEqual(@as(u8, 0x0A), normalizeCoId(0x0B));
+    try std.testing.expectEqual(@as(u8, 0x00), normalizeCoId(0x00));
+    try std.testing.expectEqual(@as(u8, 0x0C), normalizeCoId(0x0C));
     try std.testing.expectEqual(@as(u32, 0x080C_985C), coPortraitTilesAddr(0));
     try std.testing.expectEqual(@as(u32, 0x080C_995C), coPortraitTilesAddr(1));
     try std.testing.expectEqual(@as(u32, 0x080C_CA3C), coPortraitSmallTilesAddr(0));
