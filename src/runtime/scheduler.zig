@@ -130,6 +130,7 @@ pub fn advanceCycles(comptime Rt: type, cycles: u32) void {
                 state.frame_count +%= 1;
 
                 const keys = disp.display_get_keys();
+                state.platform_keyinput = keys;
                 state.io_regs_buf[0x130] = @truncate(keys);
                 state.io_regs_buf[0x131] = @truncate(keys >> 8);
 

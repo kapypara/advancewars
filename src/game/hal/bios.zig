@@ -39,13 +39,29 @@ pub fn divPure(num: i32, den: i32) DivResult {
     };
 }
 
-/// Invoke the BIOS SWI backend (native pure Zig fast path for `.div` when `config.is_native`, otherwise centralized `rt.gba_swi`).
+/// Invoke the BIOS SWI backend (native pure Zig fast paths for `.div`/`.cpu_set`/`.cpu_fast_set`
+/// when `config.is_native`, otherwise centralized `rt.gba_swi`).
 pub inline fn invoke(comptime op: Swi) void {
     if (comptime config.is_native and op == .div) {
         const res = divPure(@bitCast(rt.r[0]), @bitCast(rt.r[1]));
         rt.r[0] = @bitCast(res.quot);
         rt.r[1] = @bitCast(res.rem);
         rt.r[3] = res.abs_quot;
+        return;
+    }
+    if (comptime config.is_native and op == .cpu_set) {
+        const cnt = rt.r[2];
+        const count = cnt & 0x1F_FFFF;
+        const fill = ((cnt >> 24) & 1) != 0;
+        const unit: u32 = if (((cnt >> 26) & 1) != 0) 4 else 2;
+        rt.hal_native_copy(rt.r[0], rt.r[1], count *% unit, unit, fill);
+        return;
+    }
+    if (comptime config.is_native and op == .cpu_fast_set) {
+        const cnt = rt.r[2];
+        const count = ((cnt & 0x1F_FFFF) +% 7) & ~@as(u32, 7);
+        const fill = ((cnt >> 24) & 1) != 0;
+        rt.hal_native_copy(rt.r[0], rt.r[1], count *% 4, 4, fill);
         return;
     }
     rt.gba_swi(@intFromEnum(op));

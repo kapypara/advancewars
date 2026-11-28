@@ -1,6 +1,8 @@
 //! GBA keypad input abstraction submodule (`KEYINPUT` `0x0400_0130`).
 
 const std = @import("std");
+const rt = @import("runtime");
+const config = @import("config.zig");
 const mem = @import("../mem.zig");
 const types = @import("../types.zig");
 
@@ -30,6 +32,7 @@ pub inline fn decodeButtons(raw_keyinput: u16) Button {
 }
 
 pub inline fn readRaw() u16 {
+    if (comptime config.is_native) return rt.hal_native_read_keys();
     return mem.readU16(types.addr.reg_keyinput);
 }
 

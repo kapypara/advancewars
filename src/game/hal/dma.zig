@@ -1,7 +1,9 @@
 //! GBA DMA transfer & VBlank deferred copy queue abstraction submodule.
 
 const std = @import("std");
+const rt = @import("runtime");
 const bios = @import("bios.zig");
+const config = @import("config.zig");
 const mem = @import("../mem.zig");
 const types = @import("../types.zig");
 
@@ -21,10 +23,19 @@ pub inline fn isFastCopyAligned(size_bytes: u32) bool {
 }
 
 pub inline fn copy16(src: u32, dst: u32, size_bytes: u32) void {
+    if (comptime config.is_native) {
+        rt.hal_native_copy(src, dst, byteCountToHalfwords(size_bytes) *% 2, 2, false);
+        return;
+    }
     bios.cpuSet(src, dst, byteCountToHalfwords(size_bytes));
 }
 
 pub inline fn fastCopy32(src: u32, dst: u32, size_bytes: u32) void {
+    if (comptime config.is_native) {
+        const words = (byteCountToWords(size_bytes) +% 7) & ~@as(u32, 7);
+        rt.hal_native_copy(src, dst, words *% 4, 4, false);
+        return;
+    }
     bios.cpuFastSet(src, dst, byteCountToWords(size_bytes));
 }
 

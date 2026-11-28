@@ -423,3 +423,204 @@ test "bus read/write handles EWRAM, VRAM mirroring, palette 8-bit dup, and IF W1
     write16Raw(0x0400_0202, 0x0001, &dummy_dma, &ring, 0, 0);
     try std.testing.expectEqual(@as(u16, 0x0002), read16Raw(0x0400_0202));
 }
+
+fn resolveWritableSlice(addr: u32, byte_len: u32) ?[]u8 {
+    return switch (addr >> 24) {
+        0x02 => blk: {
+            const off = addr & 0x3FFFF;
+            if (byte_len <= state.ewram_buf.len and off <= state.ewram_buf.len - byte_len) {
+                break :blk state.ewram_buf[off .. off + byte_len];
+            }
+            break :blk null;
+        },
+        0x03 => blk: {
+            const off = addr & 0x7FFF;
+            if (byte_len <= state.iwram_buf.len and off <= state.iwram_buf.len - byte_len) {
+                break :blk state.iwram_buf[off .. off + byte_len];
+            }
+            break :blk null;
+        },
+        0x05 => blk: {
+            const off = addr & 0x3FF;
+            if (byte_len <= state.palette_buf.len and off <= state.palette_buf.len - byte_len) {
+                break :blk state.palette_buf[off .. off + byte_len];
+            }
+            break :blk null;
+        },
+        0x06 => blk: {
+            var off = addr & 0x1FFFF;
+            if (off >= 0x18000) off -= 0x8000;
+            if (byte_len <= state.vram_buf.len and off <= state.vram_buf.len - byte_len) {
+                break :blk state.vram_buf[off .. off + byte_len];
+            }
+            break :blk null;
+        },
+        0x07 => blk: {
+            const off = addr & 0x3FF;
+            if (byte_len <= state.oam_buf.len and off <= state.oam_buf.len - byte_len) {
+                break :blk state.oam_buf[off .. off + byte_len];
+            }
+            break :blk null;
+        },
+        else => null,
+    };
+}
+
+fn resolveReadableSlice(addr: u32, byte_len: u32) ?[]const u8 {
+    return switch (addr >> 24) {
+        0x00 => blk: {
+            const bm = state.bios_mem_ptr orelse break :blk null;
+            const off = addr & 0x3FFF;
+            if (byte_len <= 0x4000 and off <= 0x4000 - byte_len) {
+                break :blk bm[off .. off + byte_len];
+            }
+            break :blk null;
+        },
+        0x08...0x0D => blk: {
+            if (state.eeprom_state.isAddr(addr, state.rom_size)) break :blk null;
+            const ptr = state.rom_ptr orelse break :blk null;
+            if (state.rom_size == 0) break :blk null;
+            const off = (addr - 0x0800_0000) % state.rom_size;
+            if (byte_len <= state.rom_size and off <= state.rom_size - byte_len) {
+                break :blk ptr[off .. off + byte_len];
+            }
+            break :blk null;
+        },
+        else => resolveWritableSlice(addr, byte_len),
+    };
+}
+
+/// Fast native bulk memory copy/fill used when `-Dnative-hal=true`, using `@memcpy`/`@memset`
+/// for non-overlapping RAM/VRAM/ROM slices and falling back to GBA bus helpers for I/O or overlap.
+pub fn nativeTransfer(
+    src: u32,
+    dst: u32,
+    byte_len: u32,
+    unit_size: u32,
+    fill: bool,
+    dma_bus: anytype,
+    func_ring: *const [4096]u32,
+    func_ring_i: u32,
+    lr: u32,
+) void {
+    if (byte_len == 0) return;
+    const step: u32 = if (unit_size == 4) 4 else 2;
+    const align_mask: u32 = step - 1;
+    const s_addr = src & ~align_mask;
+    const d_addr = dst & ~align_mask;
+
+    if (!fill) {
+        if (resolveReadableSlice(s_addr, byte_len)) |s_slice| {
+            if (resolveWritableSlice(d_addr, byte_len)) |d_slice| {
+                const s_start = @intFromPtr(s_slice.ptr);
+                const s_end = s_start + s_slice.len;
+                const d_start = @intFromPtr(d_slice.ptr);
+                const d_end = d_start + d_slice.len;
+                if (s_start == d_start) return;
+                if (d_end <= s_start or s_end <= d_start) {
+                    @memcpy(d_slice, s_slice);
+                    return;
+                }
+            }
+        }
+    }
+
+    const fill32: u32 = if (fill and step == 4) read32Raw(s_addr) else 0;
+    const fill16: u16 = if (fill and step == 2) read16Raw(s_addr) else 0;
+
+    if (fill) {
+        if (resolveWritableSlice(d_addr, byte_len)) |d_slice| {
+            if ((step == 4 and fill32 == 0) or (step == 2 and fill16 == 0)) {
+                @memset(d_slice, 0);
+                return;
+            }
+            var i: usize = 0;
+            if (step == 4) {
+                while (i + 4 <= d_slice.len) : (i += 4) {
+                    std.mem.writeInt(u32, d_slice[i..][0..4], fill32, .little);
+                }
+            } else {
+                while (i + 2 <= d_slice.len) : (i += 2) {
+                    std.mem.writeInt(u16, d_slice[i..][0..2], fill16, .little);
+                }
+            }
+            return;
+        }
+    }
+
+    var off: u32 = 0;
+    if (step == 4) {
+        while (off + 4 <= byte_len) : (off += 4) {
+            const val = if (fill) fill32 else read32Raw(s_addr +% off);
+            write32Raw(d_addr +% off, val, dma_bus, func_ring, func_ring_i, lr);
+        }
+    } else {
+        while (off + 2 <= byte_len) : (off += 2) {
+            const val = if (fill) fill16 else read16Raw(s_addr +% off);
+            write16Raw(d_addr +% off, val, dma_bus, func_ring, func_ring_i, lr);
+        }
+    }
+}
+
+test "bus.nativeTransfer handles direct memcpy, zero/pattern fill, and overlapping copy" {
+    state.resetCommon();
+    defer state.resetCommon();
+
+    const NoopDmaBus = struct {
+        pub fn ioRead16(_: *@This(), off: u32) u16 {
+            return state.ioRead16(off);
+        }
+        pub fn ioWrite16(_: *@This(), off: u32, val: u16) void {
+            state.ioWrite16(off, val);
+        }
+        pub fn ioRead32(_: *@This(), off: u32) u32 {
+            return state.ioRead32(off);
+        }
+        pub fn busRead32(_: *@This(), _: u32) u32 {
+            return 0;
+        }
+        pub fn busWrite32(_: *@This(), _: u32, _: u32) void {}
+        pub fn busRead16(_: *@This(), _: u32) u16 {
+            return 0;
+        }
+        pub fn busWrite16(_: *@This(), _: u32, _: u16) void {}
+        pub fn getBusMode(_: *@This()) BusMode {
+            return state.bus_mode;
+        }
+        pub fn setBusMode(_: *@This(), m: BusMode) void {
+            state.bus_mode = m;
+        }
+        pub fn raiseIrq(_: *@This(), mask: u16) void {
+            state.raiseIrqBits(mask);
+        }
+    };
+
+    var dummy_dma: NoopDmaBus = .{};
+    const ring: [4096]u32 = @splat(0);
+
+    // 1. EWRAM -> VRAM non-overlapping 32-bit copy
+    write32Raw(0x0200_0100, 0x1122_3344, &dummy_dma, &ring, 0, 0);
+    write32Raw(0x0200_0104, 0x5566_7788, &dummy_dma, &ring, 0, 0);
+    nativeTransfer(0x0200_0100, 0x0600_0200, 8, 4, false, &dummy_dma, &ring, 0, 0);
+    try std.testing.expectEqual(@as(u32, 0x1122_3344), read32Raw(0x0600_0200));
+    try std.testing.expectEqual(@as(u32, 0x5566_7788), read32Raw(0x0600_0204));
+
+    // 2. Non-zero 16-bit pattern fill & zero-fill in IWRAM/VRAM
+    write16Raw(0x0300_0040, 0xBEEF, &dummy_dma, &ring, 0, 0);
+    nativeTransfer(0x0300_0040, 0x0300_0080, 6, 2, true, &dummy_dma, &ring, 0, 0);
+    try std.testing.expectEqual(@as(u16, 0xBEEF), read16Raw(0x0300_0080));
+    try std.testing.expectEqual(@as(u16, 0xBEEF), read16Raw(0x0300_0084));
+
+    write32Raw(0x0300_0044, 0x0000_0000, &dummy_dma, &ring, 0, 0);
+    nativeTransfer(0x0300_0044, 0x0600_0200, 8, 4, true, &dummy_dma, &ring, 0, 0);
+    try std.testing.expectEqual(@as(u32, 0), read32Raw(0x0600_0200));
+    try std.testing.expectEqual(@as(u32, 0), read32Raw(0x0600_0204));
+
+    // 3. Overlapping ascending 32-bit copy
+    write32Raw(0x0200_0200, 0xAABB_CCDD, &dummy_dma, &ring, 0, 0);
+    write32Raw(0x0200_0204, 0xEEFF_0011, &dummy_dma, &ring, 0, 0);
+    write32Raw(0x0200_0208, 0x2233_4455, &dummy_dma, &ring, 0, 0);
+    nativeTransfer(0x0200_0200, 0x0200_0204, 8, 4, false, &dummy_dma, &ring, 0, 0);
+    try std.testing.expectEqual(@as(u32, 0xAABB_CCDD), read32Raw(0x0200_0204));
+    try std.testing.expectEqual(@as(u32, 0xAABB_CCDD), read32Raw(0x0200_0208));
+}

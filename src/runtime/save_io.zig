@@ -163,6 +163,43 @@ pub fn writeDumpAtSnapshot(dump_path: ?[*:0]const u8) void {
     _ = c_host.fwrite(&state.oam_buf, 1, state.oam_buf.len, df);
 }
 
+pub fn nativeSaveRead(offset: u32) u8 {
+    if (!state.sram_active) return 0;
+    return state.sram_buf[offset & 0xFFFF];
+}
+
+pub fn nativeSaveWrite(offset: u32, val: u8) void {
+    if (!state.sram_active) return;
+    const off: usize = offset & 0xFFFF;
+    if (state.sram_buf[off] != val) {
+        state.sram_buf[off] = val;
+        state.flash_state.dirty = true;
+        state.flash_state.write_seq +%= 1;
+    }
+}
+
+pub fn nativeSaveEraseSector(sector: u8) void {
+    if (!state.sram_active) return;
+    const sec_off: usize = @as(usize, sector & 0x0F) * 0x1000;
+    const sec = state.sram_buf[sec_off .. sec_off + 0x1000];
+    if (std.mem.indexOfNone(u8, sec, &.{0xFF}) != null) {
+        @memset(sec, 0xFF);
+        state.flash_state.dirty = true;
+        state.flash_state.write_seq +%= 1;
+    }
+}
+
+pub fn nativeSaveEraseChip() void {
+    if (!state.sram_active) return;
+    const size = @min(@as(usize, state.flash_state.backup_size), state.sram_buf.len);
+    const chip = state.sram_buf[0..size];
+    if (std.mem.indexOfNone(u8, chip, &.{0xFF}) != null) {
+        @memset(chip, 0xFF);
+        state.flash_state.dirty = true;
+        state.flash_state.write_seq +%= 1;
+    }
+}
+
 test "save_io.buildSidecarPath handles extensions and directory dots" {
     var buf: [512]u8 = undefined;
     const len1 = buildSidecarPath("game/aw.gba", ".sav", &buf);
@@ -173,4 +210,37 @@ test "save_io.buildSidecarPath handles extensions and directory dots" {
 
     const len3 = buildSidecarPath("C:\\roms\\aw.gba", ".sav", &buf);
     try std.testing.expectEqualStrings("C:\\roms\\aw.sav", buf[0..len3]);
+}
+
+test "save_io native 64KB direct save read, write, sector erase, and chip erase" {
+    state.resetCommon();
+    defer state.resetCommon();
+
+    nativeSaveWrite(0x0042, 0x5A);
+    nativeSaveWrite(0x1042, 0xA5);
+    try std.testing.expectEqual(@as(u8, 0x5A), nativeSaveRead(0x0042));
+    try std.testing.expectEqual(@as(u8, 0xA5), nativeSaveRead(0x1042));
+    try std.testing.expect(state.flash_state.dirty);
+    const seq1 = state.flash_state.write_seq;
+
+    // Identical write does not bump dirty/write_seq
+    state.flash_state.dirty = false;
+    nativeSaveWrite(0x0042, 0x5A);
+    try std.testing.expect(!state.flash_state.dirty);
+    try std.testing.expectEqual(seq1, state.flash_state.write_seq);
+
+    // Erase sector 0 clears 0x0042 while preserving sector 1 (0x1042)
+    nativeSaveEraseSector(0);
+    try std.testing.expectEqual(@as(u8, 0xFF), nativeSaveRead(0x0042));
+    try std.testing.expectEqual(@as(u8, 0xA5), nativeSaveRead(0x1042));
+    try std.testing.expect(state.flash_state.dirty);
+
+    // Full 64KB chip erase clears sector 1 as well; second erase is idempotent
+    nativeSaveEraseChip();
+    try std.testing.expectEqual(@as(u8, 0xFF), nativeSaveRead(0x1042));
+    state.flash_state.dirty = false;
+    const seq2 = state.flash_state.write_seq;
+    nativeSaveEraseChip();
+    try std.testing.expect(!state.flash_state.dirty);
+    try std.testing.expectEqual(seq2, state.flash_state.write_seq);
 }

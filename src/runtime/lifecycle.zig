@@ -69,6 +69,7 @@ pub fn initPostRomRegs(regs: *[16]u32) void {
     // KEYINPUT active-low all released, default SOUNDBIAS = 0x0200, SIOMULTI pull-ups 0xFFFF
     state.io_regs_buf[0x130] = 0xFF;
     state.io_regs_buf[0x131] = 0x03;
+    state.platform_keyinput = 0x03FF;
     state.io_regs_buf[0x088] = 0x00;
     state.io_regs_buf[0x089] = 0x02;
     @memset(state.io_regs_buf[0x120..0x128], 0xFF);

@@ -34,6 +34,13 @@ pub extern fn recomp_enter(addr: u32) bool;
 pub extern fn recomp_called_slow(retaddr: u32) bool;
 pub extern fn awre_run_iwram_function(target: u32) void;
 
+pub extern fn hal_native_copy(src: u32, dst: u32, byte_len: u32, unit_size: u32, fill: bool) void;
+pub extern fn hal_native_read_keys() u16;
+pub extern fn hal_native_save_read(offset: u32) u8;
+pub extern fn hal_native_save_write(offset: u32, val: u8) void;
+pub extern fn hal_native_save_erase_sector(sector: u8) void;
+pub extern fn hal_native_save_erase_chip() void;
+
 pub inline fn run_iwram_function(target: u32) void {
     awre_run_iwram_function(target);
 }

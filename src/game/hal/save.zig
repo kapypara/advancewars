@@ -1,6 +1,8 @@
 //! GBA cartridge Flash (`0x0E00_0000`) & save bitset abstraction submodule.
 
 const std = @import("std");
+const rt = @import("runtime");
+const config = @import("config.zig");
 const mem = @import("../mem.zig");
 const types = @import("../types.zig");
 
@@ -17,6 +19,12 @@ pub const save_flags_block_bytes: usize = 36;
 pub const BitLocation = struct { addr: u32, shift: u3, mask: u8 };
 
 pub inline fn writeFlashUnlockCmd(cmd_aa_addr: u32, cmd_55_addr: u32, opcode: u8) void {
+    if (comptime config.is_native) {
+        if (opcode == flash_cmd_erase_chip) {
+            rt.hal_native_save_erase_chip();
+            return;
+        }
+    }
     mem.writeU8(cmd_aa_addr, flash_cmd_unlock_1);
     mem.writeU8(cmd_55_addr, flash_cmd_unlock_2);
     mem.writeU8(cmd_aa_addr, flash_cmd_erase_setup);
@@ -26,11 +34,37 @@ pub inline fn writeFlashUnlockCmd(cmd_aa_addr: u32, cmd_55_addr: u32, opcode: u8
 }
 
 pub inline fn readByte(offset: u16) u8 {
+    if (comptime config.is_native) return rt.hal_native_save_read(offset);
     return mem.readU8(flash_base + offset);
 }
 
 pub inline fn writeByte(offset: u16, val: u8) void {
+    if (comptime config.is_native) {
+        rt.hal_native_save_write(offset, val);
+        return;
+    }
     mem.writeU8(flash_base + offset, val);
+}
+
+pub inline fn eraseSector(sector: u4) void {
+    if (comptime config.is_native) {
+        rt.hal_native_save_erase_sector(sector);
+        return;
+    }
+    mem.writeU8(flash_base + 0x5555, flash_cmd_unlock_1);
+    mem.writeU8(flash_base + 0x2AAA, flash_cmd_unlock_2);
+    mem.writeU8(flash_base + 0x5555, flash_cmd_erase_setup);
+    mem.writeU8(flash_base + 0x5555, flash_cmd_unlock_1);
+    mem.writeU8(flash_base + 0x2AAA, flash_cmd_unlock_2);
+    mem.writeU8(flash_base + sectorOffset(sector), flash_cmd_erase_sector);
+}
+
+pub inline fn eraseChip() void {
+    if (comptime config.is_native) {
+        rt.hal_native_save_erase_chip();
+        return;
+    }
+    writeFlashUnlockCmd(flash_base + 0x5555, flash_base + 0x2AAA, flash_cmd_erase_chip);
 }
 
 pub inline fn sectorOffset(sector: u4) u32 {

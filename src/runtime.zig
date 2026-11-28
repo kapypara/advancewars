@@ -8,6 +8,7 @@ const adapters = @import("runtime/adapters.zig");
 const bus = @import("runtime/bus.zig");
 const diagnostics = @import("runtime/diagnostics.zig");
 const lifecycle = @import("runtime/lifecycle.zig");
+const save_io = @import("runtime/save_io.zig");
 const scheduler = @import("runtime/scheduler.zig");
 const state = @import("runtime/state.zig");
 const timing = @import("runtime/timing.zig");
@@ -63,7 +64,8 @@ pub fn linkShardExports() void {
         &bus_write32,           &bus_write16,             &bus_write8,                   &cpu_fetches,             &gba_swi,
         &cpu_get_cpsr,          &cpu_set_cpsr,            &cpu_get_spsr,                 &cpu_set_spsr,            &cpu_undefined,
         &recomp_enter,          &recomp_called_slow,      &recomp_unwind_note,           &recomp_hist,             &recomp_validate,
-        &awre_run_iwram_function,
+        &awre_run_iwram_function, &hal_native_copy,        &hal_native_read_keys,         &hal_native_save_read,    &hal_native_save_write,
+        &hal_native_save_erase_sector, &hal_native_save_erase_chip,
     };
     inline for (syms) |s| {
         std.mem.doNotOptimizeAway(s);
@@ -117,6 +119,30 @@ pub export fn bus_write16(addr: u32, value: u16) void {
 pub export fn bus_write8(addr: u32, value: u8) void {
     bus.write8Raw(addr, value, &dma_bus, &state.g_func_ring, state.g_func_ring_i, r[14]);
     charge(dataCycles(addr, false, false));
+}
+
+pub export fn hal_native_copy(src: u32, dst: u32, byte_len: u32, unit_size: u32, fill: bool) void {
+    bus.nativeTransfer(src, dst, byte_len, unit_size, fill, &dma_bus, &state.g_func_ring, state.g_func_ring_i, r[14]);
+}
+
+pub export fn hal_native_read_keys() u16 {
+    return state.platform_keyinput;
+}
+
+pub export fn hal_native_save_read(offset: u32) u8 {
+    return save_io.nativeSaveRead(offset);
+}
+
+pub export fn hal_native_save_write(offset: u32, val: u8) void {
+    save_io.nativeSaveWrite(offset, val);
+}
+
+pub export fn hal_native_save_erase_sector(sector: u8) void {
+    save_io.nativeSaveEraseSector(sector);
+}
+
+pub export fn hal_native_save_erase_chip() void {
+    save_io.nativeSaveEraseChip();
 }
 
 pub export fn cpu_fetches(n: u32) void {
@@ -422,7 +448,7 @@ test {
     _ = scheduler;
     _ = lifecycle;
     _ = timing;
-    _ = @import("runtime/save_io.zig");
+    _ = save_io;
     _ = diagnostics;
     _ = adapters;
 }

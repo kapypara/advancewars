@@ -96,6 +96,7 @@ pub var hblank_done: bool = false;
 pub var last_poll_cycle: u32 = 0;
 
 pub var bus_mode: BusMode = .rom_code;
+pub var platform_keyinput: u16 = 0x03FF;
 pub var cycle_credit: i32 = 0;
 pub var vram_burst: bool = false;
 pub var in_irq: bool = false;
@@ -168,6 +169,7 @@ pub fn resetCommon() void {
     hblank_done = false;
     last_poll_cycle = 0;
     bus_mode = .rom_code;
+    platform_keyinput = 0x03FF;
     cycle_credit = 0;
     vram_burst = false;
     in_irq = false;
@@ -247,6 +249,8 @@ test "state I/O helpers and IRQ flag raising" {
     raiseIrqBits(0x0008);
     try std.testing.expectEqual(@as(u16, 0x0009), ioRead16(0x202));
 
+    platform_keyinput = 0x0000;
     resetCommon();
     try std.testing.expectEqual(@as(u32, 0), ioRead32(0x200));
+    try std.testing.expectEqual(@as(u16, 0x03FF), platform_keyinput);
 }
