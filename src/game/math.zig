@@ -5,6 +5,8 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const bios = @import("bios.zig");
+const hw = @import("hw.zig");
 const types = @import("types.zig");
 
 /// Advance the Advance Wars 32-bit PRNG state: `((4*s + 2) * (4*s + 3)) >> 2`.
@@ -141,7 +143,7 @@ pub fn func_0807B488() callconv(.c) void {
     if (rt.r[1] == 0) {
         abi.fetches(9);
         abi.pushLr();
-        if (!abi.call(decls.func_0807B51C, 0x0807B517)) return;
+        if (!abi.call(hw.func_0807B51C, 0x0807B517)) return;
         abi.fetches(4);
         abi.setRegNz(&rt.r[0], 0);
         rt.r[15] = abi.popReg();
@@ -321,7 +323,7 @@ pub fn func_0807B6AC() callconv(.c) void {
     if (!abi.enter(0x0807B6AC)) return;
     abi.fetches(4);
     if (rt.r[1] == 0) {
-        decls.func_0807B762();
+        hw.func_0807B762();
         return;
     }
     abi.fetches(5);
@@ -350,7 +352,7 @@ pub fn func_0807B564() callconv(.c) void {
     abi.fetches(5);
     abi.setRegNz(&rt.r[3], 1);
     if (rt.r[1] == 0) {
-        decls.func_0807B628();
+        hw.func_0807B628();
         return;
     }
     abi.fetches(3);
@@ -593,7 +595,7 @@ pub fn func_08003918() callconv(.c) void {
     rt.r[4] = rt.r[4] << 5;
     rt.updateNz(rt.r[4]);
     rt.cpuAdd(&rt.r[1], rt.r[4], 0, true);
-    if (!abi.call(decls.func_080796CC, 0x0800392D)) return;
+    if (!abi.call(bios.func_080796CC, 0x0800392D)) return;
 
     abi.fetches(7);
     rt.r[0] = rt.asrConst(rt.r[0], 5);
@@ -639,7 +641,7 @@ fn writeRotationMatrix3x3(axis: RotAxis, cos_ret: u32, sin_ret: u32) void {
     const cos_q12: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])) >> 2);
     rt.r[4] = cos_q12 & 0xFFFF;
     rt.r[0] = rt.r[5];
-    if (!abi.call(decls.func_0807AED4, sin_ret)) return;
+    if (!abi.call(func_0807AED4, sin_ret)) return;
 
     abi.fetches(22);
     const sin_q12: u32 = @bitCast(abi.signExtend16(@truncate(rt.r[0])) >> 2);

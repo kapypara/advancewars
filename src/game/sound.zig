@@ -5,7 +5,10 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const dma = @import("dma.zig");
+const hw = @import("hw.zig");
 const mem = @import("mem.zig");
+const sprite_anim = @import("sprite_anim.zig");
 const types = @import("types.zig");
 
 /// Byte offset of the current bytecode sequence cursor inside `MusicPlayerTrack`.
@@ -591,7 +594,7 @@ pub fn func_0803DAA0() callconv(.c) void {
     rt.r[0] = abi.read32(0x0803DAD4);
     abi.setRegNz(&rt.r[1], @as(u32, 0x80) << 1);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(decls.func_08011330, 0x0803DAB1)) return;
+    if (!abi.call(dma.func_08011330, 0x0803DAB1)) return;
 
     abi.fetches(13);
     abi.write32(rt.r[13], @as(u32, 0x80) << 8);
@@ -600,7 +603,7 @@ pub fn func_0803DAA0() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 2);
     rt.r[2] = abi.read32(0x0803DAD8);
     rt.r[3] = abi.read32(0x0803DADC);
-    if (!abi.call(decls.func_080123A8, 0x0803DAC7)) return;
+    if (!abi.call(sprite_anim.func_080123A8, 0x0803DAC7)) return;
 
     abi.fetches(8);
     abi.write8(rt.r[0] +% 0x3A, 9);
@@ -670,7 +673,7 @@ pub fn func_080521A4() callconv(.c) void {
     if (!abi.enter(0x080521A4)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_080104B0, 0x080521AB)) return;
+    if (!abi.call(hw.func_080104B0, 0x080521AB)) return;
 
     abi.fetches(26);
     const ctrl = abi.read32(0x080521E0);

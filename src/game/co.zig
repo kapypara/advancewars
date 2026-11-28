@@ -9,6 +9,7 @@ const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
 const sound = @import("sound.zig");
+const turn = @import("turn.zig");
 const types = @import("types.zig");
 const unit = @import("unit.zig");
 
@@ -396,7 +397,7 @@ pub fn func_0801C19C() callconv(.c) void {
     if (!abi.call(sound.func_0803D880, 0x0801C1A5)) return;
     abi.fetches(5);
     abi.setRegNz(&rt.r[0], 1);
-    if (!abi.call(decls.func_080353A8, 0x0801C1AB)) return;
+    if (!abi.call(turn.func_080353A8, 0x0801C1AB)) return;
     abi.fetches(4);
     if (!abi.call(unit.func_0801C150, 0x0801C1AF)) return;
     abi.fetches(4);

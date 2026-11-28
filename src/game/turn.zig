@@ -14,6 +14,7 @@ const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
 const types = @import("types.zig");
+const ui = @import("ui.zig");
 const unit = @import("unit.zig");
 
 fn popReturnValue() void {
@@ -757,7 +758,7 @@ pub fn func_080338B8() callconv(.c) void {
     const res: u32 = @bitCast(abi.signExtend16(@truncate(term)));
     abi.setRegNz(&rt.r[0], res);
     rt.r[4] = 6;
-    if (!abi.call(decls.func_0803385C, 0x080338DF)) return;
+    if (!abi.call(ui.func_0803385C, 0x080338DF)) return;
 
     abi.fetches(5);
     rt.r[4] = abi.read32(rt.r[13]);
@@ -1462,12 +1463,12 @@ pub fn func_080340F8() callconv(.c) void {
     abi.fetches(5);
     abi.pushLr();
     const steps = .{
-        .{ decls.func_0803293C, @as(u32, 0x080340FF) },
-        .{ decls.func_080328B8, @as(u32, 0x08034103) },
+        .{ ui.func_0803293C, @as(u32, 0x080340FF) },
+        .{ ui.func_080328B8, @as(u32, 0x08034103) },
         .{ decls.func_0800FC58, @as(u32, 0x08034107) },
-        .{ decls.func_0803322C, @as(u32, 0x0803410B) },
-        .{ decls.func_080333A0, @as(u32, 0x0803410F) },
-        .{ decls.func_0803401C, @as(u32, 0x08034113) },
+        .{ ui.func_0803322C, @as(u32, 0x0803410B) },
+        .{ ui.func_080333A0, @as(u32, 0x0803410F) },
+        .{ ui.func_0803401C, @as(u32, 0x08034113) },
         .{ func_080338FC, @as(u32, 0x08034117) },
     };
     inline for (steps) |s| {

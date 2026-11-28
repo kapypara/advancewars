@@ -2218,7 +2218,7 @@ pub fn func_0804C220() callconv(.c) void {
     rt.r[4] = abi.read32(0x0804C23C);
     abi.write8(abi.read32(rt.r[4]) +% 0x33, 0);
     abi.setRegNz(&rt.r[1], 0);
-    if (!abi.call(decls.func_08049010, 0x0804C231)) return;
+    if (!abi.call(func_08049010, 0x0804C231)) return;
 
     abi.fetches(7);
     rt.r[1] = abi.read32(rt.r[4]);

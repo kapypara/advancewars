@@ -7,7 +7,9 @@ const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
 const dma = @import("dma.zig");
+const math = @import("math.zig");
 const mem = @import("mem.zig");
+const sound = @import("sound.zig");
 const types = @import("types.zig");
 
 /// Decode active-low GBA `KEYINPUT` halfword into active-high 10-bit button mask.
@@ -859,7 +861,7 @@ pub fn func_08052A98() callconv(.c) void {
     rt.r[3] = base;
     rt.r[2] = (((rt.r[0] << 1) +% rt.r[0]) << 3) +% base;
     rt.r[0] = abi.read32(rt.r[2]);
-    if (!abi.call(decls.func_080796D8, 0x08052AAD)) return;
+    if (!abi.call(bios.func_080796D8, 0x08052AAD)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -977,7 +979,7 @@ pub fn func_0806CB34() callconv(.c) void {
     rt.r[1] = (((rt.r[0] & 0xF) +% 0x10) << 5);
     rt.r[0] = abi.read32(0x0806CB4C);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(decls.func_08011330, 0x0806CB47)) return;
+    if (!abi.call(dma.func_08011330, 0x0806CB47)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1033,7 +1035,7 @@ pub fn func_0806CEA4() callconv(.c) void {
     rt.r[1] = (rt.r[0] << 21) >> 16;
     rt.r[0] = abi.read32(0x0806CEB8);
     abi.setRegNz(&rt.r[2], 0x20);
-    if (!abi.call(decls.func_08011330, 0x0806CEB5)) return;
+    if (!abi.call(dma.func_08011330, 0x0806CEB5)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1267,7 +1269,7 @@ pub fn func_08010AF8() callconv(.c) void {
 /// Register IRQ handlers `(1, r0)` / `(2, 2)` and reset hardware state (`0x08010B28`).
 pub fn func_08010B28() callconv(.c) void {
     if (!abi.enter(0x08010B28)) return;
-    setupIrqMasksAndTail(decls.func_08010AC8, null, 0x08010B33, 0x08010B3B, 0x08010B3F);
+    setupIrqMasksAndTail(dma.func_08010AC8, null, 0x08010B33, 0x08010B3B, 0x08010B3F);
 }
 
 /// Select IRQ vector `0x08017854[i16([0x08017858])]` via `0x08010AF8` and init audio (`0x08017838`).
@@ -1281,7 +1283,7 @@ pub fn func_08017838() callconv(.c) void {
     if (!abi.call(func_08010AF8, 0x0801784D)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_0803D784, 0x08017851)) return;
+    if (!abi.call(sound.func_0803D784, 0x08017851)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -1295,7 +1297,7 @@ pub fn func_0801785C() callconv(.c) void {
     if (!abi.call(func_08010B18, 0x08017863)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_0803D790, 0x08017867)) return;
+    if (!abi.call(sound.func_0803D790, 0x08017867)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -1586,7 +1588,7 @@ pub fn func_08074430() callconv(.c) void {
     rt.r[0] = r *% 3 +% g *% 6 +% b;
     rt.r[1] = 0xA;
     rt.updateNz(0xA);
-    if (!abi.call(decls.func_0807B488, 0x08074455)) return;
+    if (!abi.call(math.func_0807B488, 0x08074455)) return;
 
     abi.fetches(14);
     const luma = rt.r[0] & 0xFFFF;

@@ -17,6 +17,7 @@ const sound = @import("sound.zig");
 const sprite_anim = @import("sprite_anim.zig");
 const state = @import("state.zig");
 const types = @import("types.zig");
+const ui = @import("ui.zig");
 const unit = @import("unit.zig");
 
 /// Compute byte address and mask (`u8`) for bit `bit_idx` inside a save bitset at `base + byte_off`.
@@ -317,7 +318,7 @@ fn querySaveFlagBit(comptime flag_id: u32, comptime returns_val: bool, comptime 
 /// Dispatch campaign banner/dialog lookup `0x080378D4` via `0x08018CA8` (`0x080378C8`).
 pub fn func_080378C8() callconv(.c) void {
     if (!abi.enter(0x080378C8)) return;
-    callPool1ArgReturnVal(decls.func_08018CA8, 0x080378D4, 0x080378D1);
+    callPool1ArgReturnVal(ui.func_08018CA8, 0x080378D4, 0x080378D1);
 }
 
 /// Look up campaign text resource `0x08037914` via `0x08018400` (`0x08037908`).
@@ -789,7 +790,7 @@ pub fn func_0803E484() callconv(.c) void {
     abi.pushLr();
     if (!abi.call(proc.func_08019608, 0x0803E48B)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080347A8, 0x0803E48F)) return;
+    if (!abi.call(ui.func_080347A8, 0x0803E48F)) return;
     abi.fetches(7);
     rt.r[1] = abi.read32(0x0803E498);
     abi.setRegNz(&rt.r[0], 1);
@@ -1148,7 +1149,7 @@ pub fn func_0803C6CC() callconv(.c) void {
     if (!abi.call(decls.func_080117EC, 0x0803C6E5)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080221D0, 0x0803C6E9)) return;
+    if (!abi.call(ui.func_080221D0, 0x0803C6E9)) return;
 
     abi.fetches(4);
     abi.popReturn();
@@ -1446,7 +1447,7 @@ pub fn func_080381C4() callconv(.c) void {
     if (!abi.enter(0x080381C4)) return;
     abi.fetches(5);
     abi.pushLr();
-    if (!abi.call(decls.func_080220F8, 0x080381CB)) return;
+    if (!abi.call(ui.func_080220F8, 0x080381CB)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_0800FC58, 0x080381CF)) return;
 
@@ -1507,7 +1508,7 @@ pub fn func_08038864() callconv(.c) void {
     rt.r[0] = 0;
     if (!abi.call(sprite_anim.func_08012A14, 0x080388B1)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080221D0, 0x080388B5)) return;
+    if (!abi.call(ui.func_080221D0, 0x080388B5)) return;
     abi.fetches(5);
     rt.r[0] = 0;
     if (!abi.call(map.func_080199A0, 0x080388BB)) return;
@@ -1613,7 +1614,7 @@ pub fn func_08038A70() callconv(.c) void {
     abi.write32(panel_refs +% 0, panel);
     abi.write32(panel_refs +% 4, panel);
     abi.write16(abi.read32(0x08038BE8), @truncate(s68));
-    if (!abi.call(decls.func_0805B5AC, 0x08038B8D)) return;
+    if (!abi.call(ui.func_0805B5AC, 0x08038B8D)) return;
 
     abi.fetches(27);
     const disp_state = abi.read32(0x08038BEC);
@@ -1778,7 +1779,7 @@ fn initCampaignCardDisplay(comptime cfg: CampaignCardCfg) void {
         if (!abi.call(decls.func_080117EC, cfg.ret_tail0)) return;
 
         abi.fetches(4);
-        if (!abi.call(decls.func_080221D0, cfg.ret_tail1)) return;
+        if (!abi.call(ui.func_080221D0, cfg.ret_tail1)) return;
 
         abi.fetches(27);
         const cur_state = abi.read32(state_ptr_ref);

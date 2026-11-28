@@ -6,9 +6,15 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const battle = @import("battle.zig");
+const dma = @import("dma.zig");
 const mem = @import("mem.zig");
+const menu = @import("menu.zig");
 const sound = @import("sound.zig");
+const sprite_anim = @import("sprite_anim.zig");
+const state = @import("state.zig");
 const types = @import("types.zig");
+const unit = @import("unit.zig");
 
 /// Tick proc slot `u8(r0)` if its active bit (`flags & 1`) is set (`0x08013984`).
 pub fn func_08013984() callconv(.c) void {
@@ -768,7 +774,7 @@ fn callCutscene18B28(comptime mode: u32, comptime pool_ref: u32, comptime ret_ad
     rt.r[1] = abi.read32(script +% 4);
     abi.setRegNz(&rt.r[0], mode);
     abi.setRegNz(&rt.r[2], 0);
-    if (!abi.call(decls.func_08018B28, ret_addr)) return;
+    if (!abi.call(menu.func_08018B28, ret_addr)) return;
 
     abi.fetches(9);
     abi.write32(entry_ptr, abi.read32(entry_ptr) +% 0x10);
@@ -860,25 +866,25 @@ pub fn func_08013ED8() callconv(.c) void {
 /// Proc script opcode: spawn menu proc `0x0800F63C(half4)` (`0x08013F80`).
 pub fn func_08013F80() callconv(.c) void {
     if (!abi.enter(0x08013F80)) return;
-    runProcScriptStep(0x08013FA8, .u16_4_r0, decls.func_0800F63C, 0, 0x08013F9B);
+    runProcScriptStep(0x08013FA8, .u16_4_r0, menu.func_0800F63C, 0, 0x08013F9B);
 }
 
 /// Proc script opcode: spawn menu proc `0x0800F66C(half4)` (`0x08013FAC`).
 pub fn func_08013FAC() callconv(.c) void {
     if (!abi.enter(0x08013FAC)) return;
-    runProcScriptStep(0x08013FD4, .u16_4_r0, decls.func_0800F66C, 0, 0x08013FC7);
+    runProcScriptStep(0x08013FD4, .u16_4_r0, menu.func_0800F66C, 0, 0x08013FC7);
 }
 
 /// Proc script opcode: spawn menu proc `0x0800F69C(half4)` (`0x08013FD8`).
 pub fn func_08013FD8() callconv(.c) void {
     if (!abi.enter(0x08013FD8)) return;
-    runProcScriptStep(0x08014000, .u16_4_r0, decls.func_0800F69C, 0, 0x08013FF3);
+    runProcScriptStep(0x08014000, .u16_4_r0, menu.func_0800F69C, 0, 0x08013FF3);
 }
 
 /// Proc script opcode: spawn menu proc `0x0800F6DC(half4)` (`0x08014004`).
 pub fn func_08014004() callconv(.c) void {
     if (!abi.enter(0x08014004)) return;
-    runProcScriptStep(0x0801402C, .u16_4_r0, decls.func_0800F6DC, 0, 0x0801401F);
+    runProcScriptStep(0x0801402C, .u16_4_r0, menu.func_0800F6DC, 0, 0x0801401F);
 }
 
 /// Proc script opcode: play music track `i16(half4)` via `0x0803D8C8` (`0x080140A0`).
@@ -896,19 +902,19 @@ pub fn func_080140D0() callconv(.c) void {
 /// Proc script opcode: spawn menu proc `0x0800F71C(half4)` (`0x08014100`).
 pub fn func_08014100() callconv(.c) void {
     if (!abi.enter(0x08014100)) return;
-    runProcScriptStep(0x08014128, .u16_4_r0, decls.func_0800F71C, 0, 0x0801411B);
+    runProcScriptStep(0x08014128, .u16_4_r0, menu.func_0800F71C, 0, 0x0801411B);
 }
 
 /// Proc script opcode: spawn menu proc `0x0800F738(half4)` (`0x0801412C`).
 pub fn func_0801412C() callconv(.c) void {
     if (!abi.enter(0x0801412C)) return;
-    runProcScriptStep(0x08014154, .u16_4_r0, decls.func_0800F738, 0, 0x08014147);
+    runProcScriptStep(0x08014154, .u16_4_r0, menu.func_0800F738, 0, 0x08014147);
 }
 
 /// Proc script opcode: bind animator callback `word0` via `0x08013678` (`0x08014760`).
 pub fn func_08014760() callconv(.c) void {
     if (!abi.enter(0x08014760)) return;
-    runProcScriptStep(0x08014788, .word0_r1, decls.func_08013678, 1, 0x0801477B);
+    runProcScriptStep(0x08014788, .word0_r1, sprite_anim.func_08013678, 1, 0x0801477B);
 }
 
 /// Proc script opcode: set animator frame `half4` via `0x080136A4` (`0x0801478C`).
@@ -981,19 +987,19 @@ pub fn func_0801732C() callconv(.c) void {
 /// Cutscene script opcode: set flag `[state+5] = 1`, call `0x0802EFD8`, advance `+0x10` (`0x08017AB0`).
 pub fn func_08017AB0() callconv(.c) void {
     if (!abi.enter(0x08017AB0)) return;
-    runCutsceneStep10(.set_flag5_one_call, 0x08017AE0, 0, decls.func_0802EFD8, 0x08017AE4, 1, 0x08017AC3);
+    runCutsceneStep10(.set_flag5_one_call, 0x08017AE0, 0, battle.func_0802EFD8, 0x08017AE4, 1, 0x08017AC3);
 }
 
 /// Cutscene script opcode: clear `[state+5] = 0`, call `0x0802EFD8`, advance `+0x10` (`0x08017AE8`).
 pub fn func_08017AE8() callconv(.c) void {
     if (!abi.enter(0x08017AE8)) return;
-    runCutsceneStep10(.set_flag5_zero_call, 0x08017B18, 0, decls.func_0802EFD8, 0x08017B1C, 1, 0x08017AFB);
+    runCutsceneStep10(.set_flag5_zero_call, 0x08017B18, 0, battle.func_0802EFD8, 0x08017B1C, 1, 0x08017AFB);
 }
 
 /// Cutscene script opcode: mark byte `8`, focus cursor via `0x08019970`, advance `+0x10` (`0x08017B80`).
 pub fn func_08017B80() callconv(.c) void {
     if (!abi.enter(0x08017B80)) return;
-    runCutsceneStep10(.set_byte8_read_u16, 0x08017BB4, 0x08017BB8, decls.func_08019970, 0x08017BBC, 1, 0x08017B97);
+    runCutsceneStep10(.set_byte8_read_u16, 0x08017BB4, 0x08017BB8, unit.func_08019970, 0x08017BBC, 1, 0x08017B97);
 }
 
 /// Cutscene script opcode: focus cursor via `0x0801990C`, advance `+0x10` (`0x08017C3C`).
@@ -1017,13 +1023,13 @@ pub fn func_08017DC8() callconv(.c) void {
 /// Cutscene script opcode: reset state via `0x08018AAC(0)` and advance `+0x10` (`0x08017FD0`).
 pub fn func_08017FD0() callconv(.c) void {
     if (!abi.enter(0x08017FD0)) return;
-    runCutsceneStep10(.zero_r0, 0, 0, decls.func_08018AAC, 0x08017FFC, 1, 0x08017FDF);
+    runCutsceneStep10(.zero_r0, 0, 0, state.func_08018AAC, 0x08017FFC, 1, 0x08017FDF);
 }
 
 /// Cutscene script opcode: enable state via `0x08018AAC(1)` and advance `+0x10` (`0x08018000`).
 pub fn func_08018000() callconv(.c) void {
     if (!abi.enter(0x08018000)) return;
-    runCutsceneStep10(.one_r0, 0, 0, decls.func_08018AAC, 0x0801802C, 1, 0x0801800F);
+    runCutsceneStep10(.one_r0, 0, 0, state.func_08018AAC, 0x0801802C, 1, 0x0801800F);
 }
 
 /// Cutscene script opcode: hide script dialogue (`0`) via `0x08018B28` and advance `+0x10` (`0x08018030`).
@@ -1129,7 +1135,7 @@ pub fn func_08016F30() callconv(.c) void {
     rt.r[0] = abi.read32(0x08016F40);
     if (!abi.call(decls.func_08016F68, 0x08016F39)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080178F4, 0x08016F3D)) return;
+    if (!abi.call(dma.func_080178F4, 0x08016F3D)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1195,13 +1201,13 @@ pub fn func_080170A4() callconv(.c) void {
     rt.r[5] = pool;
     rt.r[4] = slot_off;
     abi.write32(pool +% 8 +% slot_off, abi.read32(0x080170E4));
-    if (!abi.call(decls.func_08035220, 0x080170C1)) return;
+    if (!abi.call(state.func_08035220, 0x080170C1)) return;
 
     abi.fetches(10);
     rt.r[0] = abi.read8(abi.read32(0x080170E8) +% 2);
     const ptr_field = pool +% 4 +% slot_off;
     rt.r[1] = abi.read32(abi.read32(ptr_field) +% 4);
-    if (!abi.call(decls.func_08027FB4, 0x080170D1)) return;
+    if (!abi.call(unit.func_08027FB4, 0x080170D1)) return;
 
     abi.fetches(9);
     abi.write32(ptr_field, abi.read32(ptr_field) +% 0x10);
@@ -1271,7 +1277,7 @@ pub fn func_08017A40() callconv(.c) void {
     abi.write32(rt.r[13] +% 4, 0x100);
     abi.setRegNz(&rt.r[0], 7);
     abi.setRegNz(&rt.r[1], 1);
-    if (!abi.call(decls.func_080123A8, 0x08017A73)) return;
+    if (!abi.call(sprite_anim.func_080123A8, 0x08017A73)) return;
 
     abi.fetches(22);
     abi.write32(rt.r[0] +% 0x3C, abi.read32(0x08017AA8));
@@ -1416,7 +1422,7 @@ pub fn func_0801381C() callconv(.c) void {
     rt.r[0] = slot_id;
     rt.r[1] = stack_oam;
     abi.write32(rt.r[13] +% 8, slot_id);
-    if (!abi.call(decls.func_080135FC, 0x0801383F)) return;
+    if (!abi.call(sprite_anim.func_080135FC, 0x0801383F)) return;
 
     abi.fetches(22);
     const tile_masked = tile_bits & abi.read32(0x08013870);
@@ -1428,7 +1434,7 @@ pub fn func_0801381C() callconv(.c) void {
     rt.r[1] = abi.read32(rt.r[13]);
     rt.r[2] = abi.read32(rt.r[13] +% 4);
     rt.r[3] = slot_id;
-    if (!abi.call(decls.func_08013598, 0x08013867)) return;
+    if (!abi.call(sprite_anim.func_08013598, 0x08013867)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 0xC;
@@ -1474,7 +1480,7 @@ pub fn func_08014850() callconv(.c) void {
     rt.r[4] = rt.r[13];
     rt.r[0] = slot_id;
     rt.r[1] = rt.r[13];
-    if (!abi.call(decls.func_080135FC, 0x08014895)) return;
+    if (!abi.call(sprite_anim.func_080135FC, 0x08014895)) return;
 
     abi.fetches(25);
     const oam = rt.r[13];
@@ -1491,7 +1497,7 @@ pub fn func_08014850() callconv(.c) void {
     rt.r[0] = slot_id;
     rt.r[1] = abi.read32(rt.r[13]);
     rt.r[2] = abi.read32(rt.r[13] +% 4);
-    if (!abi.call(decls.func_08013598, 0x080148C3)) return;
+    if (!abi.call(sprite_anim.func_08013598, 0x080148C3)) return;
 
     abi.fetches(8);
     rt.r[13] +%= 8;
@@ -1538,7 +1544,7 @@ pub fn func_080147B8() callconv(.c) void {
     rt.r[6] = rt.r[13];
     rt.r[0] = slot_s16;
     rt.r[1] = rt.r[13];
-    if (!abi.call(decls.func_080135FC, 0x080147F1)) return;
+    if (!abi.call(sprite_anim.func_080135FC, 0x080147F1)) return;
 
     abi.fetches(41);
     abi.write8(rt.r[6] +% 1, @truncate(@as(u32, abi.read8(rt.r[6] +% 1)) | 1));
@@ -1552,7 +1558,7 @@ pub fn func_080147B8() callconv(.c) void {
     rt.r[0] = rt.r[5];
     rt.r[1] = abi.read32(rt.r[13] +% 0x0);
     rt.r[2] = abi.read32(rt.r[13] +% 0x4);
-    if (!abi.call(decls.func_08013598, 0x0801483F)) return;
+    if (!abi.call(sprite_anim.func_08013598, 0x0801483F)) return;
 
     abi.fetches(6);
     rt.r[13] +%= 8;

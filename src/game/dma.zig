@@ -3,9 +3,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const rt = @import("runtime");
-const decls = @import("decls");
 const abi = @import("abi.zig");
 const bios = @import("bios.zig");
+const hw = @import("hw.zig");
 const types = @import("types.zig");
 
 /// Convert a byte count (`u16`) to halfword transfer count (`>> 1`) for `CpuSet`.
@@ -272,7 +272,7 @@ fn copyMaskedPaletteAndSync(comptime mask_ref: u32, comptime base_ref: u32, comp
     if (!abi.call(func_0800FD94, ret_copy)) return;
 
     abi.fetches(4);
-    if (!abi.call(decls.func_080112C0, ret_sync)) return;
+    if (!abi.call(hw.func_080112C0, ret_sync)) return;
 
     abi.fetches(4);
     abi.popReturn();

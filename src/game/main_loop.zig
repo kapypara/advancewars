@@ -5,9 +5,11 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const battle = @import("battle.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
 const sound = @import("sound.zig");
+const sprite_anim = @import("sprite_anim.zig");
 const types = @import("types.zig");
 
 /// Return true if active-low `KEYINPUT` has A + B + Select + Start pressed simultaneously.
@@ -51,7 +53,7 @@ fn func_080383F8() callconv(.c) void {
 
     if (done == 0) {
         const frame_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
-            .{ .func = decls.func_080159CC, .ret = 0x08038407 },
+            .{ .func = sprite_anim.func_080159CC, .ret = 0x08038407 },
             .{ .func = hw.func_0801122C, .ret = 0x0803840B },
             .{ .func = func_0805BA34, .ret = 0x0803840F },
             .{ .func = decls.func_08018530, .ret = 0x08038413 },
@@ -112,7 +114,7 @@ fn func_0803849C() callconv(.c) void {
 
         if (gated == 0) {
             const pre_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
-                .{ .func = decls.func_080159F0, .ret = 0x080384B9 },
+                .{ .func = sprite_anim.func_080159F0, .ret = 0x080384B9 },
                 .{ .func = hw.func_0801122C, .ret = 0x080384BD },
                 .{ .func = func_0805BA34, .ret = 0x080384C1 },
                 .{ .func = decls.func_08018530, .ret = 0x080384C5 },
@@ -138,7 +140,7 @@ fn func_0803849C() callconv(.c) void {
             const post_steps = [_]struct { func: *const fn () callconv(.c) void, ret: u32 }{
                 .{ .func = decls.func_080138F8, .ret = 0x080384D9 },
                 .{ .func = decls.func_0802196C, .ret = 0x080384DD },
-                .{ .func = decls.func_080224C8, .ret = 0x080384E1 },
+                .{ .func = battle.func_080224C8, .ret = 0x080384E1 },
                 .{ .func = hw.func_080134E0, .ret = 0x080384E5 },
                 .{ .func = decls.func_08015874, .ret = 0x080384E9 },
                 .{ .func = sound.func_0803D7A8, .ret = 0x080384ED },

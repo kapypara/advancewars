@@ -10,7 +10,9 @@ const dma = @import("dma.zig");
 const hw = @import("hw.zig");
 const mem = @import("mem.zig");
 const state = @import("state.zig");
+const turn = @import("turn.zig");
 const types = @import("types.zig");
+const ui = @import("ui.zig");
 const unit = @import("unit.zig");
 
 /// Blank tile index (`0xBA << 1`) written into BG tilemap buffers (`0x0201_3340`).
@@ -920,14 +922,14 @@ pub fn func_080191C4() callconv(.c) void {
     abi.setRegNz(&rt.r[1], 1);
     abi.setRegNz(&rt.r[2], 6);
     abi.setRegNz(&rt.r[3], 0xC);
-    if (!abi.call(decls.func_080198FC, 0x080191D7)) return;
+    if (!abi.call(ui.func_080198FC, 0x080191D7)) return;
 
     abi.fetches(4);
     if (!abi.call(decls.func_0801FF70, 0x080191DB)) return;
     abi.fetches(4);
     if (!abi.call(decls.func_08020190, 0x080191DF)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_08035230, 0x080191E3)) return;
+    if (!abi.call(turn.func_08035230, 0x080191E3)) return;
     abi.fetches(4);
     abi.popReturn();
 }
@@ -1028,7 +1030,7 @@ pub fn func_080203E8() callconv(.c) void {
     abi.fetches(4);
     if (!abi.call(decls.func_08020190, 0x080203F7)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080220F8, 0x080203FB)) return;
+    if (!abi.call(ui.func_080220F8, 0x080203FB)) return;
 
     abi.fetches(8);
     abi.write8(abi.read32(0x0802040C), 0);
@@ -1661,7 +1663,7 @@ pub fn func_08020D6C() callconv(.c) void {
     abi.fetches(4);
     if (!abi.call(dma.func_0800F894, 0x08020F4B)) return;
     abi.fetches(4);
-    if (!abi.call(decls.func_080357C8, 0x08020F4F)) return;
+    if (!abi.call(turn.func_080357C8, 0x08020F4F)) return;
 
     if (!refreshMapViewAndCursor(0x08021008, 0x0802100C, .{
         0x08020F59, 0x08020F5D, 0x08020F65, 0x08020F6B,
