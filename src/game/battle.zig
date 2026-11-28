@@ -16,6 +16,28 @@ pub inline fn computeScaledDamage(defense_pct: i32, base_damage: i32) i32 {
     return @divTrunc((100 - defense_pct) * base_damage, 100);
 }
 
+/// Compute scaled counterattack power from defender remaining HP and `counter_power`: `(max(remaining_hp, 0) * counter_power) / 100`.
+pub inline fn computeCounterAttackPower(remaining_hp: i16, counter_power: i16) i16 {
+    const eff_hp: i32 = if (remaining_hp < 0) 0 else remaining_hp;
+    return @truncate(@divTrunc(eff_hp * @as(i32, counter_power), 100));
+}
+
+pub const CombatHpPair = struct {
+    a: i16,
+    b: i16,
+};
+
+/// Resolve post-combat remaining HP: clamp negatives to `0`, and on mutual KO award `1` HP to whichever side stayed higher (`a >= b` favors `a`).
+pub fn clampCombatRemainingHp(a_hp: i16, b_hp: i16) CombatHpPair {
+    if (a_hp <= 0 and b_hp <= 0) {
+        return if (a_hp >= b_hp) .{ .a = 1, .b = 0 } else .{ .a = 0, .b = 1 };
+    }
+    return .{
+        .a = if (a_hp < 0) 0 else a_hp,
+        .b = if (b_hp < 0) 0 else b_hp,
+    };
+}
+
 /// Forward to `0x080220F8` (`0x08022220`).
 pub fn func_08022220() callconv(.c) void {
     if (!abi.enter(0x08022220)) return;
@@ -76,6 +98,134 @@ pub fn func_080234A0() callconv(.c) void {
     rt.r[4] = abi.read32(rt.r[13]);
     rt.r[13] +%= 4;
     abi.popReturn();
+}
+
+/// Resolve full combat exchange: attacker (`r0`) strikes defender (`r1`), scales defender counterattack power, and defender counterstrikes (`0x080234CC`).
+pub fn func_080234CC() callconv(.c) void {
+    if (!abi.enter(0x080234CC)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[5]);
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const atk = rt.r[0];
+    const def = rt.r[1];
+    rt.r[5] = atk;
+    rt.r[4] = def;
+    rt.r[0] = def;
+    rt.r[1] = atk;
+    if (!abi.call(func_080234A0, 0x080234DB)) return;
+
+    abi.fetches(7);
+    const rem_off = @offsetOf(types.BattleSideCtx, "remaining_hp");
+    const rem_hp: i32 = abi.signExtend16(mem.readU16(def +% rem_off));
+    var eff_hp: i32 = 0;
+    rt.cpuSub(null, @bitCast(rem_hp), 0, true);
+    if (rt.CPU_N == rt.CPU_V) {
+        abi.fetches(3);
+        eff_hp = rem_hp;
+    }
+
+    abi.fetches(10);
+    const cp_off = @offsetOf(types.BattleSideCtx, "counter_power");
+    const cpower: i32 = abi.signExtend16(mem.readU16(def +% cp_off));
+    abi.setRegNz(&rt.r[0], @bitCast(eff_hp *% cpower));
+    abi.setRegNz(&rt.r[1], 100);
+    if (!abi.call(bios.func_080796C8, 0x080234F7)) return;
+
+    abi.fetches(7);
+    mem.writeU16(def +% @offsetOf(types.BattleSideCtx, "attack_power"), @truncate(rt.r[0]));
+    rt.r[0] = atk;
+    rt.r[1] = def;
+    if (!abi.call(func_080234A0, 0x08023501)) return;
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[5] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
+}
+
+/// Normalize remaining HP on both battle sides (`r0`, `r1`), preventing mutual KO by keeping the higher side at `1` (`0x08023508`).
+pub fn func_08023508() callconv(.c) void {
+    if (!abi.enter(0x08023508)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.r[13] -%= 4;
+    abi.write32(rt.r[13], rt.r[4]);
+
+    const side_a = rt.r[0];
+    const side_b = rt.r[1];
+    const rem_off = @offsetOf(types.BattleSideCtx, "remaining_hp");
+    rt.r[2] = side_a;
+    rt.r[3] = side_b;
+    rt.r[1] = rem_off;
+    const a_hp: i32 = abi.signExtend16(mem.readU16(side_a +% rem_off));
+    rt.r[0] = @bitCast(a_hp);
+    rt.cpuSub(null, rt.r[0], 0, true);
+
+    var check_b_neg = false;
+    if (!rt.CPU_Z and rt.CPU_N == rt.CPU_V) {
+        check_b_neg = true;
+    } else {
+        abi.fetches(6);
+        rt.r[4] = rem_off;
+        const b_hp: i32 = abi.signExtend16(mem.readU16(side_b +% rem_off));
+        rt.r[1] = @bitCast(b_hp);
+        rt.cpuSub(null, rt.r[1], 0, true);
+        if (!rt.CPU_Z and rt.CPU_N == rt.CPU_V) {
+            abi.fetches(4);
+            rt.cpuSub(null, @bitCast(a_hp), 0, true);
+            if (rt.CPU_N != rt.CPU_V) {
+                abi.fetches(4);
+                abi.setRegNz(&rt.r[0], 0);
+                mem.writeU16(side_a +% rem_off, 0);
+            }
+            check_b_neg = true;
+        } else {
+            abi.fetches(4);
+            rt.cpuSub(null, @bitCast(a_hp), @bitCast(b_hp), true);
+            abi.fetches(7);
+            abi.setRegNz(&rt.r[1], 0);
+            abi.setRegNz(&rt.r[0], 1);
+            if (rt.CPU_N == rt.CPU_V) {
+                mem.writeU16(side_a +% rem_off, 1);
+                mem.writeU16(side_b +% rem_off, 0);
+            } else {
+                mem.writeU16(side_b +% rem_off, 1);
+                mem.writeU16(side_a +% rem_off, 0);
+            }
+        }
+    }
+
+    if (check_b_neg) {
+        abi.fetches(6);
+        rt.r[1] = rem_off;
+        const b_hp: i32 = abi.signExtend16(mem.readU16(side_b +% rem_off));
+        rt.r[0] = @bitCast(b_hp);
+        rt.cpuSub(null, rt.r[0], 0, true);
+        if (rt.CPU_N != rt.CPU_V) {
+            abi.fetches(4);
+            abi.setRegNz(&rt.r[0], 0);
+            mem.writeU16(side_b +% rem_off, 0);
+        }
+    }
+
+    abi.fetches(5);
+    rt.r[4] = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    const lr_val = abi.read32(rt.r[13]);
+    rt.r[13] +%= 4;
+    rt.r[0] = lr_val;
+    rt.r[15] = lr_val;
+    rt.recompReturn(lr_val);
 }
 
 /// Forward signed 16-bit pair `(i16(r0), i16(r1))` to `0x08023550` (`0x08023888`).
@@ -4317,6 +4467,8 @@ comptime {
         @export(&func_080224C8, .{ .name = "func_080224C8", .linkage = .strong });
         @export(&func_080226A4, .{ .name = "func_080226A4", .linkage = .strong });
         @export(&func_080234A0, .{ .name = "func_080234A0", .linkage = .strong });
+        @export(&func_080234CC, .{ .name = "func_080234CC", .linkage = .strong });
+        @export(&func_08023508, .{ .name = "func_08023508", .linkage = .strong });
         @export(&func_08023888, .{ .name = "func_08023888", .linkage = .strong });
         @export(&func_0802389C, .{ .name = "func_0802389C", .linkage = .strong });
         @export(&func_08023B88, .{ .name = "func_08023B88", .linkage = .strong });
@@ -4445,4 +4597,13 @@ test "computeScaledDamage matches Advance Wars integer division formula" {
     try std.testing.expectEqual(@as(i32, 55), computeScaledDamage(0, 55));
     try std.testing.expectEqual(@as(i32, 44), computeScaledDamage(20, 55));
     try std.testing.expectEqual(@as(i32, 0), computeScaledDamage(100, 99));
+    try std.testing.expectEqual(@as(i16, 40), computeCounterAttackPower(8, 500));
+    try std.testing.expectEqual(@as(i16, 0), computeCounterAttackPower(0, 500));
+    try std.testing.expectEqual(@as(i16, 0), computeCounterAttackPower(-3, 500));
+    try std.testing.expectEqual(CombatHpPair{ .a = 7, .b = 4 }, clampCombatRemainingHp(7, 4));
+    try std.testing.expectEqual(CombatHpPair{ .a = 0, .b = 4 }, clampCombatRemainingHp(-2, 4));
+    try std.testing.expectEqual(CombatHpPair{ .a = 5, .b = 0 }, clampCombatRemainingHp(5, -1));
+    try std.testing.expectEqual(CombatHpPair{ .a = 1, .b = 0 }, clampCombatRemainingHp(0, 0));
+    try std.testing.expectEqual(CombatHpPair{ .a = 1, .b = 0 }, clampCombatRemainingHp(-1, -3));
+    try std.testing.expectEqual(CombatHpPair{ .a = 0, .b = 1 }, clampCombatRemainingHp(-4, -1));
 }

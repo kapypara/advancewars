@@ -230,7 +230,7 @@ pub const BattleSideCtx = extern struct {
     _pad0a: u16,
     attack_power: i16,
     defense_pct: i16,
-    _pad10: u16,
+    counter_power: i16,
     dealt_damage: i16,
 };
 
@@ -272,6 +272,7 @@ test "Advance Wars core extern struct sizes match GBA memory layout" {
     try std.testing.expectEqual(@as(usize, 5), @offsetOf(UnitRecord, "state_flags"));
     try std.testing.expectEqual(@as(usize, 0x14), @sizeOf(BattleSideCtx));
     try std.testing.expectEqual(@as(usize, 0x0E), @offsetOf(BattleSideCtx, "defense_pct"));
+    try std.testing.expectEqual(@as(usize, 0x10), @offsetOf(BattleSideCtx, "counter_power"));
     try std.testing.expectEqual(@as(usize, 0x12), @offsetOf(BattleSideCtx, "dealt_damage"));
     try std.testing.expectEqual(@as(usize, 8), @sizeOf(MenuGuardEntry));
     try std.testing.expectEqual(@as(usize, 12), @sizeOf(DmaQueueEntry));
