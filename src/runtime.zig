@@ -2,6 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const core = @import("awre_core");
 const disp = @import("platform/display.zig");
+const adapters = @import("runtime/adapters.zig");
+const diagnostics = @import("runtime/diagnostics.zig");
 const save_io = @import("runtime/save_io.zig");
 const timing = @import("runtime/timing.zig");
 const validate_mod = @import("validate/validate.zig");
@@ -24,7 +26,6 @@ const Eeprom = flash_mod.Eeprom;
 const Timers = timers_mod.Timers;
 const Dma = dma_mod.Dma;
 const BusMode = dma_mod.BusMode;
-const MachineState = validate_mod.MachineState;
 
 const has_posix = builtin.os.tag != .freestanding;
 
@@ -187,32 +188,9 @@ const cycles_per_frame = timing.cycles_per_frame;
 const hblank_start_cycle = timing.hblank_start_cycle;
 const poll_interval = timing.poll_interval;
 
-// ---- Diagnostics State ----
-var watch_addr: u32 = 1; // sentinel 1 = not read from env yet
+// ---- Fetch Timing State ----
 var fetch_x16: u32 = 0;
 var fetch_frac: u32 = 0;
-var swi_log_init: bool = false;
-var swi_log_from: i64 = -1;
-var swi_log_to: i64 = -1;
-var trace_interp_left: i64 = -1;
-var trace_at_init: bool = false;
-var trace_at_env: ?[]const u8 = null;
-var bx_trace_count: u32 = 0;
-var bx_trace_last: u32 = 0;
-var unmapped_bx_warns: u32 = 0;
-var interp_limit_warns: u32 = 0;
-
-const HistEntry = struct {
-    addr: u32 = 0,
-    count: u32 = 0,
-    first: u32 = 0,
-};
-var hist: [16384]HistEntry = @splat(.{});
-var hist_out: [16384]HistEntry = @splat(.{});
-var hist_n: u32 = 0;
-var hist_seq: u32 = 0;
-var ring_seen: [4096]u32 = @splat(0);
-var ring_count: [4096]u32 = @splat(0);
 
 // ---- Inline I/O & Memory Helpers ----
 inline fn ioRead16(off: u32) u16 {
@@ -422,7 +400,7 @@ fn advanceCycles(cycles: u32) void {
                 }
                 disp.display_pace();
 
-                checkHistFrame();
+                diagnostics.checkHistFrame(frame_count, &g_hist_on);
                 writeDumpAtSnapshot();
                 if (!validate_mod.g_validating) pollBackupFlush();
 
@@ -525,29 +503,8 @@ fn ioWriteHook(off: u32) void {
 }
 
 // ---- Memory Bus Implementation ----
-fn watchCheck(addr: u32, value: u32, size_bytes: u32) void {
-    if (!has_posix) return;
-    if (watch_addr == 1) {
-        if (c_host.getenv("GBA_WATCH")) |w| {
-            watch_addr = @as(u32, @truncate(c_host.strtoul(w, null, 16))) & ~@as(u32, 3);
-        } else {
-            watch_addr = 0;
-        }
-    }
-    if (watch_addr == 0 or (addr & ~@as(u32, 3)) != watch_addr) return;
-    const tag: []const u8 = if (in_irq) " [irq]" else "";
-    core.gba.logPrint(
-        "[watch] frame {d}: write{d} [{X:0>8}] = {X:0>8} in func_{X:0>8} (r14={X:0>8}){s}\n",
-        .{
-            frame_count,
-            size_bytes * 8,
-            addr,
-            value,
-            g_func_ring[(g_func_ring_i -% 1) & 4095],
-            r[14],
-            tag,
-        },
-    );
+inline fn watchCheck(addr: u32, value: u32, size_bytes: u32) void {
+    diagnostics.watchCheck(addr, value, size_bytes, in_irq, frame_count, &g_func_ring, g_func_ring_i, r[14]);
 }
 
 inline fn romByte(off: u32) u8 {
@@ -902,110 +859,218 @@ pub export fn cpu_set_spsr(value: u32, mask: u32) void {
     if ((mask & 1) != 0) spsr = (spsr & ~@as(u32, 0xFF)) | (value & 0xFF);
 }
 
-// ---- BIOS Context Adapter & Export ----
-const BiosCtx = struct {
-    pub fn regs(_: *@This()) *[16]u32 {
+// ---- Runtime Context Adapters & Exports ----
+const AdapterRt = struct {
+    pub fn regs() *[16]u32 {
         return &r;
     }
-    pub fn ewram(_: *@This()) *[0x40000]u8 {
+    pub fn ewram() *[0x40000]u8 {
         return &ewram_buf;
     }
-    pub fn iwram(_: *@This()) *[0x8000]u8 {
+    pub fn iwram() *[0x8000]u8 {
         return &iwram_buf;
     }
-    pub fn palette(_: *@This()) *[0x400]u8 {
+    pub fn palette() *[0x400]u8 {
         return &palette_buf;
     }
-    pub fn vram(_: *@This()) *[0x18000]u8 {
+    pub fn vram() *[0x18000]u8 {
         return &vram_buf;
     }
-    pub fn oam(_: *@This()) *[0x400]u8 {
+    pub fn oam() *[0x400]u8 {
         return &oam_buf;
     }
-    pub fn ioRead16(_: *@This(), off: u32) u16 {
-        return rt_file.ioRead16(off);
+    pub fn getN() bool {
+        return CPU_N;
     }
-    pub fn accessCycles(_: *@This(), addr: u32, wide: bool) u32 {
-        return rt_file.accessCycles(addr, wide);
+    pub fn setN(b: bool) void {
+        CPU_N = b;
     }
-    pub fn advanceCycles(_: *@This(), cycles: u32) void {
-        rt_file.advanceCycles(cycles);
+    pub fn getZ() bool {
+        return CPU_Z;
     }
-    pub fn getBusMode(_: *@This()) BusMode {
-        return bus_mode;
+    pub fn setZ(b: bool) void {
+        CPU_Z = b;
     }
-    pub fn setBusMode(_: *@This(), m: BusMode) void {
-        bus_mode = m;
+    pub fn getC() bool {
+        return CPU_C;
     }
-    pub fn setVramBurst(_: *@This(), b: bool) void {
-        vram_burst = b;
+    pub fn setC(b: bool) void {
+        CPU_C = b;
     }
-    pub fn setCpsrRaw(_: *@This(), val: u32) void {
+    pub fn getV() bool {
+        return CPU_V;
+    }
+    pub fn setV(b: bool) void {
+        CPU_V = b;
+    }
+    pub fn getCpsr() u32 {
+        return cpu_get_cpsr();
+    }
+    pub fn setCpsr(val: u32, mask: u32) void {
+        cpu_set_cpsr(val, mask);
+    }
+    pub fn setCpsrRaw(val: u32) void {
         cpsr = val;
     }
-    pub fn triggerSoftReset(_: *@This()) void {
+    pub fn getSpsr() u32 {
+        return cpu_get_spsr();
+    }
+    pub fn setSpsr(val: u32, mask: u32) void {
+        cpu_set_spsr(val, mask);
+    }
+    pub fn getBusMode() BusMode {
+        return bus_mode;
+    }
+    pub fn setBusMode(m: BusMode) void {
+        bus_mode = m;
+    }
+    pub fn setVramBurst(b: bool) void {
+        vram_burst = b;
+    }
+    pub fn triggerSoftReset() void {
         soft_reset_pending = true;
         g_ret = 0xFFFF_FFFF;
     }
-    pub fn softResetPending(_: *@This()) bool {
+    pub fn softResetPending() bool {
         return soft_reset_pending;
     }
-    pub fn logSwi(_: *@This(), number: u32) void {
-        if (!has_posix) return;
-        if (!swi_log_init) {
-            swi_log_init = true;
-            if (c_host.getenv("GBA_SWI_LOG")) |e| {
-                const s = std.mem.span(e);
-                if (std.mem.indexOfScalar(u8, s, ',')) |comma| {
-                    swi_log_from = std.fmt.parseInt(i64, s[0..comma], 10) catch -1;
-                    swi_log_to = std.fmt.parseInt(i64, s[comma + 1 ..], 10) catch -1;
-                }
-            }
-        }
-        const fc: i64 = @intCast(frame_count);
-        if (swi_log_from >= 0 and fc >= swi_log_from and fc <= swi_log_to) {
-            core.gba.logPrint("SWI {X:0>2} f={d} v={d} c={d} r0={X:0>8} r1={X:0>8} r2={X:0>8} lr={X:0>8}\n", .{
-                number,
-                frame_count,
-                scanline,
-                cycle_counter,
-                r[0],
-                r[1],
-                r[2],
-                r[14],
-            });
-        }
+    pub fn getBxDepth() i32 {
+        return if (game_cb) |cb| cb.bx_depth.* else 0;
     }
-    pub fn warnUnhandledSwi(_: *@This(), number: u32) void {
-        if (number == 0x13) {
-            core.gba.logPrint("[swi] HuffUnComp not implemented\n", .{});
-        } else {
-            core.gba.logPrint("[swi] Unhandled SWI 0x{X:0>2} at PC=0x{X:0>8}\n", .{ number, r[15] });
-        }
+    pub fn setBxDepth(v: i32) void {
+        if (game_cb) |cb| cb.bx_depth.* = v;
     }
-    pub fn busRead8(_: *@This(), addr: u32) u8 {
+    pub fn getRet() u32 {
+        return g_ret;
+    }
+    pub fn setRet(val: u32) void {
+        g_ret = val;
+    }
+    pub fn frameCount() u32 {
+        return frame_count;
+    }
+    pub fn scanline() u32 {
+        return rt_file.scanline;
+    }
+    pub fn cycleCounter() u32 {
+        return cycle_counter;
+    }
+    pub fn romSize() u32 {
+        return rom_size;
+    }
+    pub fn romByte(off: u32) u8 {
+        return rt_file.romByte(off);
+    }
+    pub fn ioRead16(off: u32) u16 {
+        return rt_file.ioRead16(off);
+    }
+    pub fn accessCycles(addr: u32, wide: bool) u32 {
+        return rt_file.accessCycles(addr, wide);
+    }
+    pub fn advanceCycles(cycles: u32) void {
+        rt_file.advanceCycles(cycles);
+    }
+    pub fn dataCycles(addr: u32, wide: bool, load: bool) i32 {
+        return rt_file.dataCycles(addr, wide, load);
+    }
+    pub fn charge(c_delta: i32) void {
+        rt_file.charge(c_delta);
+    }
+    pub fn read32Raw(addr: u32) u32 {
+        return read32_(addr);
+    }
+    pub fn read16Raw(addr: u32) u16 {
+        return read16_(addr);
+    }
+    pub fn busWrite32Raw(addr: u32, val: u32) void {
+        busWrite32_(addr, val);
+    }
+    pub fn busRead8(addr: u32) u8 {
         return bus_read8(addr);
     }
-    pub fn busWrite8(_: *@This(), addr: u32, v: u8) void {
+    pub fn busWrite8(addr: u32, v: u8) void {
         bus_write8(addr, v);
     }
-    pub fn busRead16(_: *@This(), addr: u32) u16 {
+    pub fn busRead16(addr: u32) u16 {
         return bus_read16(addr);
     }
-    pub fn busWrite16(_: *@This(), addr: u32, v: u16) void {
+    pub fn busWrite16(addr: u32, v: u16) void {
         bus_write16(addr, v);
     }
-    pub fn busRead32(_: *@This(), addr: u32) u32 {
+    pub fn busRead32(addr: u32) u32 {
         return bus_read32(addr);
     }
-    pub fn busRead32s(_: *@This(), addr: u32) u32 {
+    pub fn busRead32s(addr: u32) u32 {
         return bus_read32s(addr);
     }
-    pub fn busWrite32(_: *@This(), addr: u32, v: u32) void {
+    pub fn busWrite32(addr: u32, v: u32) void {
         bus_write32(addr, v);
     }
+    pub fn swi(number: u32) void {
+        gba_swi(number);
+    }
+    pub fn cpuBx(addr: u32) void {
+        cbCpuBx(addr);
+    }
+    pub fn recompLookup(addr: u32) u32 {
+        return cbRecompLookup(addr);
+    }
+    pub fn recompLookupFn(addr: u32) ?*const fn () callconv(.c) void {
+        return cbRecompLookupFn(addr);
+    }
+    pub fn stateSave(s: *validate_mod.MachineState) void {
+        @memcpy(&s.ewram, &ewram_buf);
+        @memcpy(&s.iwram, &iwram_buf);
+        @memcpy(&s.io, &io_regs_buf);
+        @memcpy(&s.pal, &palette_buf);
+        @memcpy(&s.vram, &vram_buf);
+        @memcpy(&s.oam, &oam_buf);
+        s.r = r;
+        s.n = CPU_N;
+        s.z = CPU_Z;
+        s.c = CPU_C;
+        s.v = CPU_V;
+        s.cpsr = cpsr;
+        s.spsr = spsr;
+        s.cycle_counter = cycle_counter;
+        s.scanline = rt_file.scanline;
+        s.scanline_cycles = scanline_cycles;
+        s.hblank_done = if (hblank_done) 1 else 0;
+        s.last_poll_cycle = last_poll_cycle;
+        s.frame_count = frame_count;
+        s.timers = timer_state.ch;
+        s.bus_mode = bus_mode;
+        s.cycle_credit = cycle_credit;
+        s.vram_burst = vram_burst;
+    }
+    pub fn stateLoad(s: *const validate_mod.MachineState) void {
+        @memcpy(&ewram_buf, &s.ewram);
+        @memcpy(&iwram_buf, &s.iwram);
+        @memcpy(&io_regs_buf, &s.io);
+        @memcpy(&palette_buf, &s.pal);
+        @memcpy(&vram_buf, &s.vram);
+        @memcpy(&oam_buf, &s.oam);
+        r = s.r;
+        CPU_N = s.n;
+        CPU_Z = s.z;
+        CPU_C = s.c;
+        CPU_V = s.v;
+        cpsr = s.cpsr;
+        spsr = s.spsr;
+        cycle_counter = s.cycle_counter;
+        rt_file.scanline = s.scanline;
+        scanline_cycles = s.scanline_cycles;
+        hblank_done = (s.hblank_done != 0);
+        last_poll_cycle = s.last_poll_cycle;
+        frame_count = s.frame_count;
+        timer_state.ch = s.timers;
+        bus_mode = s.bus_mode;
+        cycle_credit = s.cycle_credit;
+        vram_burst = s.vram_burst;
+    }
 };
-var bios_ctx: BiosCtx = .{};
+
+var bios_ctx: adapters.BiosCtx(AdapterRt) = .{};
 
 pub export fn gba_swi(number: u32) void {
     if (soft_reset_pending) {
@@ -1015,179 +1080,7 @@ pub export fn gba_swi(number: u32) void {
     bios_mod.swi(&bios_ctx, number);
 }
 
-// ---- Interpreter Context Adapter & Export ----
-const InterpCtx = struct {
-    pub fn regs(_: *@This()) *[16]u32 {
-        return &r;
-    }
-    pub fn getN(_: *@This()) bool {
-        return CPU_N;
-    }
-    pub fn setN(_: *@This(), b: bool) void {
-        CPU_N = b;
-    }
-    pub fn getZ(_: *@This()) bool {
-        return CPU_Z;
-    }
-    pub fn setZ(_: *@This(), b: bool) void {
-        CPU_Z = b;
-    }
-    pub fn getC(_: *@This()) bool {
-        return CPU_C;
-    }
-    pub fn setC(_: *@This(), b: bool) void {
-        CPU_C = b;
-    }
-    pub fn getV(_: *@This()) bool {
-        return CPU_V;
-    }
-    pub fn setV(_: *@This(), b: bool) void {
-        CPU_V = b;
-    }
-    pub fn getCpsr(_: *@This()) u32 {
-        return cpu_get_cpsr();
-    }
-    pub fn setCpsr(_: *@This(), val: u32, mask: u32) void {
-        cpu_set_cpsr(val, mask);
-    }
-    pub fn getSpsr(_: *@This()) u32 {
-        return cpu_get_spsr();
-    }
-    pub fn setSpsr(_: *@This(), val: u32, mask: u32) void {
-        cpu_set_spsr(val, mask);
-    }
-    pub fn getBusMode(_: *@This()) BusMode {
-        return bus_mode;
-    }
-    pub fn setBusMode(_: *@This(), m: BusMode) void {
-        bus_mode = m;
-    }
-    pub fn setRet(_: *@This(), val: u32) void {
-        g_ret = val;
-    }
-    pub fn softResetPending(_: *@This()) bool {
-        return soft_reset_pending;
-    }
-    pub fn traceInterpEnter(_: *@This(), target: u32) void {
-        if (!has_posix) return;
-        if (trace_interp_left < 0) {
-            if (c_host.getenv("GBA_TRACE_INTERP")) |e| {
-                trace_interp_left = @intCast(c_host.atol(e));
-            } else {
-                trace_interp_left = 0;
-            }
-        }
-        if (trace_interp_left > 0) {
-            trace_interp_left -= 1;
-            std.debug.print("[interp] enter 0x{X:0>8} lr=0x{X:0>8} sp=0x{X:0>8} frame={d}\n", .{
-                target,
-                r[14],
-                r[13],
-                frame_count,
-            });
-        }
-    }
-    pub fn peekCodeWord(_: *@This(), peek_addr: u32) ?u32 {
-        const region = peek_addr >> 24;
-        switch (region) {
-            0x02 => {
-                const off = peek_addr & 0x3FFFF;
-                return @as(u32, ewram_buf[off]) |
-                    (@as(u32, ewram_buf[(off + 1) & 0x3FFFF]) << 8) |
-                    (@as(u32, ewram_buf[(off + 2) & 0x3FFFF]) << 16) |
-                    (@as(u32, ewram_buf[(off + 3) & 0x3FFFF]) << 24);
-            },
-            0x03 => {
-                const off = peek_addr & 0x7FFF;
-                return @as(u32, iwram_buf[off]) |
-                    (@as(u32, iwram_buf[(off + 1) & 0x7FFF]) << 8) |
-                    (@as(u32, iwram_buf[(off + 2) & 0x7FFF]) << 16) |
-                    (@as(u32, iwram_buf[(off + 3) & 0x7FFF]) << 24);
-            },
-            0x08...0x0D => {
-                if (rom_size == 0) return null;
-                const off = (peek_addr - 0x0800_0000) % rom_size;
-                return @as(u32, romByte(off)) |
-                    (@as(u32, romByte(off + 1)) << 8) |
-                    (@as(u32, romByte(off + 2)) << 16) |
-                    (@as(u32, romByte(off + 3)) << 24);
-            },
-            else => return null,
-        }
-    }
-    pub fn accessCycles(_: *@This(), addr: u32, wide: bool) u32 {
-        return rt_file.accessCycles(addr, wide);
-    }
-    pub fn dataCycles(_: *@This(), addr: u32, wide: bool, load: bool) i32 {
-        return rt_file.dataCycles(addr, wide, load);
-    }
-    pub fn charge(_: *@This(), c_delta: i32) void {
-        rt_file.charge(c_delta);
-    }
-    pub fn read32Raw(_: *@This(), addr: u32) u32 {
-        return read32_(addr);
-    }
-    pub fn read16Raw(_: *@This(), addr: u32) u16 {
-        return read16_(addr);
-    }
-    pub fn busWrite32Raw(_: *@This(), addr: u32, val: u32) void {
-        busWrite32_(addr, val);
-    }
-    pub fn busRead8(_: *@This(), addr: u32) u8 {
-        return bus_read8(addr);
-    }
-    pub fn busWrite8(_: *@This(), addr: u32, val: u8) void {
-        bus_write8(addr, val);
-    }
-    pub fn busRead16(_: *@This(), addr: u32) u16 {
-        return bus_read16(addr);
-    }
-    pub fn busWrite16(_: *@This(), addr: u32, val: u16) void {
-        bus_write16(addr, val);
-    }
-    pub fn busRead32(_: *@This(), addr: u32) u32 {
-        return bus_read32(addr);
-    }
-    pub fn busWrite32(_: *@This(), addr: u32, val: u32) void {
-        bus_write32(addr, val);
-    }
-    pub fn swi(_: *@This(), number: u32) void {
-        gba_swi(number);
-    }
-    pub fn cpuBx(_: *@This(), addr: u32) void {
-        cbCpuBx(addr);
-    }
-    pub fn recompLookup(_: *@This(), addr: u32) u32 {
-        return cbRecompLookup(addr);
-    }
-    pub fn warnUnmappedArmBx(_: *@This(), addr: u32, rm: u32, insn_pc: u32) void {
-        if (unmapped_bx_warns < 5) {
-            unmapped_bx_warns += 1;
-            core.gba.logPrint("[interp] ARM BX to unmapped 0x{X:0>8} (rm=r{d}, pc=0x{X:0>8}) - bailing\n", .{
-                addr,
-                rm,
-                insn_pc,
-            });
-        }
-    }
-    pub fn warnUnknownArm(_: *@This(), insn: u32, insn_pc: u32) void {
-        core.gba.logPrint("[interp] Unknown ARM insn 0x{X:0>8} at 0x{X:0>8}\n", .{ insn, insn_pc });
-    }
-    pub fn warnUnknownThumb(_: *@This(), insn: u16, insn_pc: u32) void {
-        core.gba.logPrint("[interp] Unknown Thumb insn 0x{X:0>4} at 0x{X:0>8}\n", .{ insn, insn_pc });
-    }
-    pub fn warnStepLimit(_: *@This(), target: u32, steps: usize, pc: u32) void {
-        if (interp_limit_warns < 3) {
-            interp_limit_warns += 1;
-            core.gba.logPrint("[interp] step limit hit at 0x{X:0>8} ({d} steps), pc=0x{X:0>8}\n", .{
-                target,
-                steps,
-                pc,
-            });
-        }
-    }
-};
-var interp_ctx: InterpCtx = .{};
+var interp_ctx: adapters.InterpCtx(AdapterRt) = .{};
 
 pub fn run_iwram_function(target: u32) void {
     if (soft_reset_pending) {
@@ -1203,11 +1096,7 @@ pub export fn awre_run_iwram_function(target: u32) void {
 
 // ---- Misc Runtime API Functions ----
 pub fn cpu_bx_trace(target: u32) void {
-    bx_trace_count +%= 1;
-    if (target != bx_trace_last and bx_trace_count <= 100) {
-        core.gba.logPrint("[bx #{d}] -> 0x{X:0>8}\n", .{ bx_trace_count, target });
-    }
-    bx_trace_last = target;
+    diagnostics.traceCpuBx(target);
 }
 
 pub export fn cpu_undefined(insn: u32) void {
@@ -1338,77 +1227,6 @@ fn writeDumpAtSnapshot() void {
     _ = c_host.fwrite(&oam_buf, 1, oam_buf.len, df);
 }
 
-fn checkHistFrame() void {
-    if (!has_posix) return;
-    if (!trace_at_init) {
-        trace_at_init = true;
-        if (c_host.getenv("GBA_FUNC_TRACE_AT")) |e| {
-            trace_at_env = std.mem.span(e);
-        }
-    }
-    if (g_hist_on != 0) histDump();
-    if (trace_at_env) |at_str| {
-        var it = std.mem.tokenizeScalar(u8, at_str, ',');
-        while (it.next()) |tok| {
-            const target_f = std.fmt.parseInt(u32, std.mem.trim(u8, tok, " \t"), 10) catch continue;
-            if (target_f == frame_count) {
-                g_hist_on = 1;
-                break;
-            }
-        }
-    }
-}
-
-fn histLessThan(_: void, a: HistEntry, b: HistEntry) bool {
-    return a.first < b.first;
-}
-
-fn histDump() void {
-    var n: usize = 0;
-    for (hist) |entry| {
-        if (entry.addr != 0) {
-            hist_out[n] = entry;
-            n += 1;
-        }
-    }
-    std.mem.sort(HistEntry, hist_out[0..n], {}, histLessThan);
-    core.gba.logPrint("[trace] frame {d}: {d} functions, in first-call order (count):", .{
-        frame_count -% 1,
-        n,
-    });
-    for (hist_out[0..n], 0..) |entry, k| {
-        const sep: []const u8 = if (k % 6 != 0) " " else "\n  ";
-        core.gba.logPrint("{s}{X:0>8}({d})", .{ sep, entry.addr, entry.count });
-    }
-    core.gba.logPrint("\n", .{});
-    @memset(&hist, .{});
-    hist_n = 0;
-    hist_seq = 0;
-    g_hist_on = 0;
-}
-
-fn funcRingDump() void {
-    var n: usize = 0;
-    for (0..4096) |i| {
-        const a = g_func_ring[(g_func_ring_i +% @as(u32, @intCast(i))) & 4095];
-        if (a == 0) continue;
-        var k: usize = 0;
-        while (k < n and ring_seen[k] != a) : (k += 1) {}
-        if (k == n) {
-            ring_seen[n] = a;
-            ring_count[n] = 0;
-            n += 1;
-        }
-        ring_count[k] += 1;
-    }
-    core.gba.logPrint("[runtime] frame {d}: last 4096 function entries, distinct (count):", .{frame_count});
-    for (0..n) |k| {
-        const sep: []const u8 = if (k % 6 != 0) " " else "\n  ";
-        core.gba.logPrint("{s}{X:0>8}({d})", .{ sep, ring_seen[k], ring_count[k] });
-    }
-    core.gba.logPrint("\n", .{});
-}
-
 pub export fn recomp_enter(addr: u32) bool {
     g_func_ring[g_func_ring_i & 4095] = addr;
     g_func_ring_i +%= 1;
@@ -1431,112 +1249,14 @@ pub export fn recomp_called_slow(retaddr: u32) bool {
 }
 
 pub export fn recomp_unwind_note(retaddr: u32) void {
-    core.gba.logPrint(
-        "[unwind] frame {d}: call site expecting {X:0>8} saw a return to {X:0>8} (last entered func_{X:0>8})\n",
-        .{
-            frame_count,
-            retaddr,
-            g_ret,
-            g_func_ring[(g_func_ring_i -% 1) & 4095],
-        },
-    );
-    g_unwind_trace -= 1;
-    if (g_unwind_trace == 0) {
-        core.gba.logPrint("[unwind] (further unwinds not logged)\n", .{});
-    }
+    diagnostics.noteUnwind(frame_count, retaddr, g_ret, &g_func_ring, g_func_ring_i, &g_unwind_trace);
 }
 
 pub export fn recomp_hist(addr: u32) void {
-    var h: usize = (addr >> 1) & 16383;
-    while (hist[h].addr != 0 and hist[h].addr != addr) {
-        h = (h + 1) & 16383;
-    }
-    if (hist[h].addr == 0) {
-        hist[h].addr = addr;
-        hist[h].first = hist_seq;
-        hist_seq += 1;
-        hist_n += 1;
-    }
-    hist[h].count += 1;
+    diagnostics.recordHist(addr);
 }
 
-const ValidateHost = struct {
-    pub fn recompLookup(_: *@This(), addr: u32) u32 {
-        return cbRecompLookup(addr);
-    }
-    pub fn recompLookupFn(_: *@This(), addr: u32) ?*const fn () callconv(.c) void {
-        return cbRecompLookupFn(addr);
-    }
-    pub fn regs(_: *@This()) *[16]u32 {
-        return &r;
-    }
-    pub fn getBxDepth(_: *@This()) i32 {
-        return if (game_cb) |cb| cb.bx_depth.* else 0;
-    }
-    pub fn setBxDepth(_: *@This(), v: i32) void {
-        if (game_cb) |cb| cb.bx_depth.* = v;
-    }
-    pub fn getRet(_: *@This()) u32 {
-        return g_ret;
-    }
-    pub fn setRet(_: *@This(), v: u32) void {
-        g_ret = v;
-    }
-    pub fn getCycleCounter(_: *@This()) u32 {
-        return cycle_counter;
-    }
-    pub fn stateSave(_: *@This(), s: *MachineState) void {
-        @memcpy(&s.ewram, &ewram_buf);
-        @memcpy(&s.iwram, &iwram_buf);
-        @memcpy(&s.io, &io_regs_buf);
-        @memcpy(&s.pal, &palette_buf);
-        @memcpy(&s.vram, &vram_buf);
-        @memcpy(&s.oam, &oam_buf);
-        s.r = r;
-        s.n = CPU_N;
-        s.z = CPU_Z;
-        s.c = CPU_C;
-        s.v = CPU_V;
-        s.cpsr = cpsr;
-        s.spsr = spsr;
-        s.cycle_counter = cycle_counter;
-        s.scanline = scanline;
-        s.scanline_cycles = scanline_cycles;
-        s.hblank_done = if (hblank_done) 1 else 0;
-        s.last_poll_cycle = last_poll_cycle;
-        s.frame_count = frame_count;
-        s.timers = timer_state.ch;
-        s.bus_mode = bus_mode;
-        s.cycle_credit = cycle_credit;
-        s.vram_burst = vram_burst;
-    }
-    pub fn stateLoad(_: *@This(), s: *const MachineState) void {
-        @memcpy(&ewram_buf, &s.ewram);
-        @memcpy(&iwram_buf, &s.iwram);
-        @memcpy(&io_regs_buf, &s.io);
-        @memcpy(&palette_buf, &s.pal);
-        @memcpy(&vram_buf, &s.vram);
-        @memcpy(&oam_buf, &s.oam);
-        r = s.r;
-        CPU_N = s.n;
-        CPU_Z = s.z;
-        CPU_C = s.c;
-        CPU_V = s.v;
-        cpsr = s.cpsr;
-        spsr = s.spsr;
-        cycle_counter = s.cycle_counter;
-        scanline = s.scanline;
-        scanline_cycles = s.scanline_cycles;
-        hblank_done = (s.hblank_done != 0);
-        last_poll_cycle = s.last_poll_cycle;
-        frame_count = s.frame_count;
-        timer_state.ch = s.timers;
-        bus_mode = s.bus_mode;
-        cycle_credit = s.cycle_credit;
-        vram_burst = s.vram_burst;
-    }
-};
-var validate_host: ValidateHost = .{};
+var validate_host: adapters.ValidateHost(AdapterRt) = .{};
 
 pub export fn recomp_validate(addr: u32) c_int {
     return validate_mod.runValidate(
@@ -1759,7 +1479,7 @@ pub fn gba_init(rom_path_opt: ?[*:0]const u8, save_path_opt: ?[*:0]const u8, exe
 
 pub fn gba_shutdown() void {
     if (has_posix) {
-        if (c_host.getenv("GBA_FUNC_TRACE") != null) funcRingDump();
+        if (c_host.getenv("GBA_FUNC_TRACE") != null) diagnostics.funcRingDump(frame_count, &g_func_ring, g_func_ring_i);
     }
     validate_mod.printSummary(g_validate != 0);
     sramSave();
@@ -1791,4 +1511,6 @@ pub fn gba_shutdown() void {
 test {
     _ = timing;
     _ = save_io;
+    _ = diagnostics;
+    _ = adapters;
 }
