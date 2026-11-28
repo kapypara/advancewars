@@ -44,6 +44,7 @@ pub const hi_peel_2 = @import("hi_peel_2.zig");
 pub const hi_peel_3 = @import("hi_peel_3.zig");
 pub const hi_peel_4 = @import("hi_peel_4.zig");
 pub const hi_peel_5 = @import("hi_peel_5.zig");
+pub const hi_peel_6 = @import("hi_peel_6.zig");
 
 comptime {
     _ = abi;
@@ -88,6 +89,7 @@ comptime {
     _ = hi_peel_3;
     _ = hi_peel_4;
     _ = hi_peel_5;
+    _ = hi_peel_6;
 }
 
 test {
@@ -133,4 +135,5 @@ test {
     _ = hi_peel_3;
     _ = hi_peel_4;
     _ = hi_peel_5;
+    _ = hi_peel_6;
 }
