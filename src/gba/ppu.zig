@@ -106,8 +106,12 @@ pub const Ppu = struct {
 
     pub inline fn plot(self: *Ppu, x: usize, color: u16, layer: u8, semi: u8) void {
         if (((self.win[x] >> @intCast(layer)) & 1) == 0) return;
-        self.bot_c[x] = self.top_c[x];
-        self.bot_l[x] = self.top_l[x];
+        // GBA OAM resolves a single winning OBJ pixel per x; a higher-priority OBJ
+        // replaces a lower-priority OBJ rather than pushing it into the 2nd blend target.
+        if (!(layer == 4 and self.top_l[x] == 4)) {
+            self.bot_c[x] = self.top_c[x];
+            self.bot_l[x] = self.top_l[x];
+        }
         self.top_c[x] = color;
         self.top_l[x] = layer;
         self.top_semi[x] = semi;
@@ -1069,4 +1073,32 @@ test "Ppu vertical margins honor WINOUT no-darken and shift battle HUD/WIN0 into
     });
     ppu.renderVerticalMargins(mem.view());
     try std.testing.expectEqual(@as(u32, 0xFF00FF00), ppu.wide_framebuf[220 * 240 + 150]);
+}
+
+test "Ppu semi-transparent OBJ over lower-priority OBJ blends with underlying BG" {
+    var mem = TestMem{};
+    // Backdrop = pure blue (0x7C00)
+    TestMem.write16(&mem.palette, 0, 0x7C00);
+    // BLDCNT: target2 = backdrop only (bit 13 = 0x2000; OBJ bit 12 is NOT set)
+    TestMem.write16(&mem.io_regs, gba.io_reg.bldcnt, 0x2000);
+    // BLDALPHA: 50/50 blend (EVA=8, EVB=8)
+    TestMem.write16(&mem.io_regs, gba.io_reg.bldalpha, 0x0808);
+
+    var ppu = Ppu{};
+    ppu.top_c[0] = 0x7C00;
+    ppu.bot_c[0] = 0x7C00;
+    ppu.top_l[0] = 5;
+    ppu.bot_l[0] = 5;
+    ppu.top_semi[0] = 0;
+    ppu.win[0] = 0x3F;
+
+    // Lower-priority opaque OBJ (e.g. building roof, green = 0x03E0)
+    ppu.plot(0, 0x03E0, 4, 0);
+    // Higher-priority semi-transparent OBJ (e.g. Day banner, red = 0x001F)
+    ppu.plot(0, 0x001F, 4, 1);
+
+    var out: [1]u32 = .{0};
+    ppu.blendScanline(mem.view(), 1, &out);
+    // Expected 50/50 blend of red (31,0,0) and blue (0,0,31) -> RGB555 (15,0,15)
+    try std.testing.expectEqual(gba.rgb555ToArgb8888((15) | (15 << 10)), out[0]);
 }

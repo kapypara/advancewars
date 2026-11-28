@@ -35,12 +35,13 @@ Incrementally transform the lifted ARM register/bus Zig code (`rt.r[0..14]`, raw
 ## Phase 3 — Bottom-Up Idiomatic Zig Subsystems (Thin ABI Bridge Pattern)
 Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 line `func_08XXXXXX` ABI bridges until all callers become native Zig:
 
-- **3A — Low-Level Utilities & Top Hot Loops (`math.zig`, `main_loop.zig`, `tail_low.zig`, `bios.zig`, `dma.zig`):**
-  - Pure Zig PRNG (`nextRngSeed`), fixed-point Q12 3x3 matrix*vector (`mulMat3Vec3Q12` in [math.zig](../src/game/math.zig)).
-  - Top 3 dynamic hot functions (`97.7%` of Field Training calls) refactored/documented: `func_08038824` (soft-reset key combo) and `func_080383F8` (per-frame 8-step tick dispatcher) lifted to [main_loop.zig](../src/game/main_loop.zig); `func_0807B44C` documented as GCC `__call_via_r0` trampoline in [tail_low.zig](../src/game/tail_low.zig).
-  - Next 3 hottest active peeled functions (`54,154` calls in `low_peel_6.zig`) lifted into domain modules: `func_08018B68` (`lookupGuardTable` in [menu.zig](../src/game/menu.zig)), `func_080112C0` (palette RAM sync in [hw.zig](../src/game/hw.zig)), `func_08013984` (proc slot tick in [proc.zig](../src/game/proc.zig)).
-  - Next Phase 3A hot batch (`23,804` calls): `func_0803849C` (secondary gated tick dispatcher) & `func_0805BA34` (input shadow snapshot, directly connected inside `main_loop.zig`) lifted to [main_loop.zig](../src/game/main_loop.zig); `func_0801A6D8` (task queue head pop) lifted to [proc.zig](../src/game/proc.zig); `pal_ram` symbol cleanup in [dma.zig](../src/game/dma.zig).
-  - Remaining: `CpuSet`/`CpuFastSet`/`LZ77`/`HuffUnComp` callers & `low_peel_13.zig` hot loops (`func_0807B6AC`, `func_0807B564`).
+- **3A — Low-Level Utilities & Top Hot Loops:**
+  - [x] **3A.1 — Core Math & Main Frame Loop (`math.zig`, `main_loop.zig`, `tail_low.zig`):** Pure Zig `nextRngSeed` & `mulMat3Vec3Q12` ([math.zig](../src/game/math.zig)); top hot loops `func_08038824` (`isSoftResetComboPressed`), `func_080383F8`, `func_0803849C`, and `func_0805BA34` lifted & connected in [main_loop.zig](../src/game/main_loop.zig); `func_0807B44C` (`__call_via_r0`) documented in [tail_low.zig](../src/game/tail_low.zig).
+  - [x] **3A.2 — Palette Flush, Menu Guard & Proc Dispatch (`menu.zig`, `hw.zig`, `proc.zig`, `dma.zig`):** `func_08018B68` (`lookupGuardTable` in [menu.zig](../src/game/menu.zig)), `func_080112C0` (palette sync in [hw.zig](../src/game/hw.zig)), `func_08013984` (proc tick) + `func_0801A6D8` (task queue pop) in [proc.zig](../src/game/proc.zig), `types.addr.pal_ram` in [dma.zig](../src/game/dma.zig).
+  - [x] **3A.3 — Fixed-Point Trig (`math.zig`):** Lift `func_0807AED4` (`sinDeg` / `normalizeSinDeg`) out of [clusters_low_2.zig](../src/game/clusters_low_2.zig) into [math.zig](../src/game/math.zig) and connect `func_0807AF30` (`cosDeg`) directly.
+  - [x] **3A.4 — Integer Division Runtime Helpers (`clusters_low_2.zig` → `math.zig`):** `func_0807B488` (`__divsi3` / `divSigned32`) lifted to [math.zig](../src/game/math.zig) with edge-case tests; `func_0807B51C` (`__div0`) already clean in [hw.zig](../src/game/hw.zig).
+  - [ ] **3A.5 — Hot Audio/Mixer Loops (`low_peel_13.zig`):** Lift `func_0807B6AC` (`11,316` calls) and `func_0807B564` (`8,542` calls) out of [low_peel_13.zig](../src/game/low_peel_13.zig) into `sound.zig`.
+  - [ ] **3A.6 — Core VRAM/Palette DMA Helpers (`dma.zig` / `bios.zig`):** Lift `func_0800FDA4` / `func_0800FFA8` / `func_0801122C` / `func_080796AC` callers into typed `dma.zig` helpers and reconnect `hw.zig` / `main_loop.zig`.
 - **3B — Core Game Data & Simulation (`map.zig`, `unit.zig`, `co.zig`, `battle.zig`):**
   - Typed tile/unit lookups, movement cost, BFS reachability, damage calculation, capture/supply/vision rules.
 - **3C — Engine, Task Scheduler & Hardware (`proc.zig`, `hw.zig`, `sprite_anim.zig`, `sound.zig`, `state.zig`):**

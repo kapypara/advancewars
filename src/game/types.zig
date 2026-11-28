@@ -65,6 +65,7 @@ pub const addr = struct {
     pub const frame_input_state: u32 = 0x0300_1E70;
     pub const frame_input_shadow_a: u32 = 0x0300_4BF0;
     pub const frame_input_shadow_b: u32 = 0x0300_4B54;
+    pub const sin_table_q12: u32 = 0x0827_D3A8;
 };
 
 pub const key_mask_all: u32 = 0x0000_03FF;

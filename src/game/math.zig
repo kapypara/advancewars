@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const types = @import("types.zig");
 
 /// Advance the Advance Wars 32-bit PRNG state: `((4*s + 2) * (4*s + 3)) >> 2`.
 pub fn nextRngSeed(seed: u32) u32 {
@@ -37,13 +38,81 @@ pub fn func_08010A84() callconv(.c) void {
     abi.retLr();
 }
 
+pub const SinIndex = struct {
+    idx: u8,
+    negate: bool,
+};
+
+/// Fold any signed integer degree angle into `[0, 359]`, then into `[0, 90]` + sign flag.
+pub fn normalizeSinDeg(deg: i32) SinIndex {
+    var d = deg;
+    while (d < 0) d +%= 360;
+    while (d > 359) d -%= 360;
+    const negate = d > 179;
+    var q = if (negate) d - 180 else d;
+    if (q > 90) q = 180 - q;
+    return .{ .idx = @intCast(q), .negate = negate };
+}
+
+/// Return signed Q12 sine for integer degrees `i32(r0)` (`0x0807AED4`).
+pub fn func_0807AED4() callconv(.c) void {
+    if (!abi.enter(0x0807AED4)) return;
+    abi.fetches(6);
+    const deg: i32 = @bitCast(rt.r[0]);
+    var d: i32 = deg;
+    rt.r[3] = types.addr.sin_table_q12;
+    if (d < 0) {
+        abi.fetches(4);
+        while (d < 0) {
+            abi.fetches(5);
+            d +%= 360;
+        }
+    }
+    abi.fetches(5);
+    if (d > 359) {
+        abi.fetches(3);
+        while (d > 359) {
+            abi.fetches(5);
+            d -%= 360;
+        }
+    }
+
+    const norm = normalizeSinDeg(deg);
+    rt.r[2] = @bitCast(d);
+    abi.fetches(5);
+    if (norm.negate) abi.fetches(3);
+    const half_deg = if (norm.negate) d - 180 else d;
+    abi.fetches(4);
+    if (half_deg > 90) abi.fetches(4);
+    abi.fetches(4);
+
+    const idx_u32: u32 = norm.idx;
+    var entry_addr: u32 = undefined;
+    rt.cpuAdd(&entry_addr, idx_u32 << 1, types.addr.sin_table_q12, true);
+    const raw = abi.read16(entry_addr);
+    if (norm.negate) {
+        abi.fetches(8);
+        var neg_u32: u32 = undefined;
+        rt.cpuSub(&neg_u32, 0, raw, true);
+        const neg_i16: i16 = @truncate(@as(i32, @bitCast(neg_u32)));
+        rt.r[1] = idx_u32;
+        abi.setRegNz(&rt.r[0], @bitCast(@as(i32, neg_i16)));
+    } else {
+        abi.fetches(7);
+        abi.setRegNz(&rt.r[1], 0);
+        rt.r[0] = @bitCast(@as(i32, @as(i16, @bitCast(raw))));
+    }
+    abi.fetches(3);
+    abi.retLr();
+}
+
 /// Return signed cosine for integer degrees via `sin(deg + 90)` (`0x0807AF30`).
 pub fn func_0807AF30() callconv(.c) void {
     if (!abi.enter(0x0807AF30)) return;
     abi.fetches(6);
     abi.pushLr();
     rt.cpuAdd(&rt.r[0], rt.r[0], 0x5A, true);
-    if (!abi.call(decls.func_0807AED4, 0x0807AF39)) return;
+    if (!abi.call(func_0807AED4, 0x0807AF39)) return;
     abi.fetches(5);
     const signed_val: i32 = abi.signExtend16(@truncate(rt.r[0]));
     abi.setRegNz(&rt.r[0], @bitCast(signed_val));
@@ -51,6 +120,87 @@ pub fn func_0807AF30() callconv(.c) void {
     rt.r[13] +%= 4;
     rt.r[15] = lr_val;
     rt.recompReturn(lr_val);
+}
+
+/// Signed 32-bit truncating division matching libgcc `__divsi3` (returns `0` on divide-by-zero
+/// and wraps `minInt(i32) / -1` to `minInt(i32)`).
+pub fn divSigned32(num: i32, den: i32) i32 {
+    if (den == 0) return 0;
+    const num_u: u32 = @bitCast(num);
+    const den_u: u32 = @bitCast(den);
+    const abs_num: u32 = if (num < 0) 0 -% num_u else num_u;
+    const abs_den: u32 = if (den < 0) 0 -% den_u else den_u;
+    const quot: u32 = abs_num / abs_den;
+    return @bitCast(if ((num ^ den) < 0) 0 -% quot else quot);
+}
+
+/// Signed 32-bit division runtime helper (`__divsi3`, `0x0807B488`).
+pub fn func_0807B488() callconv(.c) void {
+    if (!abi.enter(0x0807B488)) return;
+    if (rt.r[1] == 0) {
+        abi.fetches(9);
+        abi.pushLr();
+        if (!abi.call(decls.func_0807B51C, 0x0807B517)) return;
+        abi.fetches(4);
+        abi.setRegNz(&rt.r[0], 0);
+        rt.r[15] = abi.popReg();
+        rt.recompReturn(rt.r[15]);
+        return;
+    }
+
+    abi.fetches(14);
+    abi.pushReg(4);
+    const sign_xor = rt.r[0] ^ rt.r[1];
+    rt.r[12] = sign_xor;
+
+    var rem: u32 = if (@as(i32, @bitCast(rt.r[0])) < 0) 0 -% rt.r[0] else rt.r[0];
+    var den: u32 = if (@as(i32, @bitCast(rt.r[1])) < 0) 0 -% rt.r[1] else rt.r[1];
+    var quot: u32 = 0;
+    var bit: u32 = 1;
+
+    if (rem >= den) {
+        while (den < 0x1000_0000 and den < rem) {
+            abi.fetches(13);
+            den <<= 4;
+            bit <<= 4;
+        }
+        while (den < 0x8000_0000 and den < rem) {
+            abi.fetches(13);
+            den <<= 1;
+            bit <<= 1;
+        }
+        while (true) {
+            abi.fetches(24);
+            if (rem >= den) {
+                rem -%= den;
+                quot |= bit;
+            }
+            if (rem >= (den >> 1)) {
+                rem -%= (den >> 1);
+                quot |= (bit >> 1);
+            }
+            if (rem >= (den >> 2)) {
+                rem -%= (den >> 2);
+                quot |= (bit >> 2);
+            }
+            if (rem >= (den >> 3)) {
+                rem -%= (den >> 3);
+                quot |= (bit >> 3);
+            }
+            if (rem == 0) break;
+            bit >>= 4;
+            if (bit == 0) break;
+            den >>= 4;
+        }
+    }
+
+    rt.r[1] = den;
+    rt.r[2] = quot;
+    rt.r[3] = bit;
+    rt.r[0] = if (@as(i32, @bitCast(sign_xor)) < 0) 0 -% quot else quot;
+    rt.r[4] = abi.popReg();
+    abi.fetches(10);
+    abi.retLr();
 }
 
 /// Read signed 16-bit halfword from the global pointer at `0x0800FD0C` (`0x0800FCFA`).
@@ -566,6 +716,8 @@ comptime {
         @export(&func_0806CF50, .{ .name = "func_0806CF50", .linkage = .strong });
         @export(&func_0806D23C, .{ .name = "func_0806D23C", .linkage = .strong });
         @export(&func_0806D260, .{ .name = "func_0806D260", .linkage = .strong });
+        @export(&func_0807AED4, .{ .name = "func_0807AED4", .linkage = .strong });
+        @export(&func_0807B488, .{ .name = "func_0807B488", .linkage = .strong });
         @export(&func_0807AF30, .{ .name = "func_0807AF30", .linkage = .strong });
         @export(&func_0800FCFA, .{ .name = "func_0800FCFA", .linkage = .strong });
         @export(&func_0803D4F0, .{ .name = "func_0803D4F0", .linkage = .strong });
@@ -619,4 +771,30 @@ test "mulMat3Vec3Q12 handles identity and signed Q12 scaling" {
     try std.testing.expectEqual(@as(u32, 20), res[0]);
     try std.testing.expectEqual(@as(i32, -20), @as(i32, @bitCast(res[1])));
     try std.testing.expectEqual(@as(i32, -4), @as(i32, @bitCast(res[2])));
+}
+
+test "normalizeSinDeg folds all quadrants and wraparound degrees" {
+    try std.testing.expectEqual(SinIndex{ .idx = 0, .negate = false }, normalizeSinDeg(0));
+    try std.testing.expectEqual(SinIndex{ .idx = 45, .negate = false }, normalizeSinDeg(45));
+    try std.testing.expectEqual(SinIndex{ .idx = 90, .negate = false }, normalizeSinDeg(90));
+    try std.testing.expectEqual(SinIndex{ .idx = 45, .negate = false }, normalizeSinDeg(135));
+    try std.testing.expectEqual(SinIndex{ .idx = 0, .negate = true }, normalizeSinDeg(180));
+    try std.testing.expectEqual(SinIndex{ .idx = 45, .negate = true }, normalizeSinDeg(225));
+    try std.testing.expectEqual(SinIndex{ .idx = 90, .negate = true }, normalizeSinDeg(270));
+    try std.testing.expectEqual(SinIndex{ .idx = 1, .negate = true }, normalizeSinDeg(359));
+    try std.testing.expectEqual(SinIndex{ .idx = 0, .negate = false }, normalizeSinDeg(-720));
+    try std.testing.expectEqual(SinIndex{ .idx = 90, .negate = true }, normalizeSinDeg(-90));
+    try std.testing.expectEqual(SinIndex{ .idx = 90, .negate = false }, normalizeSinDeg(450));
+}
+
+test "divSigned32 matches truncating signed division and edge cases" {
+    try std.testing.expectEqual(@as(i32, 7), divSigned32(22, 3));
+    try std.testing.expectEqual(@as(i32, -7), divSigned32(-22, 3));
+    try std.testing.expectEqual(@as(i32, -7), divSigned32(22, -3));
+    try std.testing.expectEqual(@as(i32, 7), divSigned32(-22, -3));
+    try std.testing.expectEqual(@as(i32, 0), divSigned32(0, 5));
+    try std.testing.expectEqual(@as(i32, 0), divSigned32(123, 0));
+    try std.testing.expectEqual(std.math.minInt(i32), divSigned32(std.math.minInt(i32), -1));
+    try std.testing.expectEqual(@as(i32, -1073741824), divSigned32(std.math.minInt(i32), 2));
+    try std.testing.expectEqual(@as(i32, 715827882), divSigned32(std.math.maxInt(i32), 3));
 }
