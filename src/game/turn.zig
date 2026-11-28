@@ -5,6 +5,8 @@ const builtin = @import("builtin");
 const rt = @import("runtime");
 const decls = @import("decls");
 const abi = @import("abi.zig");
+const mem = @import("mem.zig");
+const types = @import("types.zig");
 
 fn popReturnValue() void {
     const lr_val = abi.read32(rt.r[13]);
@@ -94,6 +96,73 @@ pub fn func_080338FC() callconv(.c) void {
     abi.fetches(8);
     const ctrl_ptr = abi.read32(abi.read32(0x08033914));
     abi.write16(ctrl_ptr +% 2, 3);
+    abi.popReturn();
+}
+
+fn advanceTurnPhaseIfMode3(comptime phase: u32, comptime arg2: u32, comptime ret_addr: u32) bool {
+    const mode = mem.readU8(mem.readU32(types.addr.turn_mode_ptr));
+    rt.r[0] = mode;
+    rt.cpuSub(null, mode, 3, true);
+    if (mode == 3) {
+        abi.fetches(9);
+        rt.r[4] = types.addr.map_overlay_ptr;
+        rt.r[0] = mem.readU16(mem.readU32(types.addr.map_overlay_ptr));
+        abi.setRegNz(&rt.r[1], phase);
+        abi.setRegNz(&rt.r[2], arg2);
+        if (!abi.call(decls.func_08032B34, ret_addr)) return false;
+        abi.fetches(4);
+        const dst = mem.readU32(rt.r[4]);
+        rt.r[1] = dst;
+        mem.writeU16(dst, @truncate(rt.r[0]));
+    }
+    return true;
+}
+
+/// Play SFX `0x6C` and advance turn controller to phase `0xC` when mode is `3` (`0x08033464`).
+pub fn func_08033464() callconv(.c) void {
+    if (!abi.enter(0x08033464)) return;
+    abi.fetches(6);
+    abi.pushLr();
+    abi.pushReg(4);
+    abi.setRegNz(&rt.r[0], 0x6C);
+    if (!abi.call(decls.func_0803D880, 0x0803346D)) return;
+    abi.fetches(7);
+    if (!advanceTurnPhaseIfMode3(0xC, 2, 0x08033485)) return;
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Advance turn controller to phase `0xD` when mode is `3` (`0x08033498`).
+pub fn func_08033498() callconv(.c) void {
+    if (!abi.enter(0x08033498)) return;
+    abi.fetches(8);
+    abi.pushLr();
+    abi.pushReg(4);
+    if (!advanceTurnPhaseIfMode3(0xD, 0, 0x080334B3)) return;
+    abi.fetches(5);
+    rt.r[4] = abi.popReg();
+    abi.popReturn();
+}
+
+/// Dispatch banner/phase event `r0.0x1C + 5` via `0x0801A7A4` when mode is `3` (`0x080334C4`).
+pub fn func_080334C4() callconv(.c) void {
+    if (!abi.enter(0x080334C4)) return;
+    abi.fetches(9);
+    abi.pushLr();
+    rt.cpuAdd(&rt.r[1], rt.r[0], 0, true);
+    const mode = mem.readU8(mem.readU32(types.addr.turn_mode_ptr));
+    rt.r[0] = mode;
+    rt.cpuSub(null, mode, 3, true);
+    if (mode == 3) {
+        abi.fetches(11);
+        const idx: u8 = mem.readU8(rt.r[1] +% 0x1C) +% 5;
+        abi.setRegNz(&rt.r[0], idx);
+        rt.r[1] = 0x0202_D000;
+        abi.setRegNz(&rt.r[2], @as(u32, 0xE5) << 3);
+        if (!abi.call(decls.func_0801A7A4, 0x080334E5)) return;
+    }
+    abi.fetches(4);
     abi.popReturn();
 }
 
@@ -1554,6 +1623,9 @@ comptime {
         @export(&func_0803314C, .{ .name = "func_0803314C", .linkage = .strong });
         @export(&func_0803340C, .{ .name = "func_0803340C", .linkage = .strong });
         @export(&func_0803344C, .{ .name = "func_0803344C", .linkage = .strong });
+        @export(&func_08033464, .{ .name = "func_08033464", .linkage = .strong });
+        @export(&func_08033498, .{ .name = "func_08033498", .linkage = .strong });
+        @export(&func_080334C4, .{ .name = "func_080334C4", .linkage = .strong });
         @export(&func_08033574, .{ .name = "func_08033574", .linkage = .strong });
         @export(&func_080338B8, .{ .name = "func_080338B8", .linkage = .strong });
         @export(&func_08033FF8, .{ .name = "func_08033FF8", .linkage = .strong });
@@ -1587,4 +1659,6 @@ test "centerTileSpanX centers 8px tiles across 240px viewport" {
     try std.testing.expectEqual(@as(u32, 120), centerTileSpanX(0));
     try std.testing.expectEqual(@as(u32, 80), centerTileSpanX(10));
     try std.testing.expectEqual(@as(u32, 0), centerTileSpanX(30));
+    try std.testing.expectEqual(@as(u32, 0x0828_BFFC), types.addr.turn_mode_ptr);
+    try std.testing.expectEqual(@as(u32, 0x0828_C05C), types.addr.map_overlay_ptr);
 }

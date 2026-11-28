@@ -54,7 +54,10 @@ Refactor subsystems bottom-up into typed Zig functions while keeping thin 3–5 
   - [x] **3C.3 — Hardware Input, Display & IRQ Helpers (`hw.zig`, `main_loop.zig`):** Lift key polling (`func_0801122C`) and hardware register sync helpers into `hw.zig`.
   - [x] **3C.4 — Audio Triggers & Game State Helpers (`sound.zig`, `state.zig`):** Lift core SFX/BGM trigger wrappers and top-level game state transition helpers.
 - **3D — Gameplay, UI, Turns & AI (`turn.zig`, `menu.zig`, `ui.zig`, `campaign.zig`, `overlay*.zig`, hot `low_peel_*` / `clusters_low*`):**
-  - Turn phase machine, command menus, CO power logic, campaign flow, AI evaluation.
+  - [x] **3D.1 — Turn Phase & Day/CO Transition Helpers (`turn.zig`):** Lift mode-gated turn phase transition helpers (`func_08033464`, `func_08033498`, `func_080334C4`) into `turn.zig`.
+  - [ ] **3D.2 — Command Menu & Guard Table Helpers (`menu.zig`):** Lift core tactical/command menu dispatch helpers into `menu.zig`.
+  - [ ] **3D.3 — Campaign Flow & UI Dialog Helpers (`campaign.zig`, `ui.zig`):** Lift core campaign progression and UI dialog helpers.
+  - [ ] **3D.4 — AI Evaluation & Tactical Helpers (`unit.zig`, `map.zig`, `battle.zig`):** Lift core AI target/unit evaluation helpers from hot `low_peel_*` files.
 
 ## Phase 4 — Cross-Module Direct Calls & ABI Bridge Removal
 - **Objective:** Import refactored subsystems directly between `src/game/` modules, call typed Zig functions instead of `decls.func_XXXXXXXX()`, and delete obsolete `func_08XXXXXX` wrappers and `rt.r[..]` shuffling.

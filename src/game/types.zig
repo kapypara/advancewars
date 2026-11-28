@@ -21,6 +21,7 @@ pub const addr = struct {
     pub const unit_list_ptr: u32 = 0x0828_2CB8;
     pub const unit_data_table_9e88: u32 = 0x0828_9E88;
     pub const unit_cap_table_2ee5: u32 = 0x0828_2EE5;
+    pub const turn_mode_ptr: u32 = 0x0828_BFFC;
     pub const map_overlay_ptr: u32 = 0x0828_C05C;
 
     pub const main_callback_slot: u32 = 0x0300_0D8C;
